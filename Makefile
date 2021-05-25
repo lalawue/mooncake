@@ -23,9 +23,9 @@ out:
 	rm -f *.out
 	rm -rf out/
 	mkdir -p $(ODIR)
+	$(CS) mnscript/cmdline.mn > $(ODIR)/cmdline.lua	
 	$(CS) mnscript/compile.mn > $(ODIR)/compile.lua
 	$(CS) mnscript/core.mn > $(ODIR)/core.lua
-	$(CS) mnscript/loader.mn > $(ODIR)/loader.lua
 	$(CS) mnscript/parser.mn > $(ODIR)/parser.lua
 	$(CS) mnscript/utils.mn > $(ODIR)/utils.lua
 	$(OLIB) && busted -c
