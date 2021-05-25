@@ -1,11 +1,11 @@
 
 describe("test success #loader", function()
     local match = require("luassert.match")
-    local utils = require("mn_utils")
+    local utils = require("mnscript.utils")
     stub(utils, "debug")
     stub(utils, "dump")
 
-    local Loader = require("mn_loader")
+    local Loader = require("mnscript.loader")
 
     it("shoud called help", function()
         Loader.main()

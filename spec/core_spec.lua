@@ -1,4 +1,4 @@
-local core = require("mn_core")
+local core = require("mnscript.core")
 
 describe("test success #core", function()
     package.mnpath = package.mnpath .. ";./examples/?.mn"

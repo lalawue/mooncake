@@ -1,5 +1,5 @@
-local parser = require("mn_parser")
-local compile = require("mn_compile")
+local parser = require("mnscript.parser")
+local compile = require("mnscript.compile")
 
 describe("test success #expr", function()
     local mnstr=[[

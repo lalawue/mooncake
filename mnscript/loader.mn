@@ -1,0 +1,187 @@
+--
+-- Copyright (c) 2021 lalawue
+--
+-- This library is free software; you can redistribute it and/or modify it
+-- under the terms of the MIT license. See LICENSE for details.
+--
+
+import Utils from "mnscript.utils"
+import Core from "mnscript.core"
+
+class Loader {
+
+    class fn help() {
+        Utils.debug("Usage: [OPTIONS] FILE")
+        Utils.debug("\t-h print this help")
+        Utils.debug("\t-a print AST")
+        Utils.debug("\t-s output Lua source only")
+        Utils.debug("\t-v version")
+    }
+
+    class fn option(...) {
+        a, b = ...
+        if a == nil or a == "-h" {
+            Loader.help()
+            return
+        }
+        config = {}
+        a = (b and a) or (not b and a) or "-"
+        switch a {
+        case "-a":
+            config.option = "ast"
+            config.opcount = 2
+            config.fname = b
+        case "-s":
+            config.option = "source"
+            config.opcount = 2
+            config.fname = b
+            config.shebang = true
+        case "-p":
+            config.option = "project"
+            config.opcount = 2
+            config.fname = b
+            config.shebang = true
+        case "-v":
+            Utils.debug(Core.version())
+            return
+        default:
+            if a:len() <= 0 or b {
+                Loader.help()
+                return
+            } else {
+                config.option = "run"
+                config.opcount = 1
+                config.fname = a
+            }
+        }
+        return config
+    }
+
+    class fn toCode(config) {
+        -- read file first
+        text = Utils.readFile(config.fname)
+        if not text {
+            Utils.debug("Failed to read file '" .. config.fname .. "'")
+            return
+        }
+
+        -- generate AST
+        res, emsg = Core.toAST(config, text)
+        if not res or config.option == "ast" {
+            if res {
+                Utils.dump(res.ast)
+            } else {
+                Utils.debug(emsg)
+            }
+            return
+        }
+
+        -- generate Lua code
+        res, emsg = Core.toLua(config, res)
+        if not res or config.option == "source" {
+            if res {
+                Utils.debug(res)
+            } else {
+                Utils.debug(emsg)
+            }
+            return
+        }
+        return res
+    }
+
+    class fn run(config, content, ...) {
+        f, err = load(content, config.fname, "t")
+        if type(f) == "function" {
+            f(select(config.opcount + 1, ...))
+        } else {
+            Utils.debug(err)
+        }
+    }
+
+    class fn project(config) {
+        -- read config
+        config_content = Utils.readFile(config.fname)
+        if not config_content {
+            Utils.debug("Failed to read config")
+            return
+        }
+
+        -- load config
+        f = Core.loadstring(config_content, config.fname)
+        if type(f) ~= "function" {
+            Utils.debug("Failed to load config")
+        }
+
+        -- get config table
+        pt = f()
+        if type(pt) ~= "table" {
+            Utils.debug("Invalid config")
+            return
+        }
+
+        lfs = assert(require("lfs"))
+        tmp_config = Utils.copy(config)
+        -- generate Lua code recursive
+        fn toLuaDir(config, in_dir, out_dir) {
+            for fname in lfs.dir(in_dir) {
+                flen = fname:len()
+                if flen > 0 and fname:sub(1, 1) ~= "." {
+                    lfs.mkdir(out_dir)                    
+                    local inpath = in_dir .. "/" .. fname
+                    local outpath = out_dir .. "/" .. fname
+                    local ft = lfs.attributes(inpath)
+                    if ft.mode == "directory" {
+                        Utils.debug("into " .. outpath)
+                        if not toLuaDir(config, inpath, outpath) {
+                            return false
+                        }
+                    } elseif flen > 3 and fname:sub(flen - 2, flen) == ".mn" {
+                        tmp_config.fname = inpath
+                        code = Loader.toCode(tmp_config)
+                        if not code {
+                            return false
+                        }
+                        outname = outpath:sub(1, outpath:len() - 3) .. ".lua"
+                        Utils.writeFile(outname, code)
+                    }
+                }
+            }
+            return true
+        }
+
+        -- check projects
+        for i, proj in ipairs(pt) {
+            if proj.name and proj.proj_dir and proj.proj_out {
+                Utils.debug("proj: [" .. proj.proj_dir .. ']')            
+                if not toLuaDir(config, proj.proj_dir, proj.proj_out) {
+                    break
+                }
+            } else {
+                Utils.debug("[" .. (proj.name or "unknown") .. "] project !")
+            }
+        }
+    }
+
+    class fn main(...) {
+        config = Loader.option(...)
+        if not config {
+            return
+        }
+
+        -- output SOURCE from project config
+        if config.option == "project" {
+            Loader.project(config)
+            return
+        }
+
+        code = Loader.toCode(config)
+        if not code {
+            return
+        }
+
+        -- run this Lua code
+        return Loader.run(config, code, ...)
+    }
+}
+
+return Loader

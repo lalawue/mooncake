@@ -1,6 +1,4 @@
 #!/usr/bin/env lua
 
-package.path = package.path .. ";./core/?.lua"
-
-local Loader = require("mn_loader")
+local Loader = require("mnscript.loader")
 Loader.main(...)

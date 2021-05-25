@@ -1,15 +1,15 @@
-local parser = require("mn_parser")
-local compile = require("mn_compile")
-local utils = require("mn_utils")
+local parser = require("mnscript.parser")
+local compile = require("mnscript.compile")
+local utils = require("mnscript.utils")
 
 describe("test success #import", function()
     local mnstr=[[
-        import "mn_utils"
-        import utils from "mn_utils"
+        import "mnscript.utils"
+        import utils from "mnscript.utils"
         import ut from utils
         import split, trim from ut {}
         fn call() {
-            import s from "mn_utils" { split }
+            import s from "mnscript.utils" { split }
             return { s, trim, utils }
         }
         return call()
@@ -39,7 +39,7 @@ end)
 
 describe("test failed #import", function()
     local mnstr=[[
-        import from "mn_utils"
+        import from "mnscript.utils"
     ]]
 
     local ret, ast = parser.parse(mnstr)

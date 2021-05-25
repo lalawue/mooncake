@@ -5,10 +5,9 @@
 .PHONY : test
 .PHONY : out
 
-OUT_LIB=export LUA_PATH="./out/?.lua;"
-CS_LIB=export LUA_PATH="./core/?.lua;"
+OLIB=export LUA_PATH="./out/?.lua;"
+ODIR=out/mnscript
 CS=./bin/mnscript -s
-
 
 all:
 	@echo "Usage:"
@@ -18,18 +17,18 @@ all:
 test:
 	rm -f *.out
 	rm -rf out/
-	$(CS_LIB) && busted -c
+	busted -c
 
 out:
 	rm -f *.out
 	rm -rf out/
-	mkdir out
-	$(CS) core/mn_utils.mn > out/mn_utils.lua
-	$(CS) core/mn_loader.mn > out/mn_loader.lua
-	$(CS) core/mn_parser.mn > out/mn_parser.lua
-	$(CS) core/mn_compile.mn > out/mn_compile.lua
-	$(CS) core/mn_core.mn > out/mn_core.lua
-	$(OUT_LIB) && busted -c
+	mkdir -p $(ODIR)
+	$(CS) mnscript/compile.mn > $(ODIR)/compile.lua
+	$(CS) mnscript/core.mn > $(ODIR)/core.lua
+	$(CS) mnscript/loader.mn > $(ODIR)/loader.lua
+	$(CS) mnscript/parser.mn > $(ODIR)/parser.lua
+	$(CS) mnscript/utils.mn > $(ODIR)/utils.lua
+	$(OLIB) && busted -c
 
 clean:
 	rm -f *.out

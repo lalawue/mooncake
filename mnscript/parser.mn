@@ -1,0 +1,275 @@
+--
+-- Copyright (c) 2021 lalawue
+--
+-- This library is free software; you can redistribute it and/or modify it
+-- under the terms of the MIT license. See LICENSE for details.
+--
+
+import P, R, S, V, C, Cb, Cf, Cg, Cp, Ct, Cmt from "lpeg" {}
+import fType, fSetmaxstack from "lpeg" { type, setmaxstack }
+import fSet, fSplit, fTrim from "mnscript.utils" { set, split, trim }
+
+fSetmaxstack(10240)
+
+-- remove keyword pattern
+kwTableR = fSet({ "and", "break", "case", "class", "continue", "default", "defer", "do", "else", "elseif", "end",
+"export", "fn", "for", "from", "function", "goto", "if", "import", "in", "local", "not", "or", "repeat",
+"return", "switch", "then", "until", "while", "...", ".."})
+kwTableL = fSet({"false", "nil", "true"})
+
+fn fNoKWL(s, p, c) {
+    list = fSplit(c, "[%.]", nil, true)
+    for _, v in ipairs(list) {
+        if kwTableL[v] or kwTableR[v] {
+            return false
+        }
+    }
+    return true, {etype : "lvar", value : c, pos : p, list : (#list > 1 and list or nil)}
+}
+
+fn fNoKWR(s, p, c) {
+    list = fSplit(c, "[%.:]", nil, true)
+    for _, v in ipairs(list) {
+        if kwTableR[v] {
+            return false
+        }
+    }
+    return true, {etype : "rvar", value : c, pos : p, list : (#list > 1 and list or nil)}
+}
+
+fn fMarkStype(stype) {
+    return fn(s, p, c) {
+        return p, {pos : p, value : c, stype : stype}
+    }
+}
+
+fn fMarkEtype(type) {
+    return fn(s, p, c) {
+        return p, {pos : p, value : c, etype : type}
+    }
+}
+
+-- MARK: pattern
+
+last_pos = 0
+cur_pos = 0
+pBlank = Cmt(S(" \t\r\n"), fn(s, p, c) {
+    if p > last_pos {
+        last_pos = p
+    }
+    cur_pos = p
+    return true
+})
+pBlanks = pBlank ^ 0
+
+pAlphaNum = R("az", "AZ", "__") * R("az", "AZ", "09", "__") ^ 0
+pVarLeft = Cmt(pAlphaNum * (P(".") ^ -1 * pAlphaNum) ^ 0, fNoKWL)
+pVarRight = Cmt(pAlphaNum, fNoKWR)
+pVarArg = Cmt(pAlphaNum, fNoKWL)
+pVArgList = Cmt("...", fMarkEtype("varg"))
+
+pNumber = Cmt(P("0x") * R("09", "af", "AF") ^ 1 * (S("uU") ^ -1 * S("lL") ^ 2) ^ -1 + R("09") ^ 1 * (S("uU") ^ -1 * S("lL") ^ 2) +
+ (R("09") ^ 1 * (P(".") * R("09") ^ 1) ^ -1 + P(".") * R("09") ^ 1) * (S("eE") * P("-") ^ -1 * R("09") ^ 1) ^ -1, fn(s, p, c) {
+    return p, {etype : "number", pos : p, value : c}
+ })
+
+pComma = pBlanks * P(",") * pBlanks
+pEqual = P("=")
+pColon = P(":")
+pSemi = P(';')
+
+pPLeft = pBlanks * P("(") * pBlanks
+pPRight = pBlanks * P(")") * pBlanks
+
+pBLeft = pBlanks * P("{") * pBlanks
+pBRight = pBlanks * P("}") * pBlanks
+
+pSLeft = pBlanks * P("[") * pBlanks
+pSRight = pBlanks * P("]") * pBlanks
+
+pCPLeft = pBlanks * Cmt("(",fn(s, p, c) {
+    return p, {etype : "op", pos : p, value : c}
+}) * pBlanks
+
+pCPRight = pBlanks * Cmt(")", fn(s, p, c) {
+    return p, {etype : "op", pos : p, value : c}
+}) * pBlanks
+
+fn fSymPatt(prefix, pa, pb) {
+    name = "name" .. pa
+    sopen = nil
+    if prefix {
+        sopen = (prefix .. pa) * Cg(pEqual ^ 0, name) * pa
+    } else {
+        sopen = pa * Cg(pEqual ^ 0, name) * pa
+    }
+    sclose = pb * C(pEqual ^ 0) * pb
+    scloseeq = Cmt(sclose * Cb(name), fn(s, i, a, b) {
+        return a == b
+    })
+    return C(sopen * (P(1) - scloseeq) ^ 0 * sclose) / 1
+}
+
+fn fStrPatt(str) {
+    m1 = S(str)
+    return Cg(m1 * (P("\\\\") + P("\\" .. str) + (1 - m1 - P("\n"))) ^ 0 * m1)
+}
+
+pCmShort = P("--") * (P(1) - S("\r\n")) ^ 0
+pCmLong = fSymPatt("--", "[", "]")
+
+pStrDot = fStrPatt("'")
+pStrQuote = fStrPatt('"')
+pStr = Cmt(pStrDot + pStrQuote + fSymPatt(nil, "[", "]"), fn(s, p, c) {
+    return p, {etype : "string", pos : p, value : c}
+})
+
+fn fNotCm(s, p, c) {
+    ret = s:sub(p, p + 1) == "--" or s:sub(p - 1, p) == "--"
+    return not ret, c
+}
+
+fn fConj(p, j) {
+    return p * #j
+}
+
+pSingleOp = Cmt(fConj(P("not"), pBlank) + Cmt("-", fNotCm) + P("#") + P("~"), fn(s, p, c) {
+    return p, {etype : "op", pos : p, value : c}
+})
+pTwoOp = P("*=") + P("/=") + P("%=") + P("+=") + P("-=") + P("..=") + P("or=") + P("and=") + P("^=")
+
+pOperator = Cmt(P("//") + S("*/%") + P("+") + Cmt("-", fNotCm) + P("^") + P("..") + P(">>") + P("<<") + P("<=") +
+ P(">=") + P("~=") + P("==") + S("><") + fConj(P("and"), pBlank) + fConj(P("or"), pBlank), fn(s, p, c) {
+    return p, {etype : "op", pos : p, value : c}
+ })
+
+fn fName(n) {
+    return C("") / fn() { return n }
+}
+
+-- MARK: grammar
+
+vFile, vShebang, vFnSMT, vClsDef, vClsBody, vClsAsSMT, vClsFnDef, vTbDef, vTbKV, vTbNk, vTbVk, vTbBk, vTbVal, vFnDefKW, vFnDefArg, 
+vFnDefVArg, vFnDefArgs, vFnDefBody, vFnDefName, vFnDefOnly, vFnCall, vImSMT, vImLib, vImRight, vExSMT, vExLeft, vAsSMT, vAsLeft,
+vAsRight, vAswSMT, vIfSMT, vElseIfSMT, vElseSMT, vSwSMT, vSwCaSMT, vSwDeSMT, vForSMT, vForVar, vForNext, vForList, vRptSMT,
+vWhileSMT, vBrkSMT, vCntSMT, vGoSMT, vRetSMT, vDeferSMT, vBlkSMT, vCmSMT, vDotExpr, vParaExpr, vSquareExpr, vColonExpr,
+vEvalExpr, vEvalLeft, vClsOpUnit, vClsExpr, vOpUnit, vExpr =
+V("vFile"), V("vShebang"), V("vFnSMT"), V("vClsDef"), V("vClsBody"), V("vClsAsSMT"), V("vClsFnDef"), V("vTbDef"), V("vTbKV"), V("vTbNk"),
+V("vTbVk"), V("vTbBk"), V("vTbVal"), V("vFnDefKW"), V("vFnDefArg"), V("vFnDefVArg"), V("vFnDefArgs"), V("vFnDefBody"), V("vFnDefName"),
+V("vFnDefOnly"), V("vFnCall"), V("vImSMT"), V("vImLib"), V("vImRight"), V("vExSMT"), V("vExLeft"), V("vAsSMT"), V("vAsLeft"), V("vAsRight"),
+V("vAswSMT"), V("vIfSMT"), V("vElseIfSMT"), V("vElseSMT"), V("vSwSMT"), V("vSwCaSMT"), V("vSwDeSMT"), V("vForSMT"), V("vForVar"),
+V("vForNext"), V("vForList"), V("vRptSMT"), V("vWhileSMT"), V("vBrkSMT"), V("vCntSMT"), V("vGoSMT"), V("vRetSMT"), V("vDeferSMT"),    
+V("vBlkSMT"), V("vCmSMT"), V("vDotExpr"), V("vParaExpr"), V("vSquareExpr"), V("vColonExpr"), V("vEvalExpr"), V("vEvalLeft"),
+V("vClsOpUnit"), V("vClsExpr"), V("vOpUnit"), V("vExpr")
+
+gG = {
+    vFile,
+    vFile : vShebang ^ -1 * vFnSMT ^ 0,
+    vFnSMT : (vBrkSMT + vCntSMT + vCmSMT + vClsDef + vFnDefName + vIfSMT + vSwSMT + vForSMT + vRptSMT + vWhileSMT + vRetSMT + vGoSMT + vAsSMT + vFnCall +
+            vAswSMT + vExSMT + vImSMT + vDeferSMT + vBlkSMT) * Cmt(pSemi * pBlanks / fTrim, fMarkStype(";")) ^ -1,
+    --
+    vShebang : Ct(Cg("#!", "stype") * C(P(1 - (P("\r") ^ -1 * P("\n"))) ^ 0)),
+    --
+    vClsDef : pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * pBlanks * Cg(P("class"), "stype") * pBlanks * Cg(pVarArg, "name") *
+              pBlanks * (pColon * pBlanks * Cg(pVarArg, "super")) ^ -1 * vClsBody),
+    vClsBody : pBlanks * pBLeft * (vCmSMT + vClsAsSMT + vClsFnDef) ^ 0 * pBRight * pBlanks,
+    vClsAsSMT : pBlanks * Ct(pVarArg * pBlanks * Cg(pEqual, "stype") * pBlanks * vClsExpr) * pBlanks,
+    vClsFnDef : Ct( Cg("class", "attr") ^ -1 * vFnDefKW * Cg(pVarArg, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ 0 * pPRight * Cg(vFnDefBody, "body")),
+    --
+    vExSMT : pBlanks * Ct(Cg(fName("ex"), "stype") * Cg(P("local") + P("export"), "attr") * vExLeft * (Cg(pEqual, "op") * vAsRight) ^ 0) * pBlanks,
+    vExLeft : pBlanks * Ct(pVarArg * pBlanks * (pComma * pBlanks * pVarArg) ^ 0) * pBlanks,
+    --
+    vImSMT : pBlanks * Ct(Cg(P("import"), "stype") * pBlanks * (Cg(pStr, "slib") + vExLeft * P("from") * vImLib * Ct(pBLeft * vImRight ^ -1 * pBRight) ^ -1)) * pBlanks,
+    vImLib : pBlanks * (Cg(pStr, "slib") + Cg(pVarLeft, "tlib")) * pBlanks,
+    vImRight : pVarLeft * (pBlanks * pComma * pBlanks * pVarLeft) ^ 0,
+    --
+    vAsSMT : Ct(vAsLeft * Cg(pEqual, "stype") * vAsRight),
+    vAsLeft : pBlanks * Ct(vEvalLeft * pBlanks * (pComma * pBlanks * vEvalLeft) ^ 0) * pBlanks,
+    vAsRight : pBlanks * Ct(Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr)) ^ 0) * pBlanks,    
+    vAswSMT : pBlanks * Ct(vEvalLeft * pBlanks * Cg(pTwoOp, "stype") * pBlanks * Ct(vExpr)) * pBlanks,
+    --
+    vTbDef : Ct(Cg(pBLeft / fTrim, "etype") * (vTbKV * pBlanks * (pComma * pBlanks * vTbKV * pBlanks) ^ 0 * (pComma + vCmSMT) ^ -1) ^ -1 * pBRight ),
+    vTbKV : vCmSMT ^ -1 * Ct(vTbNk + vTbVk * vTbVal + vTbBk * vTbVal + vTbVal),
+    vTbNk : pBlanks * pColon * pBlanks * Cg(pVarArg, "nkey"),
+    vTbVk : pBlanks * Cg(pVarArg, "vkey") * pBlanks * pColon,
+    vTbBk : Cg(vExpr, "bkey") * pColon,
+    vTbVal : pBlanks * Cg(Ct(vExpr), "value"),
+    --
+    vFnDefKW : pBlanks * Cg(P("fn"), "stype") * pBlanks,
+    vFnDefArg : pBlanks * Cg(pVarArg) * pBlanks,
+    vFnDefVArg : pBlanks * Cg(pVArgList) * pBlanks,
+    vFnDefArgs : Ct((vFnDefArg * pComma) ^ 0 * vFnDefVArg + vFnDefArg * (pComma * vFnDefArg) ^ 0),
+    vFnDefBody : pBLeft * Ct(vFnSMT ^ 0) * pBRight,
+    vFnDefName : pBlanks * Ct( Cg(P("local") + P("export"), "attr") ^ -1 * vFnDefKW * Cg(pVarLeft, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ 0 *
+            pPRight * Cg(vFnDefBody, "body")),
+    vFnDefOnly : pBlanks * Ct(Cg(P("fn"), "etype") * pPLeft * Cg(vFnDefArgs, "args") ^ 0 * pPRight * Cg(vFnDefBody, "body")),
+    --
+    vFnCall : pBlanks * Ct(Cg(fName("("), "stype") * (pVarArg + pCPLeft * vExpr * pCPRight) * ((vDotExpr + vSquareExpr) ^ 0 * (vColonExpr + vParaExpr)) ^ 1),
+    --
+    vIfSMT : pBlanks * Ct(Cg(P("if"), "stype") * pBlanks * Ct(vExpr) * pBLeft * Ct(vFnSMT ^ 0)) * vElseIfSMT ^ 0 * vElseSMT ^ -1 *
+        Cmt(pBRight, fMarkStype("ifend")),
+    vElseIfSMT : pBRight * Ct(Cg(P("elseif"), "stype") * pBlanks * Ct(vExpr) * pBLeft * Ct(vFnSMT ^ 0)),
+    vElseSMT : pBRight * Ct(Cg(P("else"), "stype") * pBLeft * Ct(vFnSMT ^ 0)),
+    --
+    vSwSMT : pBlanks * Ct(Cg(P("switch"), "stype") * pBlanks * Ct(vExpr) * pBlanks * pBLeft * vSwCaSMT ^ 1 * vSwDeSMT ^ -1 * pBRight),
+    vSwCaSMT : pBlanks * Ct( Cg(P("case"), "stype") * pBlanks * Ct(vExpr) * (pBlanks * pComma * pBlanks * Ct(vExpr)) ^ 0 * pBlanks * pColon *
+               Cg(Ct(vFnSMT ^ 0), "body") ),
+    vSwDeSMT : pBlanks * Ct(Cg(P("default"), "stype") * pBlanks * pColon * Cg(Ct(vFnSMT ^ 0), "body")),
+    --
+    vForSMT : pBlanks * Ct(Cg(P("for"), "stype") * Ct(vForVar * vForNext + vForList) * pBLeft * Ct(vFnSMT ^ 0) * pBRight),
+    vForVar : pBlanks * Cg(pVarArg) * pBlanks * Cg(pEqual, "sub") * pBlanks * Ct(vExpr) * pBlanks * pComma,
+    vForNext : pBlanks * Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr)) ^ -1 * pBlanks,
+    vForList : pBlanks * Cg(pVarArg) * pBlanks * (pComma * pBlanks * Cg(pVarArg)) ^ 0 * pBlanks * Cg(P("in"), "sub") * pBlanks *
+        Ct(Ct(vExpr) * pBlanks * (pComma * Ct(vExpr)) ^ -2) * pBlanks,
+    --
+    vRptSMT : pBlanks * Ct(Cg(P("repeat"), "stype") * pBLeft * Ct(vFnSMT ^ 0) * pBRight * P("until") * pBlanks * Ct(vExpr)) *
+        pBlanks,
+    vWhileSMT : pBlanks * Ct(Cg(P("while"), "stype") * pBlanks * Ct(vExpr) * pBlanks * pBLeft * Ct(vFnSMT ^ 0) * pBRight),
+    --
+    vBrkSMT : pBlanks * Cmt("break", fMarkStype("break")) * pBlanks,
+    vCntSMT : pBlanks * Cmt("continue", fMarkStype("continue")) * pBlanks,
+    vGoSMT : pBlanks * Ct( Cg("goto", "stype") * pBlanks * Cg(pVarArg, "name") + 
+                          Cg(P("::"), "stype") * pBlanks * Cg(pVarArg, "name") * pBlanks * P("::")) * pBlanks,
+    --
+    vRetSMT : pBlanks * Ct(Cg("return", "stype") * (pBlanks * Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr) * pBlanks) ^ 0) ^ 0) * pBlanks *
+        (#pBRight + #P("case") + #P("default") + -1),
+    vDeferSMT : pBlanks * Ct(Cg("defer", "stype") * Cg(Cp(), "pos") * pBLeft * Ct(vFnSMT ^ 0)) * pBRight,
+    vBlkSMT : pBlanks * Ct(Cg("{", "stype") * Ct(vFnSMT ^ 1) * pBRight) * pBlanks,
+    --
+    vCmSMT : pBlanks * Cmt(pCmLong + pCmShort, fMarkStype("cm")) * pBlanks,
+    --
+    vDotExpr : Ct(Cg(P("."), "op") * pVarArg),
+    vParaExpr : Ct(Cg(pPLeft / fTrim, "op") * (pBlanks * Ct(vExpr) * (pBlanks * pComma * pBlanks * Ct(vExpr)) ^ 0) ^ 0 * pPRight),
+    vSquareExpr : Ct(Cg(pSLeft / fTrim, "op") * vExpr *  pSRight),
+    vColonExpr : Ct(Cg(P(":"), "op") * pVarArg * vParaExpr),
+    vEvalExpr : pBlanks * Ct(Cg(fName("rexp"), "etype") * pVarRight * (vDotExpr + vColonExpr + vSquareExpr + vParaExpr) ^ 0),
+    vEvalLeft : pBlanks * Ct(Cg(fName("lexp"), "etype") * pVarArg * ((vColonExpr + vParaExpr) ^ 0 * (vDotExpr + vSquareExpr)) ^ 0),
+    --
+    vClsOpUnit : pBlanks * (pSingleOp * vOpUnit + vTbDef + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
+    vClsExpr : pCPLeft * vClsExpr * pCPRight * (pOperator * vClsExpr) ^ 0 + vClsOpUnit * (pOperator * vClsExpr) ^ 0,
+    --
+    vOpUnit : pBlanks * (pSingleOp * vOpUnit + vTbDef + vFnDefOnly + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
+    vExpr : pCPLeft * vExpr * pCPRight * (pOperator * vExpr + vParaExpr) ^ 0 + vOpUnit * (pOperator * vExpr) ^ 0
+}
+
+grammar = Cf(Ct("") * gG * -1, fn(a, b) {
+    a[#a + 1] = b
+    return a
+})
+
+assert(fType(grammar) == "pattern")
+
+-- return true, { content = CONTENT, ast = AST }
+-- return false, { content = CONTENT, pos = POSITION }
+fn parse(content) {
+    last_pos = 0
+    cur_pos = 0
+    t = grammar:match(content)
+    if t == nil {
+        return false, {content : content, lpos : last_pos, cpos : cur_pos}
+    } else {
+        return true, {content : content, ast : t}
+    }
+}
+
+return { :parse }

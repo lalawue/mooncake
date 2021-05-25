@@ -1,4 +1,4 @@
-local parser = require("mn_parser")
+local parser = require("mnscript.parser")
 
 
 describe("test success #utils", function()
@@ -28,7 +28,7 @@ describe("test success #utils", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local utils = require("mn_utils")
+    local utils = require("mnscript.utils")
     stub(utils, "debug")
 
     it("should get compiled lua", function()
