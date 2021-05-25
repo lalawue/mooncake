@@ -7,13 +7,13 @@
 
 OUT_LIB=export LUA_PATH="./out/?.lua;"
 CS_LIB=export LUA_PATH="./core/?.lua;"
-CS=./mnscript -s
+CS=./bin/mnscript -s
 
 
 all:
 	@echo "Usage:"
-	@echo "\t $ make test \t# for export LUA_PATH=\"./core/?.lua;\" then busted -c"
-	@echo "\t $ make out  \t# for export LUA_PATH=\"./out/?.lua;\" then busted -c"
+	@echo "\t $ make test \t# mnscript busted -c"
+	@echo "\t $ make out  \t# self hosted mnscript busted -c"
 
 test:
 	rm -f *.out

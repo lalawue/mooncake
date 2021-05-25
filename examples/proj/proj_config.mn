@@ -3,7 +3,7 @@
 return {
     {
         name : "first",
-        proj_dir : "test",
+        proj_dir : "examples",
         proj_out : "out"
     }
 }
