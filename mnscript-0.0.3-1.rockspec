@@ -18,11 +18,11 @@ dependencies = {
 build = {
    type = "builtin",
    modules = {
-      ["core.mn_compile"] = "core/mn_compile.lua",
-      ["core.mn_core"] = "core/mn_core.lua",
-      ["core.mn_loader"] = "core/mn_loader.lua",
-      ["core.mn_parser"] = "core/mn_parser.lua",
-      ["core.mn_utils"] = "core/mn_utils.lua",
+      ["mnscript.compile"] = "mnscript/compile.lua",
+      ["mnscript.core"] = "mnscript/core.lua",
+      ["mnscript.loader"] = "mnscript/loader.lua",
+      ["mnscript.parser"] = "mnscript/parser.lua",
+      ["mnscript.utils"] = "mnscript/utils.lua",
    },
    install = {
       bin = {
