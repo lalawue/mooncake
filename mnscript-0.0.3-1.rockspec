@@ -10,6 +10,11 @@ description = {
    license = "MIT/X11",
    maintainer = "lalawue <suchaaa@gmail.com>"
 }
+dependencies = {
+   "lua >= 5.1",
+   "lpeg >= 1.0.2",
+   "luafilesystem >= 1.5"
+}
 build = {
    type = "builtin",
    modules = {
@@ -18,5 +23,10 @@ build = {
       ["core.mn_loader"] = "core/mn_loader.lua",
       ["core.mn_parser"] = "core/mn_parser.lua",
       ["core.mn_utils"] = "core/mn_utils.lua",
+   },
+   install = {
+      bin = {
+         "bin/mnscript"
+      }
    }
 }
