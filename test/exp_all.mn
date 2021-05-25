@@ -1,0 +1,92 @@
+
+local a = 1
+
+export b = 2
+
+-- empty file
+class A {
+}
+
+fn getGlobalState(a, b) {
+    return false
+}
+
+fn getLocalState(c, d) {
+    return nil
+}
+
+getLocalState(false)
+
+-- class B extends A
+class B: A {
+
+    a = 123 -- class variable
+    tbl = { 4, 5, { 6 } } -- class variable
+
+    -- another function definition form
+    fn average() {
+        return a / 2
+    }
+
+    -- init function
+    fn init() {
+        A.init(self)
+        -- A.init(self)
+        self.a = 2
+        self.b = 7
+        self.c = 9
+    }
+
+    -- deinit function, with Lua 5.1 __gc support
+    fn deinit() {
+    }
+
+    -- MARK: Public interface
+
+    fn add() {
+        self.c = 10
+        if self.c == 10 {
+            self.b += 2
+            self.a -= 1
+        }
+        self:sub()
+    }
+
+    fn sub() {
+        self:add(2, 3)
+
+        while self.next(4) ~= nil {
+        }
+
+        repeat {
+
+        } until self.next(4) == nil
+
+        for a = 1, 1, 1 {
+            self:runCallBack(fn(a, b){
+                self.a -= 1
+            })
+        }
+    }
+
+    class fn next(value) {
+        switch value {
+            case 10,  11:
+                return value
+            case 4:
+                return true
+            default:
+                return nil
+        }
+    }
+
+    fn runCallBack(callback) {
+        if type(callback) == "function" {
+
+        }
+    }
+}
+
+return {
+    
+}

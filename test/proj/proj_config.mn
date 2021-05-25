@@ -1,0 +1,9 @@
+--
+-- return valid project config
+return {
+    {
+        name : "first",
+        proj_dir : "test",
+        proj_out : "out"
+    }
+}
