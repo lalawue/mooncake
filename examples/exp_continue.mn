@@ -1,0 +1,7 @@
+
+for i = 1, 10 {
+    if i < 9 {
+        continue
+    }
+    print(i)
+}

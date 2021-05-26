@@ -1,0 +1,8 @@
+
+class ClsA {
+    fn echo() {
+        return "Hello, world"
+    }
+}
+
+return ClsA

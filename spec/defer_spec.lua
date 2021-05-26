@@ -3,52 +3,22 @@ local compile = require("mnscript.compile")
 
 describe("test success #defer", function()
     local mnstr=[[
-        var_test_a = 0
-        fn test(a) {
-            a += 1
-            if a < 1 {
-                return
-            } elseif a < 3 {
+        a = 0
+        fn test_defer() {
+            defer {
+                a += 10
+            }
+            a += 10
+            return fn() {
                 defer {
-                    var_test_a += 1
+                    a += 20
                 }
-            } elseif a < 5 {
-                defer {
-                    var_test_a += 10
-                    defer {
-                        var_test_a += 100
-                    }
-                }
-            } else {
+                a += 20
                 return a
             }
-            return 10
         }
-        
-        var_test_c = 0
-        cc = fn(b, d) {
-            b += 1
-            defer {
-                var_test_c += 1
-            }
-            if b < 1 {
-                return
-            } elseif b < 3 {
-                defer {
-                    var_test_c += 10
-                }
-            } elseif b < 5 {
-                defer {
-                    var_test_c += 100
-                }
-            } else {
-                return 9
-            }
-        }
-        
-        test(2)
-        cc(4)
-        return var_test_a, var_test_c
+        test_defer()()
+        return a
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -66,9 +36,8 @@ describe("test success #defer", function()
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
-        local va, vc = f()
-        assert.is_equal(va, 10)
-        assert.is_equal(vc, 1)
+        local a = f()
+        assert.is_equal(a, 60)
     end)
 end)
 

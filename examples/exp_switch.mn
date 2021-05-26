@@ -1,0 +1,17 @@
+
+math.randomseed(os.time())
+
+a = math.random(0, 100)
+switch math.floor(a / 10) {
+case 0, 1, 2, 3:
+    print(tostring(a) .. " smaller than 40")
+case 4, 5, 6, 7:
+    switch math.floor(a % 10) {
+    case 0, 2, 4, 6, 8:
+        print(tostring(a) .. " is even number")
+    default:
+        print(tostring(a) .. " is odd number")
+    }
+default:
+    print(tostring(a) .." greater than 79")
+}

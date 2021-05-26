@@ -1,0 +1,12 @@
+
+for 1, 10, 1 {
+    break
+}
+
+while true {
+    break
+}
+
+repeat {
+
+} until true

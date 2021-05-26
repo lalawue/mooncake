@@ -1,0 +1,13 @@
+
+if not jit {
+    print("Use LuaJIT for this example !!!")
+    os.exit(0)
+}
+
+import ffi from "ffi"
+
+ffi.cdef([[
+    int printf(const char *fmt, ...);
+]])
+
+ffi.C.printf("Hello %s!\n", "world")

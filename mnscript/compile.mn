@@ -122,7 +122,7 @@ class Ctx {
     fn reset() {
         self.loops = {}
         self.funcs = {}
-        self.has_defer = false
+        self.defers = {}
         self.in_defer = false
         self.in_clsvar = false
         self.temp = {}
@@ -149,6 +149,16 @@ class Ctx {
 
     fn popFunc() {
         t = self.funcs
+        t[#t] = nil
+    }
+
+    fn pushDefer() {
+        t = self.defers
+        t[#t + 1] = true
+    }
+
+    fn popDefer() {
+        t = self.defers
         t[#t] = nil
     }
 
@@ -505,7 +515,7 @@ class M {
             out:changeLine()
             out:incIndent()
             self:trStatement(body)
-            if ctx.has_defer and body[#body].stype ~= "return" {
+            if #ctx.defers > 0 and body[#body].stype ~= "return" {
                 out:append((#t > 0 and ", " or "") .. "__df_run__()")
             }
             out:decIndent()
@@ -516,7 +526,7 @@ class M {
         }
         ctx:popFunc()
         ctx:localPop()
-        ctx.has_defer = false
+        ctx:popDefer()
     }
 
     fn trEtRexp(t) {
@@ -726,7 +736,7 @@ class M {
             out:changeLine()
             out:incIndent()
             self:trStatement(body)
-            if ctx.has_defer and body[#body].stype ~= "return" {
+            if #ctx.defers > 0 and body[#body].stype ~= "return" {
                 out:append((#t > 0 and ", " or "") .. "__df_run__()")
             }
             out:decIndent()
@@ -734,7 +744,7 @@ class M {
         out:append("end")
         ctx:popFunc()
         ctx:localPop()
-        ctx.has_defer = false
+        ctx:popDefer()
     }
 
     fn trStCall(t) {
@@ -1005,7 +1015,7 @@ class M {
                 self:trExpr(v)
             }
         }
-        if ctx.has_defer {
+        if #ctx.defers > 0 {
             out:append((#t > 0 and ", " or "") .. "__df_run__()")
         }
         out:popInline()
@@ -1065,7 +1075,7 @@ class M {
         assert(t.stype == "raw", "Invalid stype raw")
         ctx = self.ctx
         if t.sub == "defer" {
-            ctx.has_defer = true
+            ctx:pushDefer()
         }
         out = self.out
         for _, v in ipairs(t) {

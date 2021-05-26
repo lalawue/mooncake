@@ -1,8 +1,59 @@
 
+
 class ClsA {
-    fn echo() {
-        return "Hello, world"
+
+    -- declare class var a, also can visited by its instance
+    a = 10
+
+    -- init when ClsA(...)
+    fn init(aa) {
+        self.aa = aa
+        print("init " .. tostring(self))
+    }
+
+    -- deinit in __gc with collectgarbage()
+    fn deinit() {
+        print("deinit .. " .. tostring(self))
+    }
+
+    -- call with self:add()
+    fn add(c) {
+        return self.a + self.aa + c
+    }
+
+    -- call with self.add()
+    class fn add(d) {
+        return ClsA.a
+    }
+
+    -- instance metamethod
+    fn __add(a, b) {
+        return a.aa + b.aa
+    }
+
+    -- class metamethod
+    class fn __add(a, b) {
+        return a.a + b.a
     }
 }
 
-return ClsA
+-- inherit from ClsA
+class ClsB : ClsA {
+
+    b = 100
+
+    -- inherit fn init(...)
+
+    -- overwrite :add()
+    fn add(c) {
+        return self.a + self.b + self.aa + c
+    }
+}
+
+a = ClsA(20)
+b = ClsB(200)
+print("a.aa = " .. a.aa)
+print("a:add(30) = " .. a:add(30))
+print("b:add(30) = " .. b:add(30))
+print("a + b = " .. (a + b))
+print("ClsA + ClsB = " .. (ClsA + ClsB))

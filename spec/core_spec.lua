@@ -1,9 +1,9 @@
 local core = require("mnscript.core")
 
 describe("test success #core", function()
-    package.mnpath = package.mnpath .. ";./examples/?.mn"
+    package.mnpath = package.mnpath .. ";./spec/?.mn"
 
-    local f, err = core.loadfile("./examples/exp_class.mn")
+    local f, err = core.loadfile("./spec/_success_class.mn")
     it("should loadfile", function()
         assert.is_function(f)
         local ClsA = f()
@@ -13,14 +13,14 @@ describe("test success #core", function()
         assert.is_equal(ret, "Hello, world")
     end)
 
-    local clsa = core.dofile("./examples/exp_class.mn")
+    local clsa = core.dofile("./spec/_success_class.mn")
     it("should do", function()
         local ret = clsa.echo()
         assert.is_equal(ret, "Hello, world")
     end)
 
     it("should load lib", function()
-        local ClsA = require("exp_class")
+        local ClsA = require("_success_class")
         assert.is_table(ClsA)
         assert.is_function(ClsA.echo)
         local ret = ClsA.echo()

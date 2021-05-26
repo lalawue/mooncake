@@ -1,0 +1,27 @@
+
+-- require "lpeg"
+import "lpeg"
+
+-- local lpeg = require("lpeg")
+import lpeg from "lpeg"
+
+-- local lp = lpeg
+import lp from lpeg
+
+-- local P, R, S
+-- do
+--      local __obj__ = require("lpeg")
+--      P, R, S = __obj__.P, __obj__.R, __obj__.S
+-- end
+import P, R, S from "lpeg" {}
+
+-- local p, r, s
+-- do
+--      local __obj__ = require("lpeg")
+--      p, r, s = __obj__.P, __obj__.R, __obj__.S
+-- end
+import p, r, s from "lpeg" { P, R, S }
+
+import p, r, s from lpeg {}
+
+import p, r, s from lpeg { P, R, S }

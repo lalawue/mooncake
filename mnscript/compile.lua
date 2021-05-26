@@ -103,7 +103,7 @@ do
 	function __clstype__:reset()
 		self.loops = {  }
 		self.funcs = {  }
-		self.has_defer = false
+		self.defers = {  }
 		self.in_defer = false
 		self.in_clsvar = false
 		self.temp = {  }
@@ -126,6 +126,14 @@ do
 	end
 	function __clstype__:popFunc()
 		local t = self.funcs
+		t[ # t] = nil
+	end
+	function __clstype__:pushDefer()
+		local t = self.defers
+		t[ # t + 1] = true
+	end
+	function __clstype__:popDefer()
+		local t = self.defers
 		t[ # t] = nil
 	end
 	function __clstype__:globalInsert(n)
@@ -467,7 +475,7 @@ do
 			out:changeLine()
 			out:incIndent()
 			self:trStatement(body)
-			if ctx.has_defer and body[ # body].stype ~= "return" then
+			if  # ctx.defers > 0 and body[ # body].stype ~= "return" then
 				out:append(( # t > 0 and ", " or "") .. "__df_run__()")
 			end
 			out:decIndent()
@@ -478,7 +486,7 @@ do
 		end
 		ctx:popFunc()
 		ctx:localPop()
-		ctx.has_defer = false
+		ctx:popDefer()
 	end
 	function __clstype__:trEtRexp(t)
 		assert(t.etype == "rexp", "Invalid etype rexp")
@@ -683,7 +691,7 @@ do
 			out:changeLine()
 			out:incIndent()
 			self:trStatement(body)
-			if ctx.has_defer and body[ # body].stype ~= "return" then
+			if  # ctx.defers > 0 and body[ # body].stype ~= "return" then
 				out:append(( # t > 0 and ", " or "") .. "__df_run__()")
 			end
 			out:decIndent()
@@ -691,7 +699,7 @@ do
 		out:append("end")
 		ctx:popFunc()
 		ctx:localPop()
-		ctx.has_defer = false
+		ctx:popDefer()
 	end
 	function __clstype__:trStCall(t)
 		assert(t.stype == "(", "Invalid stype fn call")
@@ -952,7 +960,7 @@ do
 				self:trExpr(v)
 			end
 		end
-		if ctx.has_defer then
+		if  # ctx.defers > 0 then
 			out:append(( # t > 0 and ", " or "") .. "__df_run__()")
 		end
 		out:popInline()
@@ -1004,7 +1012,7 @@ do
 		assert(t.stype == "raw", "Invalid stype raw")
 		local ctx = self.ctx
 		if t.sub == "defer" then
-			ctx.has_defer = true
+			ctx:pushDefer()
 		end
 		local out = self.out
 		for _, v in ipairs(t) do

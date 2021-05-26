@@ -1,0 +1,18 @@
+
+local a
+export b
+
+local c = 10
+export d = 20
+
+local fn read() {
+}
+
+export fn say() {
+}
+
+local class ClsA {
+}
+
+export class ClsB: ClsA {
+}

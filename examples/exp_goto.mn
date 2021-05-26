@@ -1,0 +1,8 @@
+
+for i = 1, 10 {
+    if i == 3 {
+        goto exit_for
+    }
+    print(i)
+}
+::exit_for::

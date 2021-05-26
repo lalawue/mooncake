@@ -1,0 +1,24 @@
+
+
+fn test_defer(a) {
+    print("a is " .. a)
+    if a < 10 {
+        defer {
+            print("leave when before a += 10: " .. a)
+        }
+        return fn() {
+            defer {
+                print("leave result: " .. a)
+            }
+            a += 10
+            return
+        }
+    } else {
+        print("leave no defer")
+        return fn(){}
+    }
+}
+
+math.randomseed(os.time())
+
+test_defer(math.random(1, 20))()

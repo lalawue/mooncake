@@ -1,0 +1,6 @@
+#!/usr/bin/env mnscript
+
+fn echo() {
+    print("hello, mnscript!")
+}
+echo()

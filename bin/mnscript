@@ -1,3 +1,179 @@
 #!/usr/bin/env lua
 
-require("mnscript.cmdline").main(...)
+local utils = require("mnscript.utils")
+local core = require("mnscript.core")
+
+local Cmd = {}
+
+function Cmd.help()
+    utils.debug("Usage: [OPTIONS] FILE")
+    utils.debug("\t'' load FILE and run")
+    utils.debug("\t-h print help")
+    utils.debug("\t-a print AST")
+    utils.debug("\t-s print Lua code")
+    utils.debug("\t-p generate Lua code with project config")
+    utils.debug("\t-v version")
+end
+
+function Cmd.option(...)
+    local a, b = ...
+    if a == nil or a:len() <= 0 or a == "-h" then
+        Cmd.help()
+        return
+    end
+    local config = {}
+    a = (b and a) or (not b and a) or "-"
+    if a == "-a" then
+        config.option = "ast"
+        config.opcount = 2
+        config.fname = b
+    elseif a == "-s" then
+        config.option = "source"
+        config.opcount = 2
+        config.fname = b
+        config.shebang = true
+    elseif a == "-p" then
+        config.option = "project"
+        config.opcount = 2
+        config.fname = b
+        config.shebang = true
+    elseif a == "-v" then
+        utils.debug(core.version())
+        return
+    else
+        config.option = "run"
+        config.opcount = 1
+        config.fname = a
+    end
+    return config
+end
+
+function Cmd.toCode(config)
+    -- read file first
+    local text = utils.readFile(config.fname)
+    if not text then
+        utils.debug("Failed to read file '" .. config.fname .. "'")
+        return
+    end
+
+    -- generate AST
+    local res, emsg = core.toAST(config, text)
+    if not res or config.option == "ast" then
+        if res then
+            utils.dump(res.ast)
+        else
+            utils.debug(emsg)
+        end
+        return
+    end
+
+    -- generate Lua code
+    res, emsg = core.toLua(config, res)
+    if not res or config.option == "source" then
+        if res then
+            utils.debug(res)
+        else
+            utils.debug(emsg)
+        end
+        return
+    end
+    return res
+end
+
+function Cmd.run(config, content, ...)
+    local f, err = load(content, config.fname, "t")
+    if type(f) == "function" then
+        f(select(config.opcount + 1, ...))
+    else
+        utils.debug(err)
+    end
+end
+
+function Cmd.project(config)
+    -- read config
+    local config_content = utils.readFile(config.fname)
+    if not config_content then
+        utils.debug("Failed to read config")
+        return
+    end
+
+    -- load config
+    local f = core.loadstring(config_content, config.fname)
+    if type(f) ~= "function" then
+        utils.debug("Failed to load config")
+    end
+
+    -- get config table
+    local pt = f()
+    if type(pt) ~= "table" then
+        utils.debug("Invalid config")
+        return
+    end
+
+    local lfs = assert(require("lfs"))
+    local tmp_config = utils.copy(config)
+    -- generate Lua code recursive
+    local function toLuaDir(config, in_dir, out_dir)
+        for fname in lfs.dir(in_dir) do
+            local flen = fname:len()
+            if flen > 0 and fname:sub(1, 1) ~= "." then
+                lfs.mkdir(out_dir)                    
+                local inpath = in_dir .. "/" .. fname
+                local outpath = out_dir .. "/" .. fname
+                local ft = lfs.attributes(inpath)
+                if ft.mode == "directory" then
+                    utils.debug(" DIR '" .. outpath .. "'")
+                    if not toLuaDir(config, inpath, outpath) then
+                        return false
+                    end
+                elseif flen > 3 and fname:sub(flen - 2, flen) == ".mn" then
+                    tmp_config.fname = inpath
+                    local code = Cmd.toCode(tmp_config)
+                    if not code then
+                        return false
+                    end
+                    local outname = outpath:sub(1, outpath:len() - 3) .. ".lua"
+                    utils.writeFile(outname, code)
+                    utils.debug("FILE '" .. outname .. "'")
+                end
+            end
+        end
+        return true
+    end
+
+    -- check projects
+    for i, proj in ipairs(pt) do
+        if proj.name and proj.proj_dir and proj.proj_out then
+            utils.debug("proj: [" .. proj.proj_dir .. ']')            
+            if not toLuaDir(config, proj.proj_dir, proj.proj_out) then
+                break
+            end
+        else
+            utils.debug("[" .. (proj.name or "unknown") .. "] project !")
+        end
+    end
+end
+
+-- main entry
+function Cmd.main(...)
+    local config = Cmd.option(...)
+    if not config then
+        return
+    end
+
+    -- output SOURCE from project config
+    if config.option == "project" then
+        Cmd.project(config)
+        return
+    end
+
+    local code = Cmd.toCode(config)
+    if not code then
+        return
+    end
+
+    -- run this Lua code
+    return Cmd.run(config, code, ...)
+end
+
+Cmd.main(...)
