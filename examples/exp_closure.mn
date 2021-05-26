@@ -1,0 +1,10 @@
+
+fn_add = fn(a, b) {
+    return a + b
+}
+
+closure_add = { a, b in
+    return a + b
+}
+
+print(fn_add(10, 20), closure_add(30, 40))

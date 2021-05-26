@@ -272,6 +272,9 @@ local _cls_metafns = Utils.set({"__add",
                                 "__sub",
                                 "__unm"})
 
+local _no_space_op = Utils.set({"(", ")", "#", "~", "-"})
+local _right_space_op = Utils.set({"not"})
+
 class M {
 
     fn init(ctx, out) {
@@ -318,8 +321,10 @@ class M {
         case "varg":
             out:append("...", true)
         case "op":
-            if t.value == "(" or t.value == ")" {
+            if _no_space_op[t.value] and not t.sub {
                 out:append(t.value, true)
+            } elseif _right_space_op[t.value] {
+                out:append(t.value .. " ", true)
             } else {
                 out:append(" " .. t.value .. " ", true)
             }

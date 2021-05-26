@@ -18,7 +18,6 @@ dependencies = {
 build = {
    type = "builtin",
    modules = {
-      ["mnscript.cmdline"] = "mnscript/cmdline.lua",      
       ["mnscript.compile"] = "mnscript/compile.lua",
       ["mnscript.core"] = "mnscript/core.lua",
       ["mnscript.parser"] = "mnscript/parser.lua",

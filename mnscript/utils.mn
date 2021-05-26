@@ -22,7 +22,7 @@ class Utils {
         s = s or string.rep
 
         local fn _format(v, is_table) {
-            out = (type == "string" and ('"'..v..'"')) or (type == "number" and ('['..tostring(v)..']')) or tostring(v)
+            out = (type(v) == "string" and ('"'..v..'"')) or (type(v) == "number" and ('['..tostring(v)..']')) or tostring(v)
             return is_table and (c[v][2] >= p) and _table(v, p + 1, c, s) or (type(v) == "string" and ('"'..v..'"') or tostring(v))
         }
 

@@ -29,13 +29,13 @@ do
 		p = p or 1
 		s = s or string.rep
 		local function _format(v, is_table)
-			local out = (type == "string" and ('"' .. v .. '"')) or (type == "number" and ('[' .. tostring(v) .. ']')) or tostring(v)
+			local out = (type(v) == "string" and ('"' .. v .. '"')) or (type(v) == "number" and ('[' .. tostring(v) .. ']')) or tostring(v)
 			return is_table and (c[v][2] >= p) and _table(v, p + 1, c, s) or (type(v) == "string" and ('"' .. v .. '"') or tostring(v))
 		end
 		c[t] = { t, 0 }
 		for i, v in next, t do
 			local typ_i, typ_v = type(i) == 'table', type(v) == 'table'
-			c[i], c[v] = ( not c[i] and typ_i) and { i, p } or c[i], ( not c[v] and typ_v) and { v, p } or c[v]
+			c[i], c[v] = (not c[i] and typ_i) and { i, p } or c[i], (not c[v] and typ_v) and { v, p } or c[v]
 			str = str .. s('  ', p) .. '[' .. _format(i, typ_i) .. '] = ' .. _format(v, typ_v) .. (ti < n and ',' or '') .. '\n'
 			ti = ti + 1
 		end
@@ -46,8 +46,8 @@ do
 		assert(max == nil or max >= 1)
 		local record = {  }
 		if self:len() > 0 then
-			local plain =  not regex
-			max = max or  - 1
+			local plain = not regex
+			max = max or -1
 			local field, start = 1, 1
 			local first, last = self:find(sep, start, plain)
 			while first and max ~= 0 do
@@ -96,7 +96,7 @@ do
 	__clstype__.read_option = _VERSION == "Lua 5.1" and "*a" or "a"
 	function __clstype__.readFile(file_path)
 		local f = io.open(file_path, "rb")
-		if  not f then
+		if not f then
 			return 
 		end
 		local data = f:read(Utils.read_option)
@@ -105,7 +105,7 @@ do
 	end
 	function __clstype__.writeFile(file_path, content)
 		local f = io.open(file_path, "wb")
-		if  not f then
+		if not f then
 			return 
 		end
 		f:write(content)

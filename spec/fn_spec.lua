@@ -12,7 +12,15 @@ describe("test success #function", function()
 
         fn add( d, f, ...) {
         }
-        return sub, devide, add
+
+        sqrt = fn(j, k) {
+        }
+
+        power = { m, n in
+            return
+        }
+
+        return sub, devide, add, sqrt, power
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -30,10 +38,12 @@ describe("test success #function", function()
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
-        local sub, devide, add = f()
+        local sub, devide, add, sqrt, power = f()
         assert.is_function(sub)
         assert.is_function(devide)
         assert.is_function(add)
+        assert.is_function(sqrt)
+        assert.is_function(power)
         assert.is_equal(sub(12, 10), 2)        
     end)
 end)

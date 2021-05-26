@@ -140,7 +140,7 @@ pTwoOp = P("*=") + P("/=") + P("%=") + P("+=") + P("-=") + P("..=") + P("or=") +
 
 pOperator = Cmt(P("//") + S("*/%") + P("+") + Cmt("-", fNotCm) + P("^") + P("..") + P(">>") + P("<<") + P("<=") +
  P(">=") + P("~=") + P("==") + S("><") + fConj(P("and"), pBlank) + fConj(P("or"), pBlank), fn(s, p, c) {
-    return p, {etype : "op", pos : p, value : c}
+    return p, {etype : "op", pos : p, value : c, sub : "p"}
  })
 
 fn fName(n) {
@@ -150,16 +150,16 @@ fn fName(n) {
 -- MARK: grammar
 
 vFile, vShebang, vFnSMT, vClsDef, vClsBody, vClsAsSMT, vClsFnDef, vTbDef, vTbKV, vTbNk, vTbVk, vTbBk, vTbVal, vFnDefKW, vFnDefArg, 
-vFnDefVArg, vFnDefArgs, vFnDefBody, vFnDefName, vFnDefOnly, vFnCall, vImSMT, vImLib, vImRight, vExSMT, vExLeft, vAsSMT, vAsLeft,
-vAsRight, vAswSMT, vIfSMT, vElseIfSMT, vElseSMT, vSwSMT, vSwCaSMT, vSwDeSMT, vForSMT, vForVar, vForNext, vForList, vRptSMT,
-vWhileSMT, vBrkSMT, vCntSMT, vGoSMT, vRetSMT, vDeferSMT, vBlkSMT, vCmSMT, vDotExpr, vParaExpr, vSquareExpr, vColonExpr,
-vEvalExpr, vEvalLeft, vClsOpUnit, vClsExpr, vOpUnit, vExpr =
+vFnDefVArg, vFnDefArgs, vFnDefBody, vFnDefName, vFnDefOnly, vFnClosure, vFnCall, vImSMT, vImLib, vImRight, vExSMT, vExLeft, vAsSMT,
+vAsLeft, vAsRight, vAswSMT, vIfSMT, vElseIfSMT, vElseSMT, vSwSMT, vSwCaSMT, vSwDeSMT, vForSMT, vForVar, vForNext, vForList, vRptSMT,
+vWhileSMT, vBrkSMT, vCntSMT, vGoSMT, vRetSMT, vDeferSMT, vBlkSMT, vCmSMT, vDotExpr, vParaExpr, vSquareExpr, vColonExpr, vEvalExpr,
+vEvalLeft, vClsOpUnit, vClsExpr, vOpUnit, vExpr =
 V("vFile"), V("vShebang"), V("vFnSMT"), V("vClsDef"), V("vClsBody"), V("vClsAsSMT"), V("vClsFnDef"), V("vTbDef"), V("vTbKV"), V("vTbNk"),
 V("vTbVk"), V("vTbBk"), V("vTbVal"), V("vFnDefKW"), V("vFnDefArg"), V("vFnDefVArg"), V("vFnDefArgs"), V("vFnDefBody"), V("vFnDefName"),
-V("vFnDefOnly"), V("vFnCall"), V("vImSMT"), V("vImLib"), V("vImRight"), V("vExSMT"), V("vExLeft"), V("vAsSMT"), V("vAsLeft"), V("vAsRight"),
-V("vAswSMT"), V("vIfSMT"), V("vElseIfSMT"), V("vElseSMT"), V("vSwSMT"), V("vSwCaSMT"), V("vSwDeSMT"), V("vForSMT"), V("vForVar"),
-V("vForNext"), V("vForList"), V("vRptSMT"), V("vWhileSMT"), V("vBrkSMT"), V("vCntSMT"), V("vGoSMT"), V("vRetSMT"), V("vDeferSMT"),    
-V("vBlkSMT"), V("vCmSMT"), V("vDotExpr"), V("vParaExpr"), V("vSquareExpr"), V("vColonExpr"), V("vEvalExpr"), V("vEvalLeft"),
+V("vFnDefOnly"), V("vFnClosure"), V("vFnCall"), V("vImSMT"), V("vImLib"), V("vImRight"), V("vExSMT"), V("vExLeft"), V("vAsSMT"), V("vAsLeft"),
+V("vAsRight"), V("vAswSMT"), V("vIfSMT"), V("vElseIfSMT"), V("vElseSMT"), V("vSwSMT"), V("vSwCaSMT"), V("vSwDeSMT"), V("vForSMT"),
+V("vForVar"), V("vForNext"), V("vForList"), V("vRptSMT"), V("vWhileSMT"), V("vBrkSMT"), V("vCntSMT"), V("vGoSMT"), V("vRetSMT"),
+V("vDeferSMT"), V("vBlkSMT"), V("vCmSMT"), V("vDotExpr"), V("vParaExpr"), V("vSquareExpr"), V("vColonExpr"), V("vEvalExpr"), V("vEvalLeft"),
 V("vClsOpUnit"), V("vClsExpr"), V("vOpUnit"), V("vExpr")
 
 gG = {
@@ -200,9 +200,11 @@ gG = {
     vFnDefVArg : pBlanks * Cg(pVArgList) * pBlanks,
     vFnDefArgs : Ct((vFnDefArg * pComma) ^ 0 * vFnDefVArg + vFnDefArg * (pComma * vFnDefArg) ^ 0),
     vFnDefBody : pBLeft * Ct(vFnSMT ^ 0) * pBRight,
-    vFnDefName : pBlanks * Ct( Cg(P("local") + P("export"), "attr") ^ -1 * vFnDefKW * Cg(pVarLeft, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ 0 *
+    vFnDefName : pBlanks * Ct( Cg(P("local") + P("export"), "attr") ^ -1 * vFnDefKW * Cg(pVarLeft, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ -1 *
             pPRight * Cg(vFnDefBody, "body")),
-    vFnDefOnly : pBlanks * Ct(Cg(P("fn"), "etype") * pPLeft * Cg(vFnDefArgs, "args") ^ 0 * pPRight * Cg(vFnDefBody, "body")),
+    --    
+    vFnDefOnly : pBlanks * Ct(Cg(P("fn"), "etype") * pPLeft * Cg(vFnDefArgs, "args") ^ -1 * pPRight * Cg(vFnDefBody, "body")),
+    vFnClosure : pBLeft * Ct(Cg(fName("fn"), "etype") * Cg(vFnDefArgs, "args") ^ -1 * pBlanks * P("in") * pBlanks * Cg(Ct(vFnSMT ^ 0), "body")) * pBRight,    
     --
     vFnCall : pBlanks * Ct(Cg(fName("("), "stype") * (pVarArg + pCPLeft * vExpr * pCPRight) * ((vDotExpr + vSquareExpr) ^ 0 * (vColonExpr + vParaExpr)) ^ 1),
     --
@@ -248,7 +250,7 @@ gG = {
     vClsOpUnit : pBlanks * (pSingleOp * vOpUnit + vTbDef + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
     vClsExpr : pCPLeft * vClsExpr * pCPRight * (pOperator * vClsExpr) ^ 0 + vClsOpUnit * (pOperator * vClsExpr) ^ 0,
     --
-    vOpUnit : pBlanks * (pSingleOp * vOpUnit + vTbDef + vFnDefOnly + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
+    vOpUnit : pBlanks * (pSingleOp * vOpUnit + vTbDef + vFnDefOnly + vFnClosure + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
     vExpr : pCPLeft * vExpr * pCPRight * (pOperator * vExpr + vParaExpr) ^ 0 + vOpUnit * (pOperator * vExpr) ^ 0
 }
 

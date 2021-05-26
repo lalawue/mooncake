@@ -29,10 +29,10 @@ unpack = unpack or table.unpack
 local function createPath(pkg_path)
 	local tbl = {  }
 	local list = split(pkg_path, ";")
-	for i = 1,  # list do
+	for i = 1, #list do
 		local prefix = list[i]:match("^(.-)%.lua")
 		if prefix then
-			tbl[ # tbl + 1] = prefix .. ".mn"
+			tbl[#tbl + 1] = prefix .. ".mn"
 		end
 	end
 	return concat(tbl, ";")
@@ -45,7 +45,7 @@ local function toAST(config, text)
 	end
 	config = config or {  }
 	local ret, tbl = parse(text)
-	if  not ret then
+	if not ret then
 		local err = posLine(tbl.content, tbl.lpos, tbl.cpos)
 		local msg = string.format("parse error %s:%d: %s", config.fname, err.line, err.message)
 		return nil, msg
@@ -55,7 +55,7 @@ end
 -- translate to Lua
 local function toLua(config, tbl)
 	local ret, code = compile(config, tbl)
-	if  not ret then
+	if not ret then
 		return nil, code
 	end
 	return code
@@ -84,11 +84,11 @@ local function mnLoader(name)
 	end
 	tmp_config.fname = file_path
 	local res, emsg = toAST(tmp_config, text)
-	if  not res then
+	if not res then
 		error(emsg)
 	end
 	res, emsg = toLua(tmp_config, res)
-	if  not res then
+	if not res then
 		error(emsg)
 	end
 	local f, err = load(res, file_path)
@@ -97,11 +97,11 @@ end
 local function mnLoadString(text, cname, mode, env)
 	tmp_config.fname = cname
 	local res, emsg = toAST(tmp_config, text)
-	if  not res then
+	if not res then
 		return emsg
 	end
 	res, emsg = toLua(tmp_config, res)
-	if  not res then
+	if not res then
 		return emsg
 	end
 	local f = (loadstring or load)
@@ -109,7 +109,7 @@ local function mnLoadString(text, cname, mode, env)
 end
 local function mnLoadFile(fname, ...)
 	local f, err = io.open(fname)
-	if  not f then
+	if not f then
 		return nil, err
 	end
 	local text = assert(f:read(all_option))
@@ -135,16 +135,16 @@ local function mnVersion()
 	return "mnscript v0.0.3"
 end
 -- run
-if  not package.mnpath then
+if not package.mnpath then
 	package.mnpath = createPath(package.path)
 	local loaders = package.loaders or package.searchers
 	local has_loader = false
-	for i = 1,  # loaders do
+	for i = 1, #loaders do
 		if loaders[i] == mnLoader then
 			has_loader = true
 		end
 	end
-	if  not has_loader then
+	if not has_loader then
 		insert(loaders, mnLoader)
 	end
 end

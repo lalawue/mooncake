@@ -112,6 +112,7 @@ function Cmd.project(config)
 
     local lfs = assert(require("lfs"))
     local tmp_config = utils.copy(config)
+    
     -- generate Lua code recursive
     local function toLuaDir(config, in_dir, out_dir)
         for fname in lfs.dir(in_dir) do

@@ -56,13 +56,13 @@ do
 		assert(type(str) == "string", "Invalid input")
 		local t = self._output
 		same_line = same_line or (self._inline > 0)
-		if same_line and  not self._changeLine then
-			local i = math.max( # t, 1)
+		if same_line and not self._changeLine then
+			local i = math.max(#t, 1)
 			t[i] = (t[i] or "") .. str
 		else
 			self._changeLine = false
 			local indent = self._indent > 0 and string.rep("\t", self._indent) or ""
-			t[ # t + 1] = indent .. str
+			t[#t + 1] = indent .. str
 		end
 	end
 	-- declare end
@@ -114,27 +114,27 @@ do
 	end
 	function __clstype__:pushLoop(e)
 		local t = self.loops
-		t[ # t + 1] = e
+		t[#t + 1] = e
 	end
 	function __clstype__:popLoop()
 		local t = self.loops
-		t[ # t] = nil
+		t[#t] = nil
 	end
 	function __clstype__:pushFunc(e)
 		local t = self.funcs
-		t[ # t + 1] = e
+		t[#t + 1] = e
 	end
 	function __clstype__:popFunc()
 		local t = self.funcs
-		t[ # t] = nil
+		t[#t] = nil
 	end
 	function __clstype__:pushDefer()
 		local t = self.defers
-		t[ # t + 1] = true
+		t[#t + 1] = true
 	end
 	function __clstype__:popDefer()
 		local t = self.defers
-		t[ # t] = nil
+		t[#t] = nil
 	end
 	function __clstype__:globalInsert(n)
 		assert(type(n) == "string", "Invalid index")
@@ -143,15 +143,15 @@ do
 	end
 	function __clstype__:localPush()
 		local t = self.temp
-		t[ # t + 1] = {  }
+		t[#t + 1] = {  }
 	end
 	function __clstype__:localPop()
 		local t = self.temp
-		t[ # t] = nil
+		t[#t] = nil
 	end
 	function __clstype__:localInsert(n)
 		assert(type(n) == "string", "Invalid index")
-		local t = self.temp[ # self.temp]
+		local t = self.temp[#self.temp]
 		t[n] = true
 	end
 	-- treat lvar as to be defined, grammar checking
@@ -170,20 +170,20 @@ do
 		if etype == "lvar" and e.list then
 			n = e.list[1]
 			pos = e.pos
-		elseif etype == "lvar" and checkLeftLocal and  not onlyList1st then
+		elseif etype == "lvar" and checkLeftLocal and not onlyList1st then
 			n = e.value
 			pos = e.pos
 		elseif etype == "rvar" then
 			n = e.list and e.list[1] or e.value
 			pos = e.pos
-		elseif etype == "lexp" and checkLeftLocal and  not onlyList1st then
+		elseif etype == "lexp" and checkLeftLocal and not onlyList1st then
 			n = e[1].value
 			pos = e[1].pos
 		else
 			return true
 		end
 		local t = self.temp
-		for i =  # t, 1,  - 1 do
+		for i = #t, 1, -1 do
 			if t[i][n] then
 				return true
 			end
@@ -226,6 +226,8 @@ end
 ]]
 -- class and instance metamethod except __tostring, __index, __newindex, __call
 local _cls_metafns = Utils.set({ "__add", "__band", "__bnot", "__bor", "__bxor", "__close", "__concat", "__div", "__eq", "__gc", "__idiv", "__le", "__len", "__lt", "__metatable", "__mod", "__mode", "__mul", "__name", "__pairs", "__pow", "__shl", "__shr", "__sub", "__unm" })
+local _no_space_op = Utils.set({ "(", ")", "#", "~", "-" })
+local _right_space_op = Utils.set({ "not" })
 local M = {}
 do
 	local __stype__ = nil
@@ -269,7 +271,7 @@ do
 		do 
 			local __sw__ = etype
 			if __sw__ == ("lvar") then
-				if  not ctx.in_clsvar then
+				if not ctx.in_clsvar then
 					ctx:checkName(t)
 				end
 				out:append(t.value, true)
@@ -283,8 +285,10 @@ do
 			elseif __sw__ == ("varg") then
 				out:append("...", true)
 			elseif __sw__ == ("op") then
-				if t.value == "(" or t.value == ")" then
+				if _no_space_op[t.value] and not t.sub then
 					out:append(t.value, true)
+				elseif _right_space_op[t.value] then
+					out:append(t.value .. " ", true)
 				else
 					out:append(" " .. t.value .. " ", true)
 				end
@@ -308,7 +312,7 @@ do
 	function __clstype__:trStatement(ast)
 		local ctx = self.ctx
 		local out = self.out
-		for index = 1,  # ast, 1 do
+		for index = 1, #ast, 1 do
 			local t = ast[index]
 			local stype = t.stype
 			do 
@@ -451,7 +455,7 @@ do
 						self:trExpr(v)
 					end
 				end
-				if i <  # t then
+				if i < #t then
 					out:append(", ")
 				end
 			end
@@ -471,17 +475,17 @@ do
 			return init .. (i > 1 and ", " or "") .. v.value
 		end
 		) .. ")")
-		if  # body > 0 then
+		if #body > 0 then
 			out:changeLine()
 			out:incIndent()
 			self:trStatement(body)
-			if  # ctx.defers > 0 and body[ # body].stype ~= "return" then
-				out:append(( # t > 0 and ", " or "") .. "__df_run__()")
+			if #ctx.defers > 0 and body[#body].stype ~= "return" then
+				out:append((#t > 0 and ", " or "") .. "__df_run__()")
 			end
 			out:decIndent()
 		end
 		out:append("end")
-		if  # body > 0 then
+		if #body > 0 then
 			out:changeLine()
 		end
 		ctx:popFunc()
@@ -505,7 +509,7 @@ do
 		assert(t.etype == "lexp", "Invalid etype lexp")
 		local ctx = self.ctx
 		local out = self.out
-		ctx:checkName(t[1], ( # t - 1) > 0)
+		ctx:checkName(t[1], (#t - 1) > 0)
 		for i, e in ipairs(t) do
 			if e.etype then
 				self:trExpr(e)
@@ -517,13 +521,13 @@ do
 	-- MARK: Statement
 	function __clstype__:trStEqual(t)
 		assert(t.stype == "=", "Invalid stype equal")
-		assert( # t == 2, "Invalid asign count")
+		assert(#t == 2, "Invalid asign count")
 		local ctx = self.ctx
 		local out = self.out
 		out:pushInline()
 		for i, v in ipairs(t[1]) do
 			if i == 1 then
-				if  not ctx:isVarDeclared(v, true) then
+				if not ctx:isVarDeclared(v, true) then
 					out:append("local ")
 				end
 			else
@@ -543,7 +547,7 @@ do
 		out:popInline()
 		-- name
 		for i, e in ipairs(t[1]) do
-			if e.etype == "lexp" and  # e == 1 then
+			if e.etype == "lexp" and #e == 1 then
 				ctx:localInsert(e[1].value)
 			end
 		end
@@ -552,7 +556,7 @@ do
 		assert(t.stype:sub(2, 2) == "=", "Invalid stype two equal")
 		local ctx = self.ctx
 		local out = self.out
-		assert( # t == 2, "Invalid asign count")
+		assert(#t == 2, "Invalid asign count")
 		out:pushInline()
 		ctx:checkName(t[1], true)
 		self:trExpr(t[1])
@@ -573,7 +577,7 @@ do
 		assert(t.stype == "import", "Invalid stype import")
 		local ctx = self.ctx
 		local out = self.out
-		if  # t <= 0 then
+		if #t <= 0 then
 			out:append("require(" .. t.slib.value .. ")")
 		elseif t[2] == nil then
 			local lt = t[1][1]
@@ -587,7 +591,7 @@ do
 		else
 			local lt = t[1]
 			local rt = t[2]
-			if  # rt <= 0 then
+			if #rt <= 0 then
 				rt = lt
 			end
 			out:append(Utils.seqReduce(lt, "local ", function(init, i, v)
@@ -687,12 +691,12 @@ do
 			return init .. (i > 1 and ", " or "") .. v.value
 		end
 		) .. ")")
-		if  # body > 0 then
+		if #body > 0 then
 			out:changeLine()
 			out:incIndent()
 			self:trStatement(body)
-			if  # ctx.defers > 0 and body[ # body].stype ~= "return" then
-				out:append(( # t > 0 and ", " or "") .. "__df_run__()")
+			if #ctx.defers > 0 and body[#body].stype ~= "return" then
+				out:append((#t > 0 and ", " or "") .. "__df_run__()")
 			end
 			out:decIndent()
 		end
@@ -767,7 +771,7 @@ do
 		end
 		out:popInline()
 		out:changeLine()
-		for i = 2,  # t do
+		for i = 2, #t do
 			local c = t[i]
 			out:pushInline()
 			if c.stype == "case" then
@@ -798,7 +802,7 @@ do
 			self:trStatement(c.body)
 			out:decIndent()
 			ctx:localPop()
-			if i ==  # t then
+			if i == #t then
 				out:append("end")
 				out:changeLine()
 			end
@@ -833,12 +837,12 @@ do
 			end
 		elseif list.sub == "in" then
 			for i, e in ipairs(list) do
-				if i ==  # list then
+				if i == #list then
 					out:append(" in ")
 				elseif i > 1 then
 					out:append(", ")
 				end
-				if i ==  # list then
+				if i == #list then
 					for j, v in ipairs(e) do
 						if j > 1 then
 							out:append(", ")
@@ -850,7 +854,7 @@ do
 				else
 					self:trExpr(e)
 				end
-				if i ~=  # list then
+				if i ~= #list then
 					ctx:localInsert(e.value)
 				end
 			end
@@ -913,7 +917,7 @@ do
 		assert(t.stype == "break", "Invalid stype break")
 		local ctx = self.ctx
 		local out = self.out
-		if  # ctx.loops <= 0 then
+		if #ctx.loops <= 0 then
 			ctx:errorPos("not in loop", t.stype, t.pos - 1)
 			return 
 		end
@@ -923,18 +927,18 @@ do
 		assert(t.stype == "continue", "Invalid continue op")
 		local ctx = self.ctx
 		local out = self.out
-		if  # ctx.loops <= 0 then
+		if #ctx.loops <= 0 then
 			ctx:errorPos("not in loop", t.stype, t.pos - 1)
 			return 
 		end
 		out:append("goto __continue__")
-		if  not out:isDryRun() then
+		if not out:isDryRun() then
 			return 
 		end
-		local e = ctx.loops[ # ctx.loops]
-		local le = e.stype == "repeat" and e[1] or e[ # e]
-		if  # le == 0 or le[ # le].stype ~= "raw" or le[ # le].sub ~= "continue" then
-			le[ # le + 1] = { stype = "raw", sub = "continue", "::__continue__::" }
+		local e = ctx.loops[#ctx.loops]
+		local le = e.stype == "repeat" and e[1] or e[#e]
+		if #le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue" then
+			le[#le + 1] = { stype = "raw", sub = "continue", "::__continue__::" }
 		end
 	end
 	function __clstype__:trStGoto(t)
@@ -960,8 +964,8 @@ do
 				self:trExpr(v)
 			end
 		end
-		if  # ctx.defers > 0 then
-			out:append(( # t > 0 and ", " or "") .. "__df_run__()")
+		if #ctx.defers > 0 then
+			out:append((#t > 0 and ", " or "") .. "__df_run__()")
 		end
 		out:popInline()
 	end
@@ -969,19 +973,19 @@ do
 		assert(t.stype == "defer", "Invalid stype defer")
 		local ctx = self.ctx
 		local out = self.out
-		if  # ctx.funcs <= 0 then
+		if #ctx.funcs <= 0 then
 			ctx:errorPos("not in function", t.stype, t.pos)
 			return 
 		end
 		if out:isDryRun() then
 			local funcs = ctx.funcs
-			local e = funcs[ # funcs]
+			local e = funcs[#funcs]
 			local body = e.body
-			if  # body == 0 or body[1].stype ~= "raw" or body[1].sub ~= "defer" then
+			if #body == 0 or body[1].stype ~= "raw" or body[1].sub ~= "defer" then
 				local tbl = { stype = "raw", sub = "defer", "local __df_fns__ = {}", "local __df_run__ = function() local t=__df_fns__; for i=#t, 1, -1 do t[i]() end; end" }
 				table.insert(body, 1, tbl)
 			end
-		elseif  not ctx.in_defer then
+		elseif not ctx.in_defer then
 			ctx.in_defer = true
 			out:append("__df_fns__[#__df_fns__ + 1] = function()")
 			out:changeLine()
@@ -1049,7 +1053,7 @@ do
 		out:append("__clstype__.classname = __clsname__")
 		out:append("__clstype__.classtype = __clstype__")
 		out:append("__clstype__.supertype = __stype__")
-		if  not supertype then
+		if not supertype then
 			out:append("__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end")
 			out:append("__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end")
 			out:append("__clstype__.init = function() end")
@@ -1083,9 +1087,9 @@ do
 				local fn_ins = e.attr ~= "class"
 				if _cls_metafns[fn_name] then
 					if e.attr == "class" then
-						cls_fns[ # cls_fns + 1] = e
+						cls_fns[#cls_fns + 1] = e
 					else
-						ins_fns[ # ins_fns + 1] = e
+						ins_fns[#ins_fns + 1] = e
 					end
 				else
 					out:append("function __clstype__" .. (fn_ins and ":" or ".") .. fn_name .. "(")
