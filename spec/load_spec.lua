@@ -37,7 +37,7 @@ describe("test success #loader", function()
 
     it("should failed parse", function()
         assert.is_function(CmdLine.main)
-        CmdLine.main("examples/exp_failed_parse.mn")
+        CmdLine.main("spec/_failed_parse.mn")
         assert.stub(utils.debug).was.called()
     end)
 
@@ -47,13 +47,13 @@ describe("test success #loader", function()
     end)
 
     it("should failed compile", function()
-        CmdLine.main("examples/exp_failed_compile.mn")
+        CmdLine.main("spec/_failed_compile.mn")
         assert.stub(utils.debug).was.called()
     end)
 
     it("should failed run", function()
         assert.is_function(CmdLine.main)
-        CmdLine.main("examples/exp_failed_run.mn")
+        CmdLine.main("spec/_failed_run.mn")
     end)
 
     it("should run proj", function()
