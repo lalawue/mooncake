@@ -16,9 +16,8 @@ describe("test success #switch", function()
             default:
                 return 90
             }
-        default: {
+        default:
             return 20
-        }
         }
     ]]
 
@@ -52,9 +51,8 @@ describe("test failed #switch", function()
     local mnstr=[[
         switch ... {
             case 10: break
-            default: {
+            default:
                 return 10
-            }
         }
     ]]
 

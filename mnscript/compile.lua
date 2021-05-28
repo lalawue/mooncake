@@ -82,6 +82,7 @@ do
 	})
 end
 local _preserv_keyword = Utils.set({ "_G", "_VERSION", "_ENV", "assert", "bit32", "collectgarbage", "coroutine", "debug", "dofile", "error", "getfenv", "getmetatable", "io", "ipairs", "jit", "load", "loadfile", "loadstring", "math", "module", "next", "os", "package", "pairs", "pcall", "print", "rawequal", "rawget", "rawlen", "rawset", "require", "select", "setfenv", "setmetatable", "string", "table", "tonumber", "tostring", "type", "unpack", "xpcall", "nil", "true", "false" })
+local _scope_global = { otype = "gl", defers = {  }, vars = _preserv_keyword }
 local Ctx = {}
 do
 	local __stype__ = nil
@@ -101,58 +102,88 @@ do
 		self:reset()
 	end
 	function __clstype__:reset()
-		self.loops = {  }
-		self.funcs = {  }
-		self.defers = {  }
+		-- { otype : "gl|fi|fn|lo|if|do|gu", defers : {}, vars : {} }
+		self.scopes = { _scope_global, { otype = "fi", defers = {  }, vars = {  } } }
 		self.in_defer = false
 		self.in_clsvar = false
-		self.temp = {  }
-		self.temp[1] = _preserv_keyword
-		self.temp[2] = {  }
 		self.error = nil
 		self.last_pos = 0
 	end
-	function __clstype__:pushLoop(e)
-		local t = self.loops
-		t[#t + 1] = e
+	function __clstype__:pushScope(ot, exp)
+		local t = self.scopes
+		t[#t + 1] = { otype = ot, defers = {  }, vars = {  }, exp = exp }
 	end
-	function __clstype__:popLoop()
-		local t = self.loops
+	function __clstype__:popScope()
+		local t = self.scopes
 		t[#t] = nil
 	end
-	function __clstype__:pushFunc(e)
-		local t = self.funcs
-		t[#t + 1] = e
+	function __clstype__:supportDefer()
+		local t = self.scopes
+		if #t > 2 then
+			for i = #t, 1, -1 do
+				if t[i].otype == "fn" then
+					return true
+				end
+			end
+		end
+		return false
 	end
-	function __clstype__:popFunc()
-		local t = self.funcs
-		t[#t] = nil
+	function __clstype__:isInLoop()
+		local t = self.scopes
+		if #t > 2 then
+			for i = #t, 1, -1 do
+				if t[i].otype == "fn" then
+					return false
+				elseif t[i].otype == "lo" then
+					return true
+				end
+			end
+		end
+		return false
+	end
+	function __clstype__:getScopeExpr(otype)
+		local t = self.scopes
+		if #t > 2 then
+			for i = #t, 1, -1 do
+				if t[i].otype == otype then
+					return t[i].exp
+				end
+			end
+		else
+			return {  }
+		end
 	end
 	function __clstype__:pushDefer()
-		local t = self.defers
-		t[#t + 1] = true
+		local t = self.scopes
+		for i = #t, 1, -1 do
+			if t[i].otype == "fn" then
+				local d = t[i].defers
+				d[#d + 1] = true
+				break
+			end
+		end
 	end
-	function __clstype__:popDefer()
-		local t = self.defers
-		t[#t] = nil
+	function __clstype__:hasDefers()
+		local t = self.scopes
+		if #t > 2 then
+			for i = #t, 1, -1 do
+				if #t[i].defers > 0 then
+					return true
+				end
+				if t[i].otype == "fn" then
+					return false
+				end
+			end
+		end
+		return false
 	end
 	function __clstype__:globalInsert(n)
-		assert(type(n) == "string", "Invalid index")
-		local t = self.temp[2]
-		t[n] = true
-	end
-	function __clstype__:localPush()
-		local t = self.temp
-		t[#t + 1] = {  }
-	end
-	function __clstype__:localPop()
-		local t = self.temp
-		t[#t] = nil
+		local t = self.scopes
+		t[1].vars[n] = true
 	end
 	function __clstype__:localInsert(n)
-		assert(type(n) == "string", "Invalid index")
-		local t = self.temp[#self.temp]
-		t[n] = true
+		local t = self.scopes
+		t[#t].vars[n] = true
 	end
 	-- treat lvar as to be defined, grammar checking
 	function __clstype__:checkName(e, checkLeftLocal, onlyList1st)
@@ -182,9 +213,9 @@ do
 		else
 			return true
 		end
-		local t = self.temp
+		local t = self.scopes
 		for i = #t, 1, -1 do
-			if t[i][n] then
+			if t[i].vars[n] then
 				return true
 			end
 		end
@@ -312,7 +343,12 @@ do
 	function __clstype__:trStatement(ast)
 		local ctx = self.ctx
 		local out = self.out
-		for index = 1, #ast, 1 do
+		local index = 0
+		while true do
+			index = index + (1)
+			if index > #ast then
+				break
+			end
 			local t = ast[index]
 			local stype = t.stype
 			do 
@@ -337,6 +373,8 @@ do
 					self:trStIfElse(t)
 				elseif __sw__ == ("switch") then
 					self:trStSwitch(t)
+				elseif __sw__ == ("guard") then
+					self:trStGuard(t)
 				elseif __sw__ == ("break") then
 					self:trStBreak(t)
 				elseif __sw__ == ("continue") then
@@ -352,7 +390,7 @@ do
 				elseif __sw__ == ("=") then
 					-- a = b * (2 + 4)
 					self:trStEqual(t)
-				elseif __sw__ == ("{") then
+				elseif __sw__ == ("do") then
 					self:trStDo(t)
 				elseif __sw__ == ("raw") then
 					-- generate by compiler
@@ -468,8 +506,7 @@ do
 		local body = t.body
 		local ctx = self.ctx
 		local out = self.out
-		ctx:localPush()
-		ctx:pushFunc(t)
+		ctx:pushScope("fn", t)
 		out:append("function(" .. Utils.seqReduce(args, "", function(init, i, v)
 			ctx:localInsert(v.value)
 			return init .. (i > 1 and ", " or "") .. v.value
@@ -479,7 +516,7 @@ do
 			out:changeLine()
 			out:incIndent()
 			self:trStatement(body)
-			if #ctx.defers > 0 and body[#body].stype ~= "return" then
+			if ctx:hasDefers() and body[#body].stype ~= "return" then
 				out:append((#t > 0 and ", " or "") .. "__df_run__()")
 			end
 			out:decIndent()
@@ -488,9 +525,7 @@ do
 		if #body > 0 then
 			out:changeLine()
 		end
-		ctx:popFunc()
-		ctx:localPop()
-		ctx:popDefer()
+		ctx:popScope()
 	end
 	function __clstype__:trEtRexp(t)
 		assert(t.etype == "rexp", "Invalid etype rexp")
@@ -684,8 +719,7 @@ do
 		else
 			ctx:localInsert(name)
 		end
-		ctx:pushFunc(t)
-		ctx:localPush()
+		ctx:pushScope("fn", t)
 		out:append(attr .. "function " .. name .. "(" .. Utils.seqReduce(args, "", function(init, i, v)
 			ctx:localInsert(v.value)
 			return init .. (i > 1 and ", " or "") .. v.value
@@ -695,25 +729,23 @@ do
 			out:changeLine()
 			out:incIndent()
 			self:trStatement(body)
-			if #ctx.defers > 0 and body[#body].stype ~= "return" then
+			if ctx:hasDefers() and body[#body].stype ~= "return" then
 				out:append((#t > 0 and ", " or "") .. "__df_run__()")
 			end
 			out:decIndent()
 		end
 		out:append("end")
-		ctx:popFunc()
-		ctx:localPop()
-		ctx:popDefer()
+		ctx:popScope()
 	end
 	function __clstype__:trStCall(t)
 		assert(t.stype == "(", "Invalid stype fn call")
 		local ctx = self.ctx
 		local out = self.out
 		local n = 0
+		out:pushInline()
 		if t[1].etype == "lvar" then
 			n = 1
 			ctx:checkName(t[1], true)
-			out:pushInline()
 			out:append(t[1].value, true)
 		end
 		for i, e in ipairs(t) do
@@ -733,25 +765,25 @@ do
 		if t.stype == "if" or t.stype == "elseif" then
 			out:append(t.stype .. " ")
 			out:pushInline()
-			for _, v in ipairs(t[1]) do
+			for _, v in ipairs(t.cond) do
 				self:trExpr(v)
 			end
 			out:popInline()
 			out:append(" then", true)
-			ctx:localPush()
+			ctx:pushScope("if", t)
 			out:changeLine()
 			out:incIndent()
-			self:trStatement(t[2])
-			ctx:localPop()
+			self:trStatement(t.body)
+			ctx:popScope()
 			out:decIndent()
 		elseif t.stype == "else" then
-			ctx:localPush()
+			ctx:pushScope("if", t)
 			out:append("else")
 			out:changeLine()
 			out:incIndent()
-			self:trStatement(t[1])
+			self:trStatement(t.body)
 			out:decIndent()
-			ctx:localPop()
+			ctx:popScope()
 		elseif t.stype == "ifend" then
 			out:append("end")
 		else
@@ -762,20 +794,20 @@ do
 		assert(t.stype == "switch", "Invalid stype switch")
 		local ctx = self.ctx
 		local out = self.out
-		out:append("do ")
+		out:append("do ", t)
 		out:incIndent()
 		out:append("local __sw__ = ")
 		out:pushInline()
-		for _, v in ipairs(t[1]) do
+		for _, v in ipairs(t.cond) do
 			self:trExpr(v)
 		end
 		out:popInline()
 		out:changeLine()
-		for i = 2, #t do
+		for i = 1, #t do
 			local c = t[i]
 			out:pushInline()
 			if c.stype == "case" then
-				if i == 2 then
+				if i == 1 then
 					out:append("if ")
 				else
 					out:append("elseif ")
@@ -790,36 +822,55 @@ do
 					end
 				end
 				out:append(") then")
-				out:changeLine()
-				ctx:localPush()
 			else
 				out:append("else")
-				out:changeLine()
-				ctx:localPush()
 			end
+			out:changeLine()
+			ctx:pushScope("if")
 			out:popInline()
 			out:incIndent()
 			self:trStatement(c.body)
 			out:decIndent()
-			ctx:localPop()
-			if i == #t then
-				out:append("end")
-				out:changeLine()
-			end
+			ctx:popScope()
 		end
+		out:append("end")
+		out:changeLine()
+		out:decIndent()
+		out:append("end")
+	end
+	function __clstype__:trStGuard(t)
+		assert(t.stype == "guard", "Invalid stype guard")
+		local ctx = self.ctx
+		local out = self.out
+		local body = t.body
+		if #body <= 0 or body[#body].stype ~= "return" then
+			ctx:errorPos("guard statement need return at last", "guard", t.pos - 1)
+			return 
+		end
+		out:append("if not (")
+		out:pushInline()
+		for _, v in ipairs(t.cond) do
+			self:trExpr(v)
+		end
+		out:append(") then", true)
+		out:popInline()
+		out:changeLine()
+		out:incIndent()
+		ctx:pushScope("gu", t)
+		self:trStatement(body)
+		ctx:popScope()
 		out:decIndent()
 		out:append("end")
 	end
 	function __clstype__:trStFor(t)
 		assert(t.stype == "for", "Invalid stype for")
-		local list = t[1]
-		local staments = t[2]
+		local list = t.list
+		local staments = t.body
 		local ctx = self.ctx
 		local out = self.out
-		ctx:pushLoop(t)
+		ctx:pushScope("lo", t)
 		out:pushInline()
 		out:append("for ")
-		ctx:localPush()
 		if list.sub == "=" then
 			for i, e in ipairs(list) do
 				if i == 1 then
@@ -869,55 +920,50 @@ do
 		self:trStatement(staments)
 		out:decIndent()
 		out:append("end")
-		ctx:localPop()
-		ctx:popLoop()
+		ctx:popScope()
 	end
 	function __clstype__:trStWhile(t)
 		assert(t.stype == "while", "Invalid stype while")
 		local ctx = self.ctx
 		local out = self.out
-		ctx:pushLoop(t)
+		ctx:pushScope("lo", t)
 		out:append("while ")
 		out:pushInline()
-		for _, v in ipairs(t[1]) do
+		for _, v in ipairs(t.cond) do
 			self:trExpr(v)
 		end
 		out:append(" do")
-		ctx:localPush()
 		out:popInline()
 		out:changeLine()
 		out:incIndent()
-		self:trStatement(t[2])
+		self:trStatement(t.body)
 		out:decIndent()
 		out:append("end")
-		ctx:popLoop()
-		ctx:localPop()
+		ctx:popScope()
 	end
 	function __clstype__:trStRepeat(t)
 		assert(t.stype == "repeat", "Invalid repeat op")
 		local ctx = self.ctx
 		local out = self.out
-		ctx:pushLoop(t)
+		ctx:pushScope("lo", t)
 		out:append("repeat")
 		out:changeLine()
 		out:incIndent()
-		ctx:localPush()
-		self:trStatement(t[1])
+		self:trStatement(t.body)
 		out:decIndent()
 		out:append("until ")
 		out:pushInline()
-		for _, v in ipairs(t[2]) do
+		for _, v in ipairs(t.cond) do
 			self:trExpr(v)
 		end
 		out:popInline()
-		ctx:popLoop()
-		ctx:localPop()
+		ctx:popScope()
 	end
 	function __clstype__:trStBreak(t)
 		assert(t.stype == "break", "Invalid stype break")
 		local ctx = self.ctx
 		local out = self.out
-		if #ctx.loops <= 0 then
+		if not ctx:isInLoop() then
 			ctx:errorPos("not in loop", t.stype, t.pos - 1)
 			return 
 		end
@@ -927,7 +973,7 @@ do
 		assert(t.stype == "continue", "Invalid continue op")
 		local ctx = self.ctx
 		local out = self.out
-		if #ctx.loops <= 0 then
+		if not ctx:isInLoop() then
 			ctx:errorPos("not in loop", t.stype, t.pos - 1)
 			return 
 		end
@@ -935,8 +981,7 @@ do
 		if not out:isDryRun() then
 			return 
 		end
-		local e = ctx.loops[#ctx.loops]
-		local le = e.stype == "repeat" and e[1] or e[#e]
+		local le = ctx:getScopeExpr("lo").body
 		if #le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue" then
 			le[#le + 1] = { stype = "raw", sub = "continue", "::__continue__::" }
 		end
@@ -964,7 +1009,7 @@ do
 				self:trExpr(v)
 			end
 		end
-		if #ctx.defers > 0 then
+		if ctx:hasDefers() then
 			out:append((#t > 0 and ", " or "") .. "__df_run__()")
 		end
 		out:popInline()
@@ -973,14 +1018,12 @@ do
 		assert(t.stype == "defer", "Invalid stype defer")
 		local ctx = self.ctx
 		local out = self.out
-		if #ctx.funcs <= 0 then
+		if not ctx:supportDefer() then
 			ctx:errorPos("not in function", t.stype, t.pos)
 			return 
 		end
 		if out:isDryRun() then
-			local funcs = ctx.funcs
-			local e = funcs[#funcs]
-			local body = e.body
+			local body = ctx:getScopeExpr("fn").body
 			if #body == 0 or body[1].stype ~= "raw" or body[1].sub ~= "defer" then
 				local tbl = { stype = "raw", sub = "defer", "local __df_fns__ = {}", "local __df_run__ = function() local t=__df_fns__; for i=#t, 1, -1 do t[i]() end; end" }
 				table.insert(body, 1, tbl)
@@ -990,26 +1033,26 @@ do
 			out:append("__df_fns__[#__df_fns__ + 1] = function()")
 			out:changeLine()
 			out:incIndent()
-			ctx:localPush()
-			self:trStatement(t[1])
-			ctx:localPop()
+			ctx:pushScope("df")
+			self:trStatement(t.body)
+			ctx:popScope()
 			out:decIndent()
 			out:append("end")
 			ctx.in_defer = false
 		end
 	end
 	function __clstype__:trStDo(t)
-		assert(t.stype == "{", "Invalid stype do end")
+		assert(t.stype == "do", "Invalid stype do end")
 		local ctx = self.ctx
 		local out = self.out
-		ctx:localPush()
+		ctx:pushScope("do")
 		out:append("do")
 		out:changeLine()
 		out:incIndent()
-		self:trStatement(t[1])
+		self:trStatement(t.body)
 		out:decIndent()
 		out:append("end")
-		ctx:localPop()
+		ctx:popScope()
 	end
 	-- generated by compiler 1st pass
 	function __clstype__:trStRaw(t)
@@ -1149,7 +1192,7 @@ do
 		local ctx = self.ctx
 		local out = self.out
 		out:pushInline()
-		ctx:localPush()
+		ctx:pushScope("fn", e)
 		if e.args then
 			for i, v in ipairs(e.args) do
 				if i > 1 then
@@ -1170,7 +1213,7 @@ do
 		out:decIndent()
 		out:append("end" .. (comma_end and "," or ""))
 		out:changeLine()
-		ctx:localPop()
+		ctx:popScope()
 	end
 	-- declare end
 	local __ins_mt = {

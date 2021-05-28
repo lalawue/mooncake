@@ -1,0 +1,7 @@
+
+guard not true else {
+    print("a")
+    return
+}
+
+print("c")

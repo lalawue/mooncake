@@ -45,6 +45,10 @@ function Cmd.option(...)
         config.opcount = 1
         config.fname = a
     end
+    if config.opcount > 1 and not b then
+        Cmd.help()
+        return
+    end
     return config
 end
 

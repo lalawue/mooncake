@@ -110,6 +110,8 @@ local _preserv_keyword = Utils.set({
     "false",
 })
 
+local _scope_global = { otype : "gl", defers : {}, vars : _preserv_keyword }
+
 class Ctx {
 
     fn init(config, ast, content) {
@@ -120,68 +122,100 @@ class Ctx {
     }
 
     fn reset() {
-        self.loops = {}
-        self.funcs = {}
-        self.defers = {}
+        -- { otype : "gl|fi|fn|lo|if|do|gu", defers : {}, vars : {} }
+        self.scopes = {
+            _scope_global,
+            { otype : "fi", defers : {}, vars : {} }
+        }
         self.in_defer = false
         self.in_clsvar = false
-        self.temp = {}
-        self.temp[1] = _preserv_keyword
-        self.temp[2] = {}
         self.error = nil
         self.last_pos = 0
     }
 
-    fn pushLoop(e) {
-        t = self.loops
-        t[#t + 1] = e
+    fn pushScope(ot, exp) {
+        t = self.scopes
+        t[#t + 1] = { otype : ot, defers : {}, vars : {}, exp : exp}
     }
 
-    fn popLoop() {
-        t = self.loops
+    fn popScope() {
+        t = self.scopes
         t[#t] = nil
     }
 
-    fn pushFunc(e) {
-        t = self.funcs
-        t[#t + 1] = e
+    fn supportDefer() {
+        t = self.scopes
+        if #t > 2 {
+            for i = #t, 1, -1 {
+                if t[i].otype == "fn" {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
-    fn popFunc() {
-        t = self.funcs
-        t[#t] = nil
+    fn isInLoop() {
+        t = self.scopes
+        if #t > 2 {
+            for i = #t, 1, -1 {
+                if t[i].otype == "fn" {
+                    return false
+                } elseif t[i].otype == "lo" {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    fn getScopeExpr(otype) {
+        t = self.scopes
+        if #t > 2 {
+            for i = #t, 1, -1 {
+                if t[i].otype == otype {
+                    return t[i].exp
+                }
+            }
+        } else {
+            return {}
+        }
     }
 
     fn pushDefer() {
-        t = self.defers
-        t[#t + 1] = true
+        t = self.scopes
+        for i = #t, 1, -1 {
+            if t[i].otype == "fn" {
+                d = t[i].defers
+                d[#d + 1] = true
+                break
+            }
+        }
     }
 
-    fn popDefer() {
-        t = self.defers
-        t[#t] = nil
+    fn hasDefers(){
+        t = self.scopes
+        if #t > 2 {
+            for i = #t, 1, -1 {
+                if #t[i].defers > 0 {
+                    return true
+                }
+                if t[i].otype == "fn" {
+                    return false
+                }
+            }
+        }
+        return false
     }
 
     fn globalInsert(n) {
-        assert(type(n) == "string", "Invalid index")
-        t = self.temp[2]
-        t[n] = true
-    }
-
-    fn localPush() {
-        t = self.temp
-        t[#t + 1] = {}
-    }
-
-    fn localPop() {
-        t = self.temp
-        t[#t] = nil
+        t = self.scopes
+        t[1].vars[n] = true
     }
 
     fn localInsert(n) {
-        assert(type(n) == "string", "Invalid index")
-        t = self.temp[#self.temp]
-        t[n] = true
+        t = self.scopes
+        t[#t].vars[n] = true
     }
 
     -- treat lvar as to be defined, grammar checking
@@ -213,9 +247,9 @@ class Ctx {
         } else {
             return true
         }
-        t = self.temp
+        t = self.scopes
         for i = #t, 1, -1 {
-            if t[i][n] {
+            if t[i].vars[n] {
                 return true
             }
         }
@@ -348,7 +382,12 @@ class M {
     fn trStatement(ast) {
         ctx = self.ctx
         out = self.out
-        for index = 1, #ast, 1 {
+        index = 0
+        while true {
+            index += 1
+            if index > #ast {
+                break
+            }
             t = ast[index]
             stype = t.stype
             switch stype {
@@ -372,6 +411,8 @@ class M {
                 self:trStIfElse(t)
             case "switch":
                 self:trStSwitch(t)
+            case "guard":
+                self:trStGuard(t)
             case "break":
                 self:trStBreak(t)
             case "continue":
@@ -387,7 +428,7 @@ class M {
             case "=":
                 -- a = b * (2 + 4)
                 self:trStEqual(t)
-            case "{":
+            case "do":
                 self:trStDo(t)
             case "raw":
                 -- generate by compiler
@@ -510,8 +551,7 @@ class M {
         body = t.body
         ctx = self.ctx
         out = self.out
-        ctx:localPush()
-        ctx:pushFunc(t)
+        ctx:pushScope("fn", t)
         out:append("function(" .. Utils.seqReduce(args, "", fn(init, i, v) {
             ctx:localInsert(v.value)
             return init .. (i > 1 and ", " or "") .. v.value
@@ -520,7 +560,7 @@ class M {
             out:changeLine()
             out:incIndent()
             self:trStatement(body)
-            if #ctx.defers > 0 and body[#body].stype ~= "return" {
+            if ctx:hasDefers() and body[#body].stype ~= "return" {
                 out:append((#t > 0 and ", " or "") .. "__df_run__()")
             }
             out:decIndent()
@@ -529,9 +569,7 @@ class M {
         if #body > 0 {
             out:changeLine()
         }
-        ctx:popFunc()
-        ctx:localPop()
-        ctx:popDefer()
+        ctx:popScope()
     }
 
     fn trEtRexp(t) {
@@ -731,8 +769,7 @@ class M {
         } else {
             ctx:localInsert(name)
         }
-        ctx:pushFunc(t)
-        ctx:localPush()
+        ctx:pushScope("fn", t)
         out:append(attr .. "function " .. name .. "(" .. Utils.seqReduce(args, "", fn(init, i, v) {
             ctx:localInsert(v.value)
             return init .. (i > 1 and ", " or "") .. v.value
@@ -741,15 +778,13 @@ class M {
             out:changeLine()
             out:incIndent()
             self:trStatement(body)
-            if #ctx.defers > 0 and body[#body].stype ~= "return" {
+            if ctx:hasDefers() and body[#body].stype ~= "return" {
                 out:append((#t > 0 and ", " or "") .. "__df_run__()")
             }
             out:decIndent()
         }
         out:append("end")
-        ctx:popFunc()
-        ctx:localPop()
-        ctx:popDefer()
+        ctx:popScope()
     }
 
     fn trStCall(t) {
@@ -757,10 +792,10 @@ class M {
         ctx = self.ctx
         out = self.out
         n = 0
+        out:pushInline()        
         if t[1].etype == "lvar" {
             n = 1
             ctx:checkName(t[1], true)
-            out:pushInline()
             out:append(t[1].value, true)
         }
         for i, e in ipairs(t) {
@@ -781,25 +816,25 @@ class M {
         if t.stype == "if" or t.stype == "elseif" {
             out:append(t.stype .. " ")
             out:pushInline()
-            for _, v in ipairs(t[1]) {
+            for _, v in ipairs(t.cond) {
                 self:trExpr(v)
             }
             out:popInline()
             out:append(" then", true)
-            ctx:localPush()
+            ctx:pushScope("if", t)
             out:changeLine()
             out:incIndent()
-            self:trStatement(t[2])
-            ctx:localPop()
+            self:trStatement(t.body)
+            ctx:popScope()
             out:decIndent()
         } elseif t.stype == "else" {
-            ctx:localPush()
+            ctx:pushScope("if", t)
             out:append("else")        
             out:changeLine()
             out:incIndent()
-            self:trStatement(t[1])
+            self:trStatement(t.body)
             out:decIndent()
-            ctx:localPop()
+            ctx:popScope()
         } elseif t.stype == "ifend" {
             out:append("end")
         } else {
@@ -811,20 +846,20 @@ class M {
         assert(t.stype == "switch", "Invalid stype switch")
         ctx = self.ctx
         out = self.out
-        out:append("do ")
+        out:append("do ", t)
         out:incIndent()
         out:append("local __sw__ = ")
         out:pushInline()
-        for _, v in ipairs(t[1]) {
+        for _, v in ipairs(t.cond) {
             self:trExpr(v)
         }
         out:popInline()
         out:changeLine()
-        for i = 2, #t {
+        for i = 1, #t {
             c = t[i]
             out:pushInline()
             if c.stype == "case" {
-                if i == 2 {
+                if i == 1 {
                     out:append("if ")
                 } else {
                     out:append("elseif ")
@@ -839,37 +874,57 @@ class M {
                     }
                 }
                 out:append(") then")
-                out:changeLine()
-                ctx:localPush()
             } else {
                 out:append("else")
-                out:changeLine()
-                ctx:localPush()
             }
+            out:changeLine()
+            ctx:pushScope("if")
             out:popInline()
             out:incIndent()
             self:trStatement(c.body)
             out:decIndent()
-            ctx:localPop()            
-            if i == #t {
-                out:append("end")
-                out:changeLine()
-            }           
+            ctx:popScope()
         }
+        out:append("end")
+        out:changeLine()
+        out:decIndent()
+        out:append("end")
+    }
+
+    fn trStGuard(t) {
+        assert(t.stype == "guard", "Invalid stype guard")
+        ctx = self.ctx
+        out = self.out
+        body = t.body
+        if #body <= 0 or body[#body].stype ~= "return" {
+            ctx:errorPos("guard statement need return at last", "guard", t.pos - 1)
+            return
+        }
+        out:append("if not (")
+        out:pushInline()
+        for _, v in ipairs(t.cond) {
+            self:trExpr(v)
+        }
+        out:append(") then", true)
+        out:popInline()
+        out:changeLine()
+        out:incIndent()
+        ctx:pushScope("gu", t)
+        self:trStatement(body)
+        ctx:popScope()
         out:decIndent()
         out:append("end")
     }
 
     fn trStFor(t) {
         assert(t.stype == "for", "Invalid stype for")
-        list = t[1]
-        staments = t[2]
+        list = t.list
+        staments = t.body
         ctx = self.ctx
         out = self.out    
-        ctx:pushLoop(t)
+        ctx:pushScope("lo", t)
         out:pushInline()
         out:append("for ")
-        ctx:localPush()
         if list.sub == "=" {
             for i, e in ipairs(list) {
                 if i == 1 {
@@ -919,58 +974,53 @@ class M {
         self:trStatement(staments)
         out:decIndent()
         out:append("end")
-        ctx:localPop()
-        ctx:popLoop()    
+        ctx:popScope()
     }
 
     fn trStWhile(t) {
         assert(t.stype == "while", "Invalid stype while")
         ctx = self.ctx
         out = self.out
-        ctx:pushLoop(t)
+        ctx:pushScope("lo", t)
         out:append("while ")    
         out:pushInline()
-        for _, v in ipairs(t[1]) {
+        for _, v in ipairs(t.cond) {
             self:trExpr(v)
         }
         out:append(" do")
-        ctx:localPush()
-        out:popInline()
+        out:popInline()        
         out:changeLine()
         out:incIndent()
-        self:trStatement(t[2])
+        self:trStatement(t.body)
         out:decIndent()
         out:append("end")
-        ctx:popLoop()
-        ctx:localPop()
+        ctx:popScope()
     }
 
     fn trStRepeat(t) {
         assert(t.stype == "repeat", "Invalid repeat op")
         ctx = self.ctx
         out = self.out
-        ctx:pushLoop(t)
+        ctx:pushScope("lo", t)
         out:append("repeat")
         out:changeLine()
         out:incIndent()
-        ctx:localPush()
-        self:trStatement(t[1])
+        self:trStatement(t.body)
         out:decIndent()
         out:append("until ")
         out:pushInline()
-        for _, v in ipairs(t[2]) {
+        for _, v in ipairs(t.cond) {
             self:trExpr(v)
         }
         out:popInline()
-        ctx:popLoop()
-        ctx:localPop()
+        ctx:popScope()
     }
 
     fn trStBreak(t) {
         assert(t.stype == "break", "Invalid stype break")
         ctx = self.ctx
         out = self.out
-        if #ctx.loops <= 0 {
+        if not ctx:isInLoop() {
             ctx:errorPos("not in loop", t.stype, t.pos - 1)
             return
         }
@@ -981,7 +1031,7 @@ class M {
         assert(t.stype == "continue", "Invalid continue op")
         ctx = self.ctx
         out = self.out
-        if #ctx.loops <= 0 {
+        if not ctx:isInLoop() {
             ctx:errorPos("not in loop", t.stype, t.pos - 1)
             return
         }
@@ -989,8 +1039,7 @@ class M {
         if not out:isDryRun() {
             return
         }
-        e = ctx.loops[#ctx.loops]
-        le = e.stype == "repeat" and e[1] or e[#e]
+        le = ctx:getScopeExpr("lo").body
         if #le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue" {
             le[#le + 1] = { stype : "raw", sub : "continue", "::__continue__::"}
         }
@@ -1020,7 +1069,7 @@ class M {
                 self:trExpr(v)
             }
         }
-        if #ctx.defers > 0 {
+        if ctx:hasDefers() {
             out:append((#t > 0 and ", " or "") .. "__df_run__()")
         }
         out:popInline()
@@ -1030,14 +1079,12 @@ class M {
         assert(t.stype == "defer", "Invalid stype defer")
         ctx = self.ctx
         out = self.out
-        if #ctx.funcs <= 0 {
+        if not ctx:supportDefer() {
             ctx:errorPos("not in function", t.stype, t.pos)
             return
         }
         if out:isDryRun() {
-            funcs = ctx.funcs
-            e = funcs[#funcs]
-            body = e.body
+            body = ctx:getScopeExpr("fn").body
             if #body == 0 or body[1].stype ~= "raw" or body[1].sub ~= "defer" {
                 tbl = {
                     stype : "raw",
@@ -1052,9 +1099,9 @@ class M {
             out:append("__df_fns__[#__df_fns__ + 1] = function()")
             out:changeLine()
             out:incIndent()
-            ctx:localPush()
-            self:trStatement(t[1])
-            ctx:localPop()
+            ctx:pushScope("df")
+            self:trStatement(t.body)
+            ctx:popScope()
             out:decIndent()
             out:append("end")
             ctx.in_defer = false
@@ -1062,17 +1109,17 @@ class M {
     }
 
     fn trStDo(t) {
-        assert(t.stype == "{", "Invalid stype do end")
+        assert(t.stype == "do", "Invalid stype do end")
         ctx = self.ctx
         out = self.out
-        ctx:localPush()
+        ctx:pushScope("do")
         out:append("do")
         out:changeLine()
         out:incIndent()
-        self:trStatement(t[1])
+        self:trStatement(t.body)
         out:decIndent()
         out:append("end")
-        ctx:localPop()
+        ctx:popScope()
     }
 
     -- generated by compiler 1st pass
@@ -1215,7 +1262,7 @@ class M {
         ctx = self.ctx
         out = self.out
         out:pushInline()
-        ctx:localPush()
+        ctx:pushScope("fn", e)
         if e.args {
             for i, v in ipairs(e.args) {
                 if i > 1 {
@@ -1236,7 +1283,7 @@ class M {
         out:decIndent()
         out:append("end" .. (comma_end and "," or ""))
         out:changeLine()
-        ctx:localPop()
+        ctx:popScope()
     }
 }
 

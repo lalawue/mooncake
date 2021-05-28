@@ -3,7 +3,7 @@ local compile = require("mnscript.compile")
 
 describe("test success #block #fn", function()
     local mnstr=[[
-    {
+    do {
         a = 10
         c = fn(c) {
             print(9)
@@ -31,9 +31,9 @@ describe("test success #block #fn", function()
    end)
 end)
 
-describe("test failed #block", function()
+describe("test failed 1 #block", function()
     local mnstr=[[
-    {        
+    do {        
     }]]
 
     local ret, ast = parser.parse(mnstr)
@@ -42,3 +42,15 @@ describe("test failed #block", function()
          assert.is_true(type(ast) == "table")
     end)
 end)
+
+describe("test failed 2 #block", function()
+     local mnstr=[[
+     do {        
+     }]]
+ 
+     local ret, ast = parser.parse(mnstr)
+     it("should get ast", function()
+          assert.is_false(ret)
+          assert.is_true(type(ast) == "table")
+     end)
+ end)
