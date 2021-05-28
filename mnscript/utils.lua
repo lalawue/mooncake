@@ -14,7 +14,6 @@ do
 	__clstype__.supertype = __stype__
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
-	__clstype__.init = function() end
 	-- declare class var and methods
 	function __clstype__.serializeTable(t, p, c, s)
 		local n = 0
@@ -147,7 +146,11 @@ do
 	-- declare end
 	local __ins_mt = {
 		__tostring = function() return "instance of " .. __clsname__ end,
-		__index = function(t, k) return rawget(t, k) or __clstype__[k] end,
+		__index = function(t, k)
+			local v = rawget(t, k)
+			if not v then v = __clstype__[k]; if v then rawset(t, k, v) end; end
+			return v
+		end,
 	}
 	setmetatable(__clstype__, {
 		__tostring = function() return "class " .. __clsname__ end,
@@ -155,7 +158,6 @@ do
 		__newindex = function() end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt)
-			ins:init(...)
 			return ins
 		end,
 	})

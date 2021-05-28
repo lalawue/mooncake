@@ -128,7 +128,7 @@ fn mnRemoveLoader() {
 }
 
 fn mnVersion() {
-    return "mnscript v0.0.3"
+    return "mnscript v0.0.3, " .. _VERSION
 }
 
 -- run

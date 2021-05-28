@@ -132,7 +132,7 @@ local function mnRemoveLoader()
 	return false
 end
 local function mnVersion()
-	return "mnscript v0.0.3"
+	return "mnscript v0.0.3, " .. _VERSION
 end
 -- run
 if not package.mnpath then

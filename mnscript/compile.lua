@@ -15,7 +15,6 @@ do
 	__clstype__.supertype = __stype__
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
-	__clstype__.init = function() end
 	-- declare class var and methods
 	function __clstype__:init()
 		self:reset()
@@ -68,7 +67,11 @@ do
 	-- declare end
 	local __ins_mt = {
 		__tostring = function() return "instance of " .. __clsname__ end,
-		__index = function(t, k) return rawget(t, k) or __clstype__[k] end,
+		__index = function(t, k)
+			local v = rawget(t, k)
+			if not v then v = __clstype__[k]; if v then rawset(t, k, v) end; end
+			return v
+		end,
 	}
 	setmetatable(__clstype__, {
 		__tostring = function() return "class " .. __clsname__ end,
@@ -93,7 +96,6 @@ do
 	__clstype__.supertype = __stype__
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
-	__clstype__.init = function() end
 	-- declare class var and methods
 	function __clstype__:init(config, ast, content)
 		self.config = config
@@ -240,7 +242,11 @@ do
 	-- declare end
 	local __ins_mt = {
 		__tostring = function() return "instance of " .. __clsname__ end,
-		__index = function(t, k) return rawget(t, k) or __clstype__[k] end,
+		__index = function(t, k)
+			local v = rawget(t, k)
+			if not v then v = __clstype__[k]; if v then rawset(t, k, v) end; end
+			return v
+		end,
 	}
 	setmetatable(__clstype__, {
 		__tostring = function() return "class " .. __clsname__ end,
@@ -269,7 +275,6 @@ do
 	__clstype__.supertype = __stype__
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
-	__clstype__.init = function() end
 	-- declare class var and methods
 	function __clstype__:init(ctx, out)
 		self.ctx = ctx
@@ -1101,11 +1106,11 @@ do
 		if not supertype then
 			out:append("__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end")
 			out:append("__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end")
-			out:append("__clstype__.init = function() end")
 		end
 		--
 		out:append("-- declare class var and methods")
 		out:changeLine()
+		local fn_init = false
 		local fn_deinit = false
 		local cls_fns = {  }
 		local ins_fns = {  }
@@ -1126,7 +1131,9 @@ do
 				ctx.in_clsvar = false
 			elseif stype == "fn" then
 				local fn_name = e.name.value
-				if fn_name == "deinit" then
+				if fn_name == "init" then
+					fn_init = true
+				elseif fn_name == "deinit" then
 					fn_deinit = true
 				end
 				local fn_ins = e.attr ~= "class"
@@ -1149,7 +1156,13 @@ do
 		out:append("local __ins_mt = {")
 		out:incIndent()
 		out:append('__tostring = function() return "instance of " .. __clsname__ end,')
-		out:append("__index = function(t, k) return rawget(t, k) or __clstype__[k] end,")
+		out:append("__index = function(t, k)")
+		out:incIndent()
+		out:append("local v = rawget(t, k)")
+		out:append("if not v then v = __clstype__[k]; if v then rawset(t, k, v) end; end")
+		out:append("return v")
+		out:decIndent()
+		out:append("end,")
 		if fn_deinit then
 			out:append("__gc = function(t) t:deinit() end,")
 		end
@@ -1176,7 +1189,9 @@ do
 			out:decIndent()
 			out:append("end")
 		end
-		out:append("ins:init(...)")
+		if fn_init then
+			out:append("ins:init(...)")
+		end
 		out:append("return ins")
 		out:decIndent()
 		out:append("end,")
@@ -1220,7 +1235,11 @@ do
 	-- declare end
 	local __ins_mt = {
 		__tostring = function() return "instance of " .. __clsname__ end,
-		__index = function(t, k) return rawget(t, k) or __clstype__[k] end,
+		__index = function(t, k)
+			local v = rawget(t, k)
+			if not v then v = __clstype__[k]; if v then rawset(t, k, v) end; end
+			return v
+		end,
 	}
 	setmetatable(__clstype__, {
 		__tostring = function() return "class " .. __clsname__ end,
