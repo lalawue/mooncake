@@ -320,6 +320,8 @@ do
 					out:append(t.value, true)
 				elseif _right_space_op[t.value] then
 					out:append(t.value .. " ", true)
+				elseif t.value == "!=" then
+					out:append(" ~= ", true)
 				else
 					out:append(" " .. t.value .. " ", true)
 				end

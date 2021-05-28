@@ -12,6 +12,7 @@ describe("test success #assign #export #local", function()
    m = 8 + -b * 10
    t, v = "\\", not not h
    p = (next or next)(_G)
+   o = p != 0
    return p, q, x, b, d, e, f, g, h, i, m, t, v]]
 
    local ret, ast = parser.parse(mnstr)

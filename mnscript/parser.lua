@@ -129,7 +129,7 @@ local pSingleOp = Cmt(fConj(P("not"), pBlank) + Cmt("-", fNotCm) + P("#") + P("~
 end
 )
 local pTwoOp = P("*=") + P("/=") + P("%=") + P("+=") + P("-=") + P("..=") + P("or=") + P("and=") + P("^=")
-local pOperator = Cmt(P("//") + S("*/%") + P("+") + Cmt("-", fNotCm) + P("^") + P("..") + P(">>") + P("<<") + P("<=") + P(">=") + P("~=") + P("==") + S("><") + fConj(P("and"), pBlank) + fConj(P("or"), pBlank), function(s, p, c)
+local pOperator = Cmt(P("//") + S("*/%") + P("+") + Cmt("-", fNotCm) + P("^") + P("..") + P(">>") + P("<<") + P("<=") + P(">=") + P("~=") + P("==") + S("><") + fConj(P("and"), pBlank) + fConj(P("or"), pBlank) + P("!="), function(s, p, c)
 	return p, { etype = "op", pos = p, value = c, sub = "p" }
 end
 )

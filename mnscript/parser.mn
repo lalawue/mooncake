@@ -139,7 +139,7 @@ pSingleOp = Cmt(fConj(P("not"), pBlank) + Cmt("-", fNotCm) + P("#") + P("~"), fn
 pTwoOp = P("*=") + P("/=") + P("%=") + P("+=") + P("-=") + P("..=") + P("or=") + P("and=") + P("^=")
 
 pOperator = Cmt(P("//") + S("*/%") + P("+") + Cmt("-", fNotCm) + P("^") + P("..") + P(">>") + P("<<") + P("<=") +
- P(">=") + P("~=") + P("==") + S("><") + fConj(P("and"), pBlank) + fConj(P("or"), pBlank), fn(s, p, c) {
+ P(">=") + P("~=") + P("==") + S("><") + fConj(P("and"), pBlank) + fConj(P("or"), pBlank) + P("!="), fn(s, p, c) {
     return p, {etype : "op", pos : p, value : c, sub : "p"}
  })
 

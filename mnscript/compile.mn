@@ -359,6 +359,8 @@ class M {
                 out:append(t.value, true)
             } elseif _right_space_op[t.value] {
                 out:append(t.value .. " ", true)
+            } elseif t.value == "!=" {
+                out:append(" ~= ", true)
             } else {
                 out:append(" " .. t.value .. " ", true)
             }
