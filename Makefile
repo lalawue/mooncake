@@ -11,11 +11,17 @@ OLIB=export LUA_PATH="./out/?.lua;"
 ODIR=out/mnscript
 CS=./bin/mnscript -s
 
+#
 # edit path before install
-INSTALL_BIN_PATH=/usr/local/bin				# bin/mnscript
-INSTALL_LUA_EXEC=/usr/local/bin/lua			# Lua/LuaJIT interpreter
-INSTALL_LUA_PATH=/usr/local/opt/mnscript	# for store mnscript core *.lua
-INSTALL_LUA_CPATH=/usr/local/lib/lua/5.1	# lpeg.so and lfs.so location
+
+# bin/mnscript
+INSTALL_BIN_PATH=/usr/local/bin
+# Lua/LuaJIT interpreter
+INSTALL_LUA_EXEC=/usr/local/bin/lua
+# for store mnscript core *.lua
+INSTALL_LUA_PATH=/usr/local/opt/mnscript
+# lpeg.so and lfs.so location
+INSTALL_LUA_CPATH=/usr/local/lib/lua/5.1
 
 all:
 	@echo "Usage:"
