@@ -577,9 +577,6 @@ class M {
             out:decIndent()
         }
         out:append("end")
-        if #body > 0 {
-            out:changeLine()
-        }
         ctx:popScope()
     }
 
@@ -794,7 +791,7 @@ class M {
             }
             out:decIndent()
         }
-        out:append("end")
+        out:append("end\n")
         ctx:popScope()
     }
 
@@ -1305,7 +1302,7 @@ class M {
         out:incIndent()
         self:trStatement(e.body)
         out:decIndent()
-        out:append("end" .. (comma_end and "," or ""))
+        out:append("end" .. (comma_end and "," or "\n"))
         out:changeLine()
         ctx:popScope()
     }
