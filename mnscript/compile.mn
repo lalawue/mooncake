@@ -129,6 +129,7 @@ class Ctx {
         }
         self.in_defer = false
         self.in_clsvar = false
+        self.in_clsname = nil
         self.error = nil
         self.last_pos = 0
     }
@@ -344,10 +345,18 @@ class M {
             if not ctx.in_clsvar {
                 ctx:checkName(t)
             }
-            out:append(t.value, true)
+            if ctx.in_clsname and t.value == "Self" {
+                out:append(ctx.in_clsname, true)
+            } else {
+                out:append(t.value, true)
+            }
         case "rvar":
             ctx:checkName(t)
-            out:append(t.value, true)
+            if ctx.in_clsname and t.value == "Self" {
+                out:append(ctx.in_clsname, true)
+            } else {
+                out:append(t.value, true)
+            }
         case "number":
             out:append(t.value, true)
         case "string":
@@ -1145,6 +1154,7 @@ class M {
         attr = (t.attr == "export") and "" or "local "
         clsname = t.name.value
         supertype = t.super and t.super.value
+        ctx.in_clsname = clsname
         if t.attr == "export" {
             ctx:globalInsert(clsname)
         } else {
@@ -1268,6 +1278,7 @@ class M {
         --
         out:decIndent()
         out:append("end")
+        ctx.in_clsname = nil
     }
 
     fn hlClsFnArgsBody(e, fn_ins, comma_end) {
@@ -1287,6 +1298,7 @@ class M {
         if fn_ins {
             ctx:localInsert("self")
         }
+        ctx:localInsert("Self")
         out:append(")")
         out:changeLine()
         out:popInline()

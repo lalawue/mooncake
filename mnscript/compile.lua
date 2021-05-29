@@ -108,6 +108,7 @@ do
 		self.scopes = { _scope_global, { otype = "fi", defers = {  }, vars = {  } } }
 		self.in_defer = false
 		self.in_clsvar = false
+		self.in_clsname = nil
 		self.error = nil
 		self.last_pos = 0
 	end
@@ -310,10 +311,18 @@ do
 				if not ctx.in_clsvar then
 					ctx:checkName(t)
 				end
-				out:append(t.value, true)
+				if ctx.in_clsname and t.value == "Self" then
+					out:append(ctx.in_clsname, true)
+				else
+					out:append(t.value, true)
+				end
 			elseif __sw__ == ("rvar") then
 				ctx:checkName(t)
-				out:append(t.value, true)
+				if ctx.in_clsname and t.value == "Self" then
+					out:append(ctx.in_clsname, true)
+				else
+					out:append(t.value, true)
+				end
 			elseif __sw__ == ("number") then
 				out:append(t.value, true)
 			elseif __sw__ == ("string") then
@@ -1081,6 +1090,7 @@ do
 		local attr = (t.attr == "export") and "" or "local "
 		local clsname = t.name.value
 		local supertype = t.super and t.super.value
+		ctx.in_clsname = clsname
 		if t.attr == "export" then
 			ctx:globalInsert(clsname)
 		else
@@ -1204,6 +1214,7 @@ do
 		--
 		out:decIndent()
 		out:append("end")
+		ctx.in_clsname = nil
 	end
 	function __clstype__:hlClsFnArgsBody(e, fn_ins, comma_end)
 		local ctx = self.ctx
@@ -1222,6 +1233,7 @@ do
 		if fn_ins then
 			ctx:localInsert("self")
 		end
+		ctx:localInsert("Self")
 		out:append(")")
 		out:changeLine()
 		out:popInline()

@@ -21,7 +21,7 @@ describe("test normal #class", function()
             -- declare class variable
             b = 9 * 2 * (3 + (8 ^ 2))
             class fn runAway(a) {
-                return ClsB.b + a
+                return Self.b + a
             }
             fn takeTime(c, d) {
                 return c + d * 2
@@ -37,7 +37,7 @@ describe("test normal #class", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({enable_deinit = true}, ast)
+    local ret, content = compile.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)        
         assert.is_true(type(content) == "string")
