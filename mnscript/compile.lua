@@ -78,7 +78,9 @@ do
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
 			local v = rawget(t, k)
-			if not v then v = __clstype__[k]; if v then rawset(t, k, v) end; end
+			if v then return v end
+			v = __clstype__[k]
+			if v then rawset(t, k, v) end
 			return v
 		end,
 	}
@@ -270,7 +272,9 @@ do
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
 			local v = rawget(t, k)
-			if not v then v = __clstype__[k]; if v then rawset(t, k, v) end; end
+			if v then return v end
+			v = __clstype__[k]
+			if v then rawset(t, k, v) end
 			return v
 		end,
 	}
@@ -1218,7 +1222,9 @@ do
 		out:append("__index = function(t, k)")
 		out:incIndent()
 		out:append("local v = rawget(t, k)")
-		out:append("if not v then v = __clstype__[k]; if v then rawset(t, k, v) end; end")
+		out:append("if v then return v end")
+		out:append("v = __clstype__[k]")
+		out:append("if v then rawset(t, k, v) end")
 		out:append("return v")
 		out:decIndent()
 		out:append("end,")
@@ -1300,7 +1306,9 @@ do
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
 			local v = rawget(t, k)
-			if not v then v = __clstype__[k]; if v then rawset(t, k, v) end; end
+			if v then return v end
+			v = __clstype__[k]
+			if v then rawset(t, k, v) end
 			return v
 		end,
 	}

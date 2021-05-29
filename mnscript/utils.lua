@@ -160,7 +160,9 @@ do
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
 			local v = rawget(t, k)
-			if not v then v = __clstype__[k]; if v then rawset(t, k, v) end; end
+			if v then return v end
+			v = __clstype__[k]
+			if v then rawset(t, k, v) end
 			return v
 		end,
 	}
