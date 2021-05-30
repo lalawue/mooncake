@@ -5,6 +5,9 @@ describe("test normal #class", function()
     local mnstr=[[
         local class ClsA {
             a = 11
+            fn init() {
+                self.b = 0
+            }
             fn takeTime(c) {
                 return self.a + 101 - c
             }
@@ -16,6 +19,8 @@ describe("test normal #class", function()
             fn __add(a, b) {
                 return 666
             }
+            fn deinit() {
+            }
         }
         export class ClsB : ClsA {
             -- declare class variable
@@ -25,6 +30,9 @@ describe("test normal #class", function()
             }
             fn takeTime(c, d) {
                 return c + d * 2
+            }
+            fn change(a) {
+                Self.a = a
             }
         }
         ClsA.b = 100
@@ -53,6 +61,8 @@ describe("test normal #class", function()
         assert.is_equal(ClsB.runAway(10), 1216)
         local b = ClsB()
         assert.is_equal(b:takeTime(1, 2), 5)
+        b:change(99)
+        assert.is_equal(ClsB.a, 99)
     end)
 
     it("should deinit", function()
@@ -71,6 +81,7 @@ describe("test normal #class", function()
         assert(type(f) == "function")
         local ClsA = f()
         local a = ClsA()
+        assert.is_equal(a.b, 0)
         assert.is_equal((ClsA + ClsA), "add")
         assert.is_equal((a + a), 666)
     end)

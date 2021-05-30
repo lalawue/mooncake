@@ -43,9 +43,7 @@ out:
 	$(CS) mnscript/core.mn > $(ODIR)/core.lua
 	$(CS) mnscript/parser.mn > $(ODIR)/parser.lua
 	$(CS) mnscript/utils.mn > $(ODIR)/utils.lua
-	mv mnscript mnscript_
 	$(OLIB) && busted -c
-	mv mnscript_ mnscript
 
 MN_DIR=$(INSTALL_LUA_PATH)/mnscript/
 MN_BIN=$(INSTALL_BIN_PATH)/mnscript

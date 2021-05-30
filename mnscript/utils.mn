@@ -125,14 +125,6 @@ class Utils {
         Utils.debug(Utils.serializeTable(t))
     }
 
-    class fn copy(it) {
-        ot = {}
-        for k, v in pairs(it) {
-            ot[k] = v
-        }
-        return ot
-    }
-
     -- position line in content
     class fn posLine(content, lpos, cpos) {
         assert(type(content) == "string", "Invalid content")

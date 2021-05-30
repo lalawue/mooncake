@@ -13,12 +13,11 @@ class Out {
         self:reset()
     }
 
-    fn reset(dryrun) {
+    fn reset() {
         self._indent = 0 -- indent char
         self._changeLine = false -- force change line
         self._output = {} -- output table
         self._inline = 0 -- force expr oneline
-        self._dryrun = dryrun
     }
 
     fn incIndent() {
@@ -41,14 +40,7 @@ class Out {
         self._inline = self._inline - 1
     }
 
-    fn isDryRun(set) {
-        return self._dryrun
-    }
-
     fn append(str, same_line) {
-        if self._dryrun {
-            return
-        }
         assert(type(str) == "string", "Invalid input")        
         t = self._output
         same_line = same_line or (self._inline > 0)
@@ -57,8 +49,23 @@ class Out {
             t[i] = (t[i] or "") .. str
         } else {
             self._changeLine = false
-            indent = self._indent > 0 and string.rep("\t", self._indent) or ""
-            t[#t + 1] = indent .. str
+            prefix = self._indent > 0 and string.rep("\t", self._indent) or ""
+            t[#t + 1] = prefix .. str
+        }
+    }
+
+    fn getInfo() {
+        return { #self._output, self._indent }
+    }
+
+    fn appendExt(info, tbl) {
+        t = self._output
+        if #info > 1 and info[1] <= #t {
+            idx, indent = info[1], info[2]
+            prefix = indent > 0 and string.rep("\t", indent) or ""
+            for _, v in ipairs(tbl) {
+                t[idx] = (t[idx] or "") .. "\n" .. prefix .. v
+            }
         }
     }
 }
@@ -122,10 +129,10 @@ class Ctx {
     }
 
     fn reset() {
-        -- { otype : "gl|fi|fn|lo|if|do|gu", defers : {}, vars : {} }
+        -- { otype : "gl|fi|fn|lo|if|do|gu", defers : {}, vars : {}, info : {} }
         self.scopes = {
             _scope_global,
-            { otype : "fi", defers : {}, vars : {} }
+            { otype : "fi", defers : {}, vars : {}, info : nil }
         }
         self.in_defer = false
         self.in_clsvar = false
@@ -178,8 +185,6 @@ class Ctx {
                     return t[i].exp
                 }
             }
-        } else {
-            return {}
         }
     }
 
@@ -207,6 +212,23 @@ class Ctx {
             }
         }
         return false
+    }
+
+    fn pushOutInfo(info) {
+        t = self.scopes
+        t[#t].info = info
+    }
+
+    fn getOutInfo(otype) {
+        t = self.scopes
+        if #t > 2 {
+            for i = #t, 1, -1 {
+                v = t[i]
+                if v.otype == otype {
+                    return v.info                
+                }
+            }
+        }
     }
 
     fn globalInsert(n) {
@@ -567,15 +589,17 @@ class M {
             ctx:localInsert(v.value)
             return init .. (i > 1 and ", " or "") .. v.value
         }) .. ")")
+        out:incIndent()
+        ctx:pushOutInfo(out:getInfo())
         if #body > 0 {
             out:changeLine()
-            out:incIndent()
             self:trStatement(body)
             if ctx:hasDefers() and body[#body].stype ~= "return" {
                 out:append((#t > 0 and ", " or "") .. "__df_run__()")
+                out:changeLine()
             }
-            out:decIndent()
         }
+        out:decIndent()
         out:append("end")
         ctx:popScope()
     }
@@ -782,15 +806,16 @@ class M {
             ctx:localInsert(v.value)
             return init .. (i > 1 and ", " or "") .. v.value
         }) .. ")")
+        out:incIndent()
+        ctx:pushOutInfo(out:getInfo())
         if #body > 0 {
             out:changeLine()
-            out:incIndent()
             self:trStatement(body)
             if ctx:hasDefers() and body[#body].stype ~= "return" {
                 out:append((#t > 0 and ", " or "") .. "__df_run__()")
             }
-            out:decIndent()
         }
+        out:decIndent()
         out:append("end\n")
         ctx:popScope()
     }
@@ -1044,11 +1069,8 @@ class M {
             return
         }
         out:append("goto __continue__")
-        if not out:isDryRun() {
-            return
-        }
         le = ctx:getScopeExpr("lo").body
-        if #le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue" {
+        if le and (#le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue") {
             le[#le + 1] = { stype : "raw", sub : "continue", "::__continue__::"}
         }
     }
@@ -1091,18 +1113,17 @@ class M {
             ctx:errorPos("not in function", t.stype, t.pos)
             return
         }
-        if out:isDryRun() {
-            body = ctx:getScopeExpr("fn").body
-            if #body == 0 or body[1].stype ~= "raw" or body[1].sub ~= "defer" {
-                tbl = {
-                    stype : "raw",
-                    sub : "defer",
+        if not ctx:hasDefers() {
+            ctx:pushDefer()
+            info = ctx:getOutInfo("fn")
+            if info {
+                out:appendExt(info, {
                     "local __df_fns__ = {}",
                     "local __df_run__ = function() local t=__df_fns__; for i=#t, 1, -1 do t[i]() end; end"
-                }
-                table.insert(body, 1, tbl)
+                })
             }
-        } elseif not ctx.in_defer {
+        }
+        if not ctx.in_defer {
             ctx.in_defer = true
             out:append("__df_fns__[#__df_fns__ + 1] = function()")
             out:changeLine()
@@ -1133,10 +1154,6 @@ class M {
     -- generated by compiler 1st pass
     fn trStRaw(t) {
         assert(t.stype == "raw", "Invalid stype raw")
-        ctx = self.ctx
-        if t.sub == "defer" {
-            ctx:pushDefer()
-        }
         out = self.out
         for _, v in ipairs(t) {
             out:append(v)
@@ -1299,9 +1316,10 @@ class M {
         }
         ctx:localInsert("Self")
         out:append(")")
-        out:changeLine()
-        out:popInline()
         out:incIndent()
+        out:popInline()
+        out:changeLine()
+        ctx:pushOutInfo(out:getInfo())
         self:trStatement(e.body)
         out:decIndent()
         out:append("end" .. (comma_end and "," or "\n"))
@@ -1321,18 +1339,13 @@ fn compile(config, data) {
 
     ctx = Ctx(config, data.ast, data.content)
     out = Out()
-
     comp = M(ctx, out)
-    out:reset(true)
+
     comp:trStatement(ctx.ast)
 
     if ctx:hasError() {
         return false, ctx.error
     }
-
-    ctx:reset()
-    out:reset()
-    comp:trStatement(ctx.ast)
 
     return true, table.concat(out._output, "\n")
 }

@@ -14,11 +14,17 @@ describe("test success #defer", function()
                     a += 20
                 }
                 a += 20
-                return a
+            }
+        }
+        b = 0
+        fn last_return() {
+            b = 10
+            defer {
+                b = 20
             }
         }
         test_defer()()
-        return a
+        return a, last_return(), b
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -36,8 +42,9 @@ describe("test success #defer", function()
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
-        local a = f()
+        local a, _, b = f()
         assert.is_equal(a, 60)
+        assert.is_equal(b, 20)
     end)
 end)
 

@@ -127,14 +127,6 @@ do
 		Utils.debug(Utils.serializeTable(t))
 	end
 
-	function __clstype__.copy(it)
-		local ot = {  }
-		for k, v in pairs(it) do
-			ot[k] = v
-		end
-		return ot
-	end
-
 	-- position line in content
 	function __clstype__.posLine(content, lpos, cpos)
 		assert(type(content) == "string", "Invalid content")
