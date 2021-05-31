@@ -37,7 +37,6 @@ local function createPath(pkg_path)
 	end
 	return concat(tbl, ";")
 end
-
 -- mn source to AST
 local function toAST(config, text)
 	local t = type(text)
@@ -53,7 +52,6 @@ local function toAST(config, text)
 	end
 	return tbl
 end
-
 -- translate to Lua
 local function toLua(config, tbl)
 	local ret, code = compile(config, tbl)
@@ -62,7 +60,6 @@ local function toLua(config, tbl)
 	end
 	return code
 end
-
 -- directory separator
 local dir_spliter = package.config and package.config[1] or '/'
 local all_option = _VERSION == "Lua 5.1" and "*a" or "a"
@@ -97,7 +94,6 @@ local function mnLoader(name)
 	local f, err = load(res, file_path)
 	return f
 end
-
 local function mnLoadString(text, cname, mode, env)
 	tmp_config.fname = cname
 	local res, emsg = toAST(tmp_config, text)
@@ -111,7 +107,6 @@ local function mnLoadString(text, cname, mode, env)
 	local f = (loadstring or load)
 	return f(res, cname, unpack({ mode = mode, env = env }))
 end
-
 local function mnLoadFile(fname, ...)
 	local f, err = io.open(fname)
 	if not f then
@@ -121,12 +116,10 @@ local function mnLoadFile(fname, ...)
 	f:close()
 	return mnLoadString(text, fname, ...)
 end
-
 local function mnDoFile(...)
 	local f = assert(mnLoadFile(...))
 	return f()
 end
-
 local function mnRemoveLoader()
 	local loaders = package.loaders or package.searchers
 	for i, loader in ipairs(loaders) do
@@ -138,11 +131,9 @@ local function mnRemoveLoader()
 	end
 	return false
 end
-
 local function mnVersion()
 	return "mnscript v0.0.3, " .. _VERSION
 end
-
 -- run
 if not package.mnpath then
 	package.mnpath = createPath(package.path)

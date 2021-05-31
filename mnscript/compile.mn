@@ -434,6 +434,8 @@ class M {
                 self:trStCall(t)
             case "class":
                 self:trStClass(t)
+            case "struct":
+                self:trStStruct(t)
             case "ex":
                 self:trStExport(t)
             case "return":
@@ -816,7 +818,7 @@ class M {
             }
         }
         out:decIndent()
-        out:append("end\n")
+        out:append("end")
         ctx:popScope()
     }
 
@@ -1196,50 +1198,8 @@ class M {
             out:append("__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end")
         }
         --
-        out:append("-- declare class var and methods")
-        out:changeLine()
-        fn_init = false
-        fn_deinit = false
-        cls_fns = {}
-        ins_fns = {}
-        for _, e in ipairs(t) {
-            stype = e.stype
-            if stype == "=" {
-                ctx.in_clsvar = true         
-                out:append("__clstype__.")
-                out:pushInline()
-                for i, v in ipairs(e) {
-                    self:trExpr(v)
-                    if i == 1 {
-                        out:append(" = ")
-                    }
-                }
-                out:popInline()
-                out:changeLine()
-                ctx.in_clsvar = false
-            } elseif stype == "fn" {
-                fn_name = e.name.value
-                if fn_name == "init" {
-                    fn_init = true
-                } elseif fn_name == "deinit" {
-                    fn_deinit = true
-                }
-                fn_ins = e.attr ~= "class"                
-                if _cls_metafns[fn_name] {
-                    if e.attr == "class" {
-                        cls_fns[#cls_fns + 1] = e
-                    } else {
-                        ins_fns[#ins_fns + 1] = e
-                    }
-                } else {
-                    out:append("function __clstype__" .. (fn_ins and ":" or ".") .. fn_name .. "(")
-                    self:hlClsFnArgsBody(e, fn_ins, false)
-                }
-            } elseif stype == "cm" {
-                self:trStComment(e)
-            }
-        }
-        out:append("-- declare end")
+        cls_fns, ins_fns = {}, {}
+        fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns) 
         --
         out:append("local __ins_mt = {")
         out:incIndent()
@@ -1258,7 +1218,7 @@ class M {
         }
         for _, e in ipairs(ins_fns) {
             out:append(e.name.value .. " = function(")
-            self:hlClsFnArgsBody(e, false, true)
+            self:hlFnArgsBody(e, false, true)
         }
         out:decIndent()
         out:append("}")
@@ -1280,14 +1240,95 @@ class M {
             out:append("end")
         }
         if fn_init {
-            out:append("ins:init(...)")
+            out:append("if ins:init(...) == false then return nil end")
         }
         out:append("return ins")
         out:decIndent()
         out:append("end,")
         for _, e in ipairs(cls_fns) {
             out:append(e.name.value .. " = function(")
-            self:hlClsFnArgsBody(e, false, true)
+            self:hlFnArgsBody(e, false, true)
+        }
+        out:decIndent()
+        out:append("})")
+        --
+        out:decIndent()
+        out:append("end")
+        ctx.in_clsname = nil
+    }
+    
+    fn trStStruct(t) {
+        assert(t.stype == "struct", "Invalid stype class")
+        ctx = self.ctx
+        out = self.out
+        attr = (t.attr == "export") and "" or "local "
+        strname = t.name.value
+        ctx.in_clsname = strname
+        if t.attr == "export" {
+            ctx:globalInsert(strname)
+        } else {
+            ctx:localInsert(strname)
+        }
+        out:append(attr .. strname .. " = {}")
+        out:append("do")
+        out:changeLine()
+        out:incIndent()
+        out:append('local __strname__ = "' .. strname .. '"')
+        out:append("local __strtype__ = " .. strname)
+        out:append("__strtype__.structname = __strname__")
+        out:append("__strtype__.structtype = __strtype__")
+        --
+        cls_fns, ins_fns = {}, {}
+        fn_init, fn_deinit = self:hlVarAndFns(t, "__strtype__", ctx, out, cls_fns, ins_fns)
+        --
+        out:append("local __ins_mt = {")
+        out:incIndent()
+        out:append('__tostring = function() return "one of " .. __strname__ end,')
+        out:append("__index = function(t, k)")
+        out:incIndent()
+        out:append("local v = rawget(t, k)")
+        out:append("if v then return v end")
+        out:append("v = __strtype__[k]")
+        out:append("if v then rawset(t, k, v) end")
+        out:append("return v")
+        out:decIndent()
+        out:append("end,")
+        out:append("__newindex = function(t, k, v) if rawget(__strtype__, k) then rawset(t, k, v) end end,")
+        if fn_deinit {
+            out:append("__gc = function(t) t:deinit() end,")
+        }
+        for _, e in ipairs(ins_fns) {
+            out:append(e.name.value .. " = function(")
+            self:hlFnArgsBody(e, false, true)
+        }
+        out:decIndent()
+        out:append("}")
+        --
+        out:append("setmetatable(__strtype__, {")
+        out:incIndent()
+        out:append('__tostring = function() return "struct " .. __strname__ end,')
+        out:append('__newindex = function() end,')
+        out:append("__call = function(_, ...)")
+        out:incIndent()
+        out:append("local ins = {}")
+        if fn_init {
+            out:append("if __strtype__.init(ins, ...) == false then return nil end")
+        }
+        out:append("ins = setmetatable(ins, __ins_mt)")
+        if fn_deinit {
+            out:append('if _VERSION == "Lua 5.1" then')
+            out:incIndent()
+            out:append("rawset(ins, '__gc_proxy', newproxy(true))")
+            out:append("getmetatable(ins.__gc_proxy).__gc = function() ins:deinit() end")
+            out:decIndent()
+            out:append("end")
+        }
+        out:append("return ins")
+        out:decIndent()
+        out:append("end,")
+        for _, e in ipairs(cls_fns) {
+            out:append(e.name.value .. " = function(")
+            self:hlFnArgsBody(e, false, true)
         }
         out:decIndent()
         out:append("})")
@@ -1297,7 +1338,53 @@ class M {
         ctx.in_clsname = nil
     }
 
-    fn hlClsFnArgsBody(e, fn_ins, comma_end) {
+    fn hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns) {
+        out:append("-- declare struct var and methods")
+        out:changeLine()
+        fn_init = false
+        fn_deinit = false
+        for _, e in ipairs(t) {
+            stype = e.stype
+            if stype == "=" {
+                ctx.in_clsvar = true         
+                out:append(sname .. ".")
+                out:pushInline()
+                for i, v in ipairs(e) {
+                    self:trExpr(v)
+                    if i == 1 {
+                        out:append(" = ")
+                    }
+                }
+                out:popInline()
+                out:changeLine()
+                ctx.in_clsvar = false
+            } elseif stype == "fn" {
+                fn_name = e.name.value
+                if fn_name == "init" {
+                    fn_init = true
+                } elseif fn_name == "deinit" {
+                    fn_deinit = true
+                }
+                fn_ins = e.attr ~= "static"            
+                if _cls_metafns[fn_name] {
+                    if fn_ins {
+                        ins_fns[#ins_fns + 1] = e
+                    } else {
+                        cls_fns[#cls_fns + 1] = e
+                    }
+                } else {
+                    out:append("function " .. sname .. (fn_ins and ":" or ".") .. fn_name .. "(")
+                    self:hlFnArgsBody(e, fn_ins)
+                }
+            } elseif stype == "cm" {
+                self:trStComment(e)
+            }
+        }
+        out:append("-- declare end")
+        return fn_init, fn_deinit
+    }
+
+    fn hlFnArgsBody(e, fn_ins, comma_end) {
         ctx = self.ctx
         out = self.out
         out:pushInline()
@@ -1322,7 +1409,7 @@ class M {
         ctx:pushOutInfo(out:getInfo())
         self:trStatement(e.body)
         out:decIndent()
-        out:append("end" .. (comma_end and "," or "\n"))
+        out:append("end" .. (comma_end and "," or ""))
         out:changeLine()
         ctx:popScope()
     }

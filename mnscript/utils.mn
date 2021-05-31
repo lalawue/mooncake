@@ -7,7 +7,7 @@
 
 class Utils {
 
-    class fn serializeTable(t, p, c, s) {
+    static fn serializeTable(t, p, c, s) {
         n = 0
         for i, v in next, t {
             n = n + 1
@@ -38,7 +38,7 @@ class Utils {
         return ('{' .. (e and '\n' or '')) .. str .. (e and s('  ', p - 1) or '') .. '}'
     }
 
-    class fn split(self, sep, max, regex) {
+    static fn split(self, sep, max, regex) {
         assert(sep ~= "")
         assert(max == nil or max >= 1)
         record = {}
@@ -61,7 +61,7 @@ class Utils {
         return record
     }
 
-    class fn set(tbl) {
+    static fn set(tbl) {
         s = {}
         for _, v in ipairs(tbl) {
             s[v] = true
@@ -72,7 +72,7 @@ class Utils {
     -- declare after set()
     blank_set = Utils.set({ " ", "\t", "\n", "\r" })    
 
-    class fn trim(self) {
+    static fn trim(self) {
         i = 1
         j = self:len()
         blank_set = Utils.blank_set        
@@ -88,7 +88,7 @@ class Utils {
         return self
     }
 
-    class fn seqReduce(tbl, init, func) {
+    static fn seqReduce(tbl, init, func) {
         for i, v in ipairs(tbl) {
             init = func(init, i, v)
         }
@@ -97,7 +97,7 @@ class Utils {
 
     read_option = _VERSION == "Lua 5.1" and "*a" or "a"
 
-    class fn readFile(file_path) {
+    static fn readFile(file_path) {
         f = io.open(file_path, "rb")
         if not f {
             return
@@ -107,7 +107,7 @@ class Utils {
         return data
     }
 
-    class fn writeFile(file_path, content) {
+    static fn writeFile(file_path, content) {
         f = io.open(file_path, "wb")
         if not f {
             return
@@ -117,16 +117,16 @@ class Utils {
         return true
     }
 
-    class fn debug(str) {
+    static fn debug(str) {
         io.write(str .. "\n")
     }
 
-    class fn dump(t) {
+    static fn dump(t) {
         Utils.debug(Utils.serializeTable(t))
     }
 
     -- position line in content
-    class fn posLine(content, lpos, cpos) {
+    static fn posLine(content, lpos, cpos) {
         assert(type(content) == "string", "Invalid content")
         assert(type(lpos) == "number", "Invalid pos")    
         ln_num = 1

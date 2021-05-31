@@ -1,9 +1,9 @@
 local parser = require("mnscript.parser")
 local compile = require("mnscript.compile")
 
-describe("test normal #class", function()
+describe("test normal #struct", function()
     local mnstr=[[
-        local class ClsA {
+        local struct ClsA {
             a = 11
             fn init() {
                 self.b = 0
@@ -22,21 +22,8 @@ describe("test normal #class", function()
             fn deinit() {
             }
         }
-        export class ClsB : ClsA {
-            -- declare class variable
-            b = 9 * 2 * (3 + (8 ^ 2))
-            static fn runAway(a) {
-                return Self.b + a
-            }
-            fn takeTime(c, d) {
-                return c + d * 2
-            }
-            fn change(a) {
-                Self.a = a
-            }
-        }
         ClsA.b = 100
-        return ClsA, ClsB
+        return ClsA
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -54,15 +41,14 @@ describe("test normal #class", function()
     local f = load(content, "test", "t")
     it("should inherit", function()
         assert(type(f) == "function")
-        local ClsA, ClsB = f()
+        local ClsA = f()
+        local a = ClsA()
         assert.is_equal(ClsA.a, 11)
         assert.is_equal(ClsA.b, nil)
-        assert.is_equal(ClsB.b, 1206)
-        assert.is_equal(ClsB.runAway(10), 1216)
-        local b = ClsB()
-        assert.is_equal(b:takeTime(1, 2), 5)
-        b:change(99)
-        assert.is_equal(ClsB.a, 99)
+        assert.is_equal(a.b, 0)
+        assert.is_equal(a:takeTime(2), 110)
+        a.c = 100
+        assert.is_equal(a.c, nil)
     end)
 
     it("should deinit", function()
@@ -87,9 +73,9 @@ describe("test normal #class", function()
     end)
 end)
 
-describe("test success #class", function()
+describe("test success #struct", function()
     local mnstr=[[
-        class Tbl {
+        struct Tbl {
             a = Tbl
     
             static fn b() {
@@ -124,9 +110,9 @@ describe("test success #class", function()
     end)
 end)
 
-describe("test failed #class", function()
+describe("test failed #struct", function()
     local mnstr=[[
-        class ClsA {
+        struct ClsA {
             c.d = 11
         }
     ]]
@@ -137,9 +123,9 @@ describe("test failed #class", function()
     end)
 end)
 
-describe("test failed #class", function()
+describe("test failed #struct", function()
     local mnstr=[[
-        class ClsA {
+        struct ClsA {
             a = 11
             static fn takeTime(c) {
                 return self.a + 101 - c

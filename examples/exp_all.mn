@@ -69,7 +69,7 @@ class B: A {
         }
     }
 
-    class fn next(value) {
+    static fn next(value) {
         switch value {
             case 10,  11:
                 return value

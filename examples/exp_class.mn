@@ -22,7 +22,7 @@ class ClsA {
     }
 
     -- call with self.add()
-    class fn add(d) {
+    static fn add(d) {
         return ClsA.a
     }
 
@@ -32,7 +32,7 @@ class ClsA {
     }
 
     -- class metamethod
-    class fn __add(a, b) {
+    static fn __add(a, b) {
         return a.a + b.a
     }
 }

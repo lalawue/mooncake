@@ -15,11 +15,10 @@ do
 	__clstype__.supertype = __stype__
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
-	-- declare class var and methods
+	-- declare struct var and methods
 	function __clstype__:init()
 		self:reset()
 	end
-
 	function __clstype__:reset()
 		self._indent = 0
 		-- indent char
@@ -30,27 +29,21 @@ do
 		self._inline = 0
 		-- force expr oneline
 	end
-
 	function __clstype__:incIndent()
 		self._indent = self._indent + 1
 	end
-
 	function __clstype__:decIndent()
 		self._indent = self._indent - 1
 	end
-
 	function __clstype__:changeLine()
 		self._changeLine = true
 	end
-
 	function __clstype__:pushInline()
 		self._inline = self._inline + 1
 	end
-
 	function __clstype__:popInline()
 		self._inline = self._inline - 1
 	end
-
 	function __clstype__:append(str, same_line)
 		assert(type(str) == "string", "Invalid input")
 		local t = self._output
@@ -64,11 +57,9 @@ do
 			t[#t + 1] = prefix .. str
 		end
 	end
-
 	function __clstype__:getInfo()
 		return { #self._output, self._indent }
 	end
-
 	function __clstype__:appendExt(info, tbl)
 		local t = self._output
 		if #info > 1 and info[1] <= #t then
@@ -79,7 +70,6 @@ do
 			end
 		end
 	end
-
 	-- declare end
 	local __ins_mt = {
 		__tostring = function() return "instance of " .. __clsname__ end,
@@ -97,7 +87,7 @@ do
 		__newindex = function() end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt)
-			ins:init(...)
+			if ins:init(...) == false then return nil end
 			return ins
 		end,
 	})
@@ -114,14 +104,13 @@ do
 	__clstype__.supertype = __stype__
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
-	-- declare class var and methods
+	-- declare struct var and methods
 	function __clstype__:init(config, ast, content)
 		self.config = config
 		self.ast = ast
 		self.content = content
 		self:reset()
 	end
-
 	function __clstype__:reset()
 		-- { otype : "gl|fi|fn|lo|if|do|gu", defers : {}, vars : {}, info : {} }
 		self.scopes = { _scope_global, { otype = "fi", defers = {  }, vars = {  }, info = nil } }
@@ -131,17 +120,14 @@ do
 		self.error = nil
 		self.last_pos = 0
 	end
-
 	function __clstype__:pushScope(ot, exp)
 		local t = self.scopes
 		t[#t + 1] = { otype = ot, defers = {  }, vars = {  }, exp = exp }
 	end
-
 	function __clstype__:popScope()
 		local t = self.scopes
 		t[#t] = nil
 	end
-
 	function __clstype__:supportDefer()
 		local t = self.scopes
 		if #t > 2 then
@@ -153,7 +139,6 @@ do
 		end
 		return false
 	end
-
 	function __clstype__:isInLoop()
 		local t = self.scopes
 		if #t > 2 then
@@ -167,7 +152,6 @@ do
 		end
 		return false
 	end
-
 	function __clstype__:getScopeExpr(otype)
 		local t = self.scopes
 		if #t > 2 then
@@ -178,7 +162,6 @@ do
 			end
 		end
 	end
-
 	function __clstype__:pushDefer()
 		local t = self.scopes
 		for i = #t, 1, -1 do
@@ -189,7 +172,6 @@ do
 			end
 		end
 	end
-
 	function __clstype__:hasDefers()
 		local t = self.scopes
 		if #t > 2 then
@@ -204,12 +186,10 @@ do
 		end
 		return false
 	end
-
 	function __clstype__:pushOutInfo(info)
 		local t = self.scopes
 		t[#t].info = info
 	end
-
 	function __clstype__:getOutInfo(otype)
 		local t = self.scopes
 		if #t > 2 then
@@ -221,17 +201,14 @@ do
 			end
 		end
 	end
-
 	function __clstype__:globalInsert(n)
 		local t = self.scopes
 		t[1].vars[n] = true
 	end
-
 	function __clstype__:localInsert(n)
 		local t = self.scopes
 		t[#t].vars[n] = true
 	end
-
 	-- treat lvar as to be defined, grammar checking
 	function __clstype__:checkName(e, checkLeftLocal, onlyList1st)
 		local ret, name, pos = self:isVarDeclared(e, checkLeftLocal, onlyList1st)
@@ -240,7 +217,6 @@ do
 		end
 		self:errorPos("undefined variable", name, pos - 1)
 	end
-
 	-- checkLeftLocal: check left define, in transform to Lua
 	function __clstype__:isVarDeclared(e, checkLeftLocal, onlyList1st)
 		local n, pos = nil, nil
@@ -269,7 +245,6 @@ do
 		end
 		return false, n, pos
 	end
-
 	function __clstype__:errorPos(msg, symbol, pos)
 		if self.error then
 			return 
@@ -278,17 +253,14 @@ do
 		local err = Utils.posLine(self.content, pos)
 		self.error = string.format("%s:%d: %s <%s '%s'>", self.config.fname or "_", err.line, err.message, msg, symbol)
 	end
-
 	function __clstype__:hasError()
 		return self.error ~= nil
 	end
-
 	function __clstype__:updatePos(pos)
 		if type(pos) == "number" and self.error == nil then
 			self.last_pos = pos
 		end
 	end
-
 	-- declare end
 	local __ins_mt = {
 		__tostring = function() return "instance of " .. __clsname__ end,
@@ -306,7 +278,7 @@ do
 		__newindex = function() end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt)
-			ins:init(...)
+			if ins:init(...) == false then return nil end
 			return ins
 		end,
 	})
@@ -327,12 +299,11 @@ do
 	__clstype__.supertype = __stype__
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
-	-- declare class var and methods
+	-- declare struct var and methods
 	function __clstype__:init(ctx, out)
 		self.ctx = ctx
 		self.out = out
 	end
-
 	function __clstype__:trOp(t)
 		local ctx = self.ctx
 		ctx:updatePos(t.pos)
@@ -351,7 +322,6 @@ do
 			end
 		end
 	end
-
 	function __clstype__:trExpr(t)
 		assert(type(t) == "table", "Invalid expr type")
 		local ctx = self.ctx
@@ -409,7 +379,6 @@ do
 			end
 		end
 	end
-
 	function __clstype__:trStatement(ast)
 		local ctx = self.ctx
 		local out = self.out
@@ -433,6 +402,8 @@ do
 					self:trStCall(t)
 				elseif __sw__ == ("class") then
 					self:trStClass(t)
+				elseif __sw__ == ("struct") then
+					self:trStStruct(t)
 				elseif __sw__ == ("ex") then
 					self:trStExport(t)
 				elseif __sw__ == ("return") then
@@ -487,7 +458,6 @@ do
 			end
 		end
 	end
-
 	-- MARK: Op
 	function __clstype__:trOpPara(t)
 		assert(t.op == "(", "Invalid op (")
@@ -505,13 +475,11 @@ do
 		out:append(")", true)
 		out:popInline()
 	end
-
 	function __clstype__:trOpDot(t)
 		assert(t.op == ".", "Invalid op .")
 		local out = self.out
 		out:append("." .. t[1].value, true)
 	end
-
 	function __clstype__:trOpColon(t)
 		assert(t.op == ":", "Invalid op :")
 		local out = self.out
@@ -524,7 +492,6 @@ do
 			end
 		end
 	end
-
 	function __clstype__:trOpSquare(t)
 		assert(t.op == "[", "Invalid op [")
 		local out = self.out
@@ -536,7 +503,6 @@ do
 		out:append("]", true)
 		out:popInline()
 	end
-
 	-- MARK: Expr
 	function __clstype__:trEtTblDef(t)
 		assert(t.etype == "{", "Invalid etype table def")
@@ -575,7 +541,6 @@ do
 		end
 		out:append(" }")
 	end
-
 	function __clstype__:trEtFnOnly(t)
 		assert(t.etype == "fn", "Invalid etype fn def only")
 		local args = t.args or {  }
@@ -601,7 +566,6 @@ do
 		out:append("end")
 		ctx:popScope()
 	end
-
 	function __clstype__:trEtRexp(t)
 		assert(t.etype == "rexp", "Invalid etype rexp")
 		local ctx = self.ctx
@@ -615,7 +579,6 @@ do
 			end
 		end
 	end
-
 	function __clstype__:trEtLexp(t)
 		assert(t.etype == "lexp", "Invalid etype lexp")
 		local ctx = self.ctx
@@ -629,7 +592,6 @@ do
 			end
 		end
 	end
-
 	-- MARK: Statement
 	function __clstype__:trStEqual(t)
 		assert(t.stype == "=", "Invalid stype equal")
@@ -664,7 +626,6 @@ do
 			end
 		end
 	end
-
 	function __clstype__:trStTwoEqual(t)
 		assert(t.stype:sub(2, 2) == "=", "Invalid stype two equal")
 		local ctx = self.ctx
@@ -682,12 +643,10 @@ do
 		out:append(")")
 		out:popInline()
 	end
-
 	function __clstype__:trStComment(t)
 		assert(t.stype == "cm", "Invalid stype cm")
 		self.out:append(t.value)
 	end
-
 	function __clstype__:trStImport(t)
 		assert(t.stype == "import", "Invalid stype import")
 		local ctx = self.ctx
@@ -731,7 +690,6 @@ do
 			out:append("end")
 		end
 	end
-
 	function __clstype__:trStExport(t)
 		assert(t.stype == "ex", "Invalid stype export")
 		local ctx = self.ctx
@@ -783,7 +741,6 @@ do
 		end
 		out:popInline()
 	end
-
 	function __clstype__:trStFnDef(t)
 		assert(t.stype == "fn", "Invalid stype fn")
 		local attr = (t.attr == "export" and "" or "local ")
@@ -813,10 +770,9 @@ do
 			end
 		end
 		out:decIndent()
-		out:append("end\n")
+		out:append("end")
 		ctx:popScope()
 	end
-
 	function __clstype__:trStCall(t)
 		assert(t.stype == "(", "Invalid stype fn call")
 		local ctx = self.ctx
@@ -839,7 +795,6 @@ do
 		end
 		out:popInline()
 	end
-
 	function __clstype__:trStIfElse(t)
 		local ctx = self.ctx
 		local out = self.out
@@ -871,7 +826,6 @@ do
 			ctx:errorPos("Invalid stype near", (t.stype or "unknown"))
 		end
 	end
-
 	function __clstype__:trStSwitch(t)
 		assert(t.stype == "switch", "Invalid stype switch")
 		local ctx = self.ctx
@@ -920,7 +874,6 @@ do
 		out:decIndent()
 		out:append("end")
 	end
-
 	function __clstype__:trStGuard(t)
 		assert(t.stype == "guard", "Invalid stype guard")
 		local ctx = self.ctx
@@ -945,7 +898,6 @@ do
 		out:decIndent()
 		out:append("end")
 	end
-
 	function __clstype__:trStFor(t)
 		assert(t.stype == "for", "Invalid stype for")
 		local list = t.list
@@ -1006,7 +958,6 @@ do
 		out:append("end")
 		ctx:popScope()
 	end
-
 	function __clstype__:trStWhile(t)
 		assert(t.stype == "while", "Invalid stype while")
 		local ctx = self.ctx
@@ -1026,7 +977,6 @@ do
 		out:append("end")
 		ctx:popScope()
 	end
-
 	function __clstype__:trStRepeat(t)
 		assert(t.stype == "repeat", "Invalid repeat op")
 		local ctx = self.ctx
@@ -1045,7 +995,6 @@ do
 		out:popInline()
 		ctx:popScope()
 	end
-
 	function __clstype__:trStBreak(t)
 		assert(t.stype == "break", "Invalid stype break")
 		local ctx = self.ctx
@@ -1056,7 +1005,6 @@ do
 		end
 		out:append("break")
 	end
-
 	function __clstype__:trStContinue(t)
 		assert(t.stype == "continue", "Invalid continue op")
 		local ctx = self.ctx
@@ -1071,7 +1019,6 @@ do
 			le[#le + 1] = { stype = "raw", sub = "continue", "::__continue__::" }
 		end
 	end
-
 	function __clstype__:trStGoto(t)
 		assert(t.stype == "goto" or t.stype == "::", "Invalid stype go")
 		local out = self.out
@@ -1081,7 +1028,6 @@ do
 			out:append("::" .. t.name.value .. "::")
 		end
 	end
-
 	function __clstype__:trStReturn(t)
 		assert(t.stype == "return", "Invalid stpye return")
 		local ctx = self.ctx
@@ -1101,7 +1047,6 @@ do
 		end
 		out:popInline()
 	end
-
 	function __clstype__:trStDefer(t)
 		assert(t.stype == "defer", "Invalid stype defer")
 		local ctx = self.ctx
@@ -1130,7 +1075,6 @@ do
 			ctx.in_defer = false
 		end
 	end
-
 	function __clstype__:trStDo(t)
 		assert(t.stype == "do", "Invalid stype do end")
 		local ctx = self.ctx
@@ -1144,7 +1088,6 @@ do
 		out:append("end")
 		ctx:popScope()
 	end
-
 	-- generated by compiler 1st pass
 	function __clstype__:trStRaw(t)
 		assert(t.stype == "raw", "Invalid stype raw")
@@ -1154,7 +1097,6 @@ do
 			out:changeLine()
 		end
 	end
-
 	function __clstype__:trStClass(t)
 		assert(t.stype == "class", "Invalid stype class")
 		local ctx = self.ctx
@@ -1190,50 +1132,8 @@ do
 			out:append("__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end")
 		end
 		--
-		out:append("-- declare class var and methods")
-		out:changeLine()
-		local fn_init = false
-		local fn_deinit = false
-		local cls_fns = {  }
-		local ins_fns = {  }
-		for _, e in ipairs(t) do
-			local stype = e.stype
-			if stype == "=" then
-				ctx.in_clsvar = true
-				out:append("__clstype__.")
-				out:pushInline()
-				for i, v in ipairs(e) do
-					self:trExpr(v)
-					if i == 1 then
-						out:append(" = ")
-					end
-				end
-				out:popInline()
-				out:changeLine()
-				ctx.in_clsvar = false
-			elseif stype == "fn" then
-				local fn_name = e.name.value
-				if fn_name == "init" then
-					fn_init = true
-				elseif fn_name == "deinit" then
-					fn_deinit = true
-				end
-				local fn_ins = e.attr ~= "class"
-				if _cls_metafns[fn_name] then
-					if e.attr == "class" then
-						cls_fns[#cls_fns + 1] = e
-					else
-						ins_fns[#ins_fns + 1] = e
-					end
-				else
-					out:append("function __clstype__" .. (fn_ins and ":" or ".") .. fn_name .. "(")
-					self:hlClsFnArgsBody(e, fn_ins, false)
-				end
-			elseif stype == "cm" then
-				self:trStComment(e)
-			end
-		end
-		out:append("-- declare end")
+		local cls_fns, ins_fns = {  }, {  }
+		local fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns)
 		--
 		out:append("local __ins_mt = {")
 		out:incIndent()
@@ -1252,7 +1152,7 @@ do
 		end
 		for _, e in ipairs(ins_fns) do
 			out:append(e.name.value .. " = function(")
-			self:hlClsFnArgsBody(e, false, true)
+			self:hlFnArgsBody(e, false, true)
 		end
 		out:decIndent()
 		out:append("}")
@@ -1274,14 +1174,14 @@ do
 			out:append("end")
 		end
 		if fn_init then
-			out:append("ins:init(...)")
+			out:append("if ins:init(...) == false then return nil end")
 		end
 		out:append("return ins")
 		out:decIndent()
 		out:append("end,")
 		for _, e in ipairs(cls_fns) do
 			out:append(e.name.value .. " = function(")
-			self:hlClsFnArgsBody(e, false, true)
+			self:hlFnArgsBody(e, false, true)
 		end
 		out:decIndent()
 		out:append("})")
@@ -1290,8 +1190,132 @@ do
 		out:append("end")
 		ctx.in_clsname = nil
 	end
-
-	function __clstype__:hlClsFnArgsBody(e, fn_ins, comma_end)
+	function __clstype__:trStStruct(t)
+		assert(t.stype == "struct", "Invalid stype class")
+		local ctx = self.ctx
+		local out = self.out
+		local attr = (t.attr == "export") and "" or "local "
+		local strname = t.name.value
+		ctx.in_clsname = strname
+		if t.attr == "export" then
+			ctx:globalInsert(strname)
+		else
+			ctx:localInsert(strname)
+		end
+		out:append(attr .. strname .. " = {}")
+		out:append("do")
+		out:changeLine()
+		out:incIndent()
+		out:append('local __strname__ = "' .. strname .. '"')
+		out:append("local __strtype__ = " .. strname)
+		out:append("__strtype__.structname = __strname__")
+		out:append("__strtype__.structtype = __strtype__")
+		--
+		local cls_fns, ins_fns = {  }, {  }
+		local fn_init, fn_deinit = self:hlVarAndFns(t, "__strtype__", ctx, out, cls_fns, ins_fns)
+		--
+		out:append("local __ins_mt = {")
+		out:incIndent()
+		out:append('__tostring = function() return "one of " .. __strname__ end,')
+		out:append("__index = function(t, k)")
+		out:incIndent()
+		out:append("local v = rawget(t, k)")
+		out:append("if v then return v end")
+		out:append("v = __strtype__[k]")
+		out:append("if v then rawset(t, k, v) end")
+		out:append("return v")
+		out:decIndent()
+		out:append("end,")
+		out:append("__newindex = function(t, k, v) if rawget(__strtype__, k) then rawset(t, k, v) end end,")
+		if fn_deinit then
+			out:append("__gc = function(t) t:deinit() end,")
+		end
+		for _, e in ipairs(ins_fns) do
+			out:append(e.name.value .. " = function(")
+			self:hlFnArgsBody(e, false, true)
+		end
+		out:decIndent()
+		out:append("}")
+		--
+		out:append("setmetatable(__strtype__, {")
+		out:incIndent()
+		out:append('__tostring = function() return "struct " .. __strname__ end,')
+		out:append('__newindex = function() end,')
+		out:append("__call = function(_, ...)")
+		out:incIndent()
+		out:append("local ins = {}")
+		if fn_init then
+			out:append("if __strtype__.init(ins, ...) == false then return nil end")
+		end
+		out:append("ins = setmetatable(ins, __ins_mt)")
+		if fn_deinit then
+			out:append('if _VERSION == "Lua 5.1" then')
+			out:incIndent()
+			out:append("rawset(ins, '__gc_proxy', newproxy(true))")
+			out:append("getmetatable(ins.__gc_proxy).__gc = function() ins:deinit() end")
+			out:decIndent()
+			out:append("end")
+		end
+		out:append("return ins")
+		out:decIndent()
+		out:append("end,")
+		for _, e in ipairs(cls_fns) do
+			out:append(e.name.value .. " = function(")
+			self:hlFnArgsBody(e, false, true)
+		end
+		out:decIndent()
+		out:append("})")
+		--
+		out:decIndent()
+		out:append("end")
+		ctx.in_clsname = nil
+	end
+	function __clstype__:hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns)
+		out:append("-- declare struct var and methods")
+		out:changeLine()
+		local fn_init = false
+		local fn_deinit = false
+		for _, e in ipairs(t) do
+			local stype = e.stype
+			if stype == "=" then
+				ctx.in_clsvar = true
+				out:append(sname .. ".")
+				out:pushInline()
+				for i, v in ipairs(e) do
+					self:trExpr(v)
+					if i == 1 then
+						out:append(" = ")
+					end
+				end
+				out:popInline()
+				out:changeLine()
+				ctx.in_clsvar = false
+			elseif stype == "fn" then
+				local fn_name = e.name.value
+				if fn_name == "init" then
+					fn_init = true
+				elseif fn_name == "deinit" then
+					fn_deinit = true
+				end
+				local fn_ins = e.attr ~= "static"
+				if _cls_metafns[fn_name] then
+					if fn_ins then
+						ins_fns[#ins_fns + 1] = e
+					else
+						cls_fns[#cls_fns + 1] = e
+					end
+				else
+					out:append("function " .. sname .. (fn_ins and ":" or ".") .. fn_name .. "(")
+					self:hlFnArgsBody(e, fn_ins)
+				end
+			elseif stype == "cm" then
+				self:trStComment(e)
+			end
+		end
+		out:append("-- declare end")
+		return fn_init, fn_deinit
+	end
+	function __clstype__:hlFnArgsBody(e, fn_ins, comma_end)
 		local ctx = self.ctx
 		local out = self.out
 		out:pushInline()
@@ -1316,11 +1340,10 @@ do
 		ctx:pushOutInfo(out:getInfo())
 		self:trStatement(e.body)
 		out:decIndent()
-		out:append("end" .. (comma_end and "," or "\n"))
+		out:append("end" .. (comma_end and "," or ""))
 		out:changeLine()
 		ctx:popScope()
 	end
-
 	-- declare end
 	local __ins_mt = {
 		__tostring = function() return "instance of " .. __clsname__ end,
@@ -1338,7 +1361,7 @@ do
 		__newindex = function() end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt)
-			ins:init(...)
+			if ins:init(...) == false then return nil end
 			return ins
 		end,
 	})
@@ -1360,5 +1383,4 @@ local function compile(config, data)
 	end
 	return true, table.concat(out._output, "\n")
 end
-
 return { compile = compile }

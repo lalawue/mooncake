@@ -1,0 +1,36 @@
+
+struct StructA {
+    a = 11
+    b = 13
+    fn init() {
+        self.hey = "hello"
+        print("init " .. tostring(self))
+    }
+    fn deinit() {
+        print("deinit .. " .. tostring(self))
+    }
+    fn takeOne(c) {
+        return Self.a + c
+    }
+    static fn takeTwo(c) {
+        return Self.a + Self.b + c
+    }
+    fn __add(a, b) {
+        return "a + b"
+    }
+    static fn __add(a, b) {
+        return '( ' .. tostring(a) .. " + " .. tostring(b) .. ' )'
+    }
+}
+
+a = StructA()
+b = StructA()
+a.a = 13
+a.c = 9
+StructA.c = 9
+print("a", a.a, a.c)
+print("StructA", StructA.a, StructA.c)
+print(a + b)
+print(StructA + StructA)
+print("takeOne", a:takeOne(8))
+print("takeTwo", a.takeTwo(1))

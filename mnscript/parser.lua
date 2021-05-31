@@ -21,7 +21,7 @@ do
 end
 fSetmaxstack(10240)
 -- remove keyword pattern
-local kwTableR = fSet({ "and", "break", "case", "class", "continue", "default", "defer", "do", "else", "elseif", "end", "export", "fn", "for", "from", "function", "goto", "guard", "if", "import", "in", "local", "not", "or", "repeat", "return", "switch", "then", "until", "while", "...", ".." })
+local kwTableR = fSet({ "and", "break", "case", "class", "continue", "default", "defer", "do", "else", "elseif", "end", "export", "fn", "for", "from", "function", "goto", "guard", "if", "import", "in", "local", "not", "or", "repeat", "return", "static", "switch", "then", "until", "while", "...", ".." })
 local kwTableL = fSet({ "false", "nil", "true" })
 local function fNoKWL(s, p, c)
 	local list = fSplit(c, "[%.]", nil, true)
@@ -32,7 +32,6 @@ local function fNoKWL(s, p, c)
 	end
 	return true, { etype = "lvar", value = c, pos = p, list = (#list > 1 and list or nil) }
 end
-
 local function fNoKWR(s, p, c)
 	local list = fSplit(c, "[%.:]", nil, true)
 	for _, v in ipairs(list) do
@@ -42,19 +41,16 @@ local function fNoKWR(s, p, c)
 	end
 	return true, { etype = "rvar", value = c, pos = p, list = (#list > 1 and list or nil) }
 end
-
 local function fMarkStype(stype)
 	return function(s, p, c)
 		return p, { pos = p, value = c, stype = stype }
 	end
 end
-
 local function fMarkEtype(type)
 	return function(s, p, c)
 		return p, { pos = p, value = c, etype = type }
 	end
 end
-
 -- MARK: pattern
 local last_pos = 0
 local cur_pos = 0
@@ -104,12 +100,10 @@ local function fSymPatt(prefix, pa, pb)
 	end)
 	return C(sopen * (P(1) - scloseeq) ^ 0 * sclose) / 1
 end
-
 local function fStrPatt(str)
 	local m1 = S(str)
 	return Cg(m1 * (P("\\\\") + P("\\" .. str) + (1 - m1 - P("\n"))) ^ 0 * m1)
 end
-
 local pCmShort = P("--") * (P(1) - S("\r\n")) ^ 0
 local pCmLong = fSymPatt("--", "[", "]")
 local pStrDot = fStrPatt("'")
@@ -121,11 +115,9 @@ local function fNotCm(s, p, c)
 	local ret = s:sub(p, p + 1) == "--" or s:sub(p - 1, p) == "--"
 	return not ret, c
 end
-
 local function fConj(p, j)
 	return p * #j
 end
-
 local pSingleOp = Cmt(fConj(P("not"), pBlank) + Cmt("-", fNotCm) + P("#") + P("~"), function(s, p, c)
 	return p, { etype = "op", pos = p, value = c }
 end)
@@ -138,12 +130,12 @@ local function fName(n)
 		return n
 	end
 end
-
 -- MARK: grammar
-local vFile, vShebang, vFnSMT, vClsDef, vClsBody, vClsAsSMT, vClsFnDef, vTbDef, vTbKV, vTbNk, vTbVk, vTbBk, vTbVal, vFnDefKW, vFnDefArg, vFnDefVArg, vFnDefArgs, vFnDefBody, vFnDefName, vFnDefOnly, vFnClosure, vFnCall, vImSMT, vImLib, vImRight, vExSMT, vExLeft, vAsSMT, vAsLeft, vAsRight, vAswSMT, vIfSMT, vElseIfSMT, vElseSMT, vSwSMT, vSwCaSMT, vSwDeSMT, vGuardSMT, vForSMT, vForVar, vForNext, vForList, vRptSMT, vWhileSMT, vBrkSMT, vCntSMT, vGoSMT, vRetSMT, vDeferSMT, vBlkSMT, vCmSMT, vDotExpr, vParaExpr, vSquareExpr, vColonExpr, vEvalExpr, vEvalLeft, vClsOpUnit, vClsExpr, vOpUnit, vExpr = V("vFile"), V("vShebang"), V("vFnSMT"), V("vClsDef"), V("vClsBody"), V("vClsAsSMT"), V("vClsFnDef"), V("vTbDef"), V("vTbKV"), V("vTbNk"), V("vTbVk"), V("vTbBk"), V("vTbVal"), V("vFnDefKW"), V("vFnDefArg"), V("vFnDefVArg"), V("vFnDefArgs"), V("vFnDefBody"), V("vFnDefName"), V("vFnDefOnly"), V("vFnClosure"), V("vFnCall"), V("vImSMT"), V("vImLib"), V("vImRight"), V("vExSMT"), V("vExLeft"), V("vAsSMT"), V("vAsLeft"), V("vAsRight"), V("vAswSMT"), V("vIfSMT"), V("vElseIfSMT"), V("vElseSMT"), V("vSwSMT"), V("vSwCaSMT"), V("vSwDeSMT"), V("vGuardSMT"), V("vForSMT"), V("vForVar"), V("vForNext"), V("vForList"), V("vRptSMT"), V("vWhileSMT"), V("vBrkSMT"), V("vCntSMT"), V("vGoSMT"), V("vRetSMT"), V("vDeferSMT"), V("vBlkSMT"), V("vCmSMT"), V("vDotExpr"), V("vParaExpr"), V("vSquareExpr"), V("vColonExpr"), V("vEvalExpr"), V("vEvalLeft"), V("vClsOpUnit"), V("vClsExpr"), V("vOpUnit"), V("vExpr")
-local gG = { vFile, vFile = vShebang ^ -1 * vFnSMT ^ 0, vFnSMT = (vBrkSMT + vCntSMT + vCmSMT + vClsDef + vFnDefName + vIfSMT + vSwSMT + vForSMT + vRptSMT + vWhileSMT + vRetSMT + vGoSMT + vAsSMT + vFnCall + vAswSMT + vExSMT + vImSMT + vDeferSMT + vBlkSMT + vGuardSMT) * Cmt(pSemi * pBlanks / fTrim, fMarkStype(";")) ^ -1, --
+local vFile, vShebang, vFnSMT, vClsDef, vClsBody, vClsAsSMT, vClsFnDef, vStructDef, vTbDef, vTbKV, vTbNk, vTbVk, vTbBk, vTbVal, vFnDefKW, vFnDefArg, vFnDefVArg, vFnDefArgs, vFnDefBody, vFnDefName, vFnDefOnly, vFnClosure, vFnCall, vImSMT, vImLib, vImRight, vExSMT, vExLeft, vAsSMT, vAsLeft, vAsRight, vAswSMT, vIfSMT, vElseIfSMT, vElseSMT, vSwSMT, vSwCaSMT, vSwDeSMT, vGuardSMT, vForSMT, vForVar, vForNext, vForList, vRptSMT, vWhileSMT, vBrkSMT, vCntSMT, vGoSMT, vRetSMT, vDeferSMT, vBlkSMT, vCmSMT, vDotExpr, vParaExpr, vSquareExpr, vColonExpr, vEvalExpr, vEvalLeft, vClsOpUnit, vClsExpr, vOpUnit, vExpr = V("vFile"), V("vShebang"), V("vFnSMT"), V("vClsDef"), V("vClsBody"), V("vClsAsSMT"), V("vClsFnDef"), V("vStructDef"), V("vTbDef"), V("vTbKV"), V("vTbNk"), V("vTbVk"), V("vTbBk"), V("vTbVal"), V("vFnDefKW"), V("vFnDefArg"), V("vFnDefVArg"), V("vFnDefArgs"), V("vFnDefBody"), V("vFnDefName"), V("vFnDefOnly"), V("vFnClosure"), V("vFnCall"), V("vImSMT"), V("vImLib"), V("vImRight"), V("vExSMT"), V("vExLeft"), V("vAsSMT"), V("vAsLeft"), V("vAsRight"), V("vAswSMT"), V("vIfSMT"), V("vElseIfSMT"), V("vElseSMT"), V("vSwSMT"), V("vSwCaSMT"), V("vSwDeSMT"), V("vGuardSMT"), V("vForSMT"), V("vForVar"), V("vForNext"), V("vForList"), V("vRptSMT"), V("vWhileSMT"), V("vBrkSMT"), V("vCntSMT"), V("vGoSMT"), V("vRetSMT"), V("vDeferSMT"), V("vBlkSMT"), V("vCmSMT"), V("vDotExpr"), V("vParaExpr"), V("vSquareExpr"), V("vColonExpr"), V("vEvalExpr"), V("vEvalLeft"), V("vClsOpUnit"), V("vClsExpr"), V("vOpUnit"), V("vExpr")
+local gG = { vFile, vFile = vShebang ^ -1 * vFnSMT ^ 0, vFnSMT = (vBrkSMT + vCntSMT + vCmSMT + vClsDef + vStructDef + vFnDefName + vIfSMT + vSwSMT + vForSMT + vRptSMT + vWhileSMT + vRetSMT + vGoSMT + vAsSMT + vFnCall + vAswSMT + vExSMT + vImSMT + vDeferSMT + vBlkSMT + vGuardSMT) * Cmt(pSemi * pBlanks / fTrim, fMarkStype(";")) ^ -1, --
 vShebang = Ct(Cg("#!", "stype") * C(P(1 - (P("\r") ^ -1 * P("\n"))) ^ 0)), --
-vClsDef = pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * pBlanks * Cg(P("class"), "stype") * pBlanks * Cg(pVarArg, "name") * pBlanks * (pColon * pBlanks * Cg(pVarArg, "super")) ^ -1 * vClsBody), vClsBody = pBlanks * pBLeft * (vCmSMT + vClsAsSMT + vClsFnDef) ^ 0 * pBRight * pBlanks, vClsAsSMT = pBlanks * Ct(pVarArg * pBlanks * Cg(pEqual, "stype") * pBlanks * vClsExpr) * pBlanks, vClsFnDef = Ct(Cg("class", "attr") ^ -1 * vFnDefKW * Cg(pVarArg, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ 0 * pPRight * Cg(vFnDefBody, "body")), --
+vClsDef = pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * pBlanks * Cg(P("class"), "stype") * pBlanks * Cg(pVarArg, "name") * pBlanks * (pColon * pBlanks * Cg(pVarArg, "super")) ^ -1 * vClsBody), vClsBody = pBlanks * pBLeft * (vCmSMT + vClsAsSMT + vClsFnDef) ^ 0 * pBRight * pBlanks, vClsAsSMT = pBlanks * Ct(pVarArg * pBlanks * Cg(pEqual, "stype") * pBlanks * vClsExpr) * pBlanks, vClsFnDef = Ct(Cg("static", "attr") ^ -1 * vFnDefKW * Cg(pVarArg, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ 0 * pPRight * Cg(vFnDefBody, "body")), --
+vStructDef = pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * pBlanks * Cg(P("struct"), "stype") * pBlanks * Cg(pVarArg, "name") * vClsBody), --
 vExSMT = pBlanks * Ct(Cg(fName("ex"), "stype") * Cg(P("local") + P("export"), "attr") * vExLeft * (Cg(pEqual, "op") * vAsRight) ^ 0) * pBlanks, vExLeft = pBlanks * Ct(pVarArg * pBlanks * (pComma * pBlanks * pVarArg) ^ 0) * pBlanks, --
 vImSMT = pBlanks * Ct(Cg(P("import"), "stype") * pBlanks * (Cg(pStr, "slib") + vExLeft * P("from") * vImLib * Ct(pBLeft * vImRight ^ -1 * pBRight) ^ -1)) * pBlanks, vImLib = pBlanks * (Cg(pStr, "slib") + Cg(pVarLeft, "tlib")) * pBlanks, vImRight = pVarLeft * (pBlanks * pComma * pBlanks * pVarLeft) ^ 0, --
 vAsSMT = Ct(vAsLeft * Cg(pEqual, "stype") * vAsRight), vAsLeft = pBlanks * Ct(vEvalLeft * pBlanks * (pComma * pBlanks * vEvalLeft) ^ 0) * pBlanks, vAsRight = pBlanks * Ct(Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr)) ^ 0) * pBlanks, vAswSMT = pBlanks * Ct(vEvalLeft * pBlanks * Cg(pTwoOp, "stype") * pBlanks * Ct(vExpr)) * pBlanks, --
@@ -179,5 +171,4 @@ local function parse(content)
 		return true, { content = content, ast = t }
 	end
 end
-
 return { parse = parse }

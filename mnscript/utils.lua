@@ -14,7 +14,7 @@ do
 	__clstype__.supertype = __stype__
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
-	-- declare class var and methods
+	-- declare struct var and methods
 	function __clstype__.serializeTable(t, p, c, s)
 		local n = 0
 		for i, v in next, t do
@@ -31,7 +31,6 @@ do
 			local out = (type(v) == "string" and ('"' .. v .. '"')) or (type(v) == "number" and ('[' .. tostring(v) .. ']')) or tostring(v)
 			return is_table and (c[v][2] >= p) and _table(v, p + 1, c, s) or (type(v) == "string" and ('"' .. v .. '"') or tostring(v))
 		end
-
 		c[t] = { t, 0 }
 		for i, v in next, t do
 			local typ_i, typ_v = type(i) == 'table', type(v) == 'table'
@@ -41,7 +40,6 @@ do
 		end
 		return ('{' .. (e and '\n' or '')) .. str .. (e and s('  ', p - 1) or '') .. '}'
 	end
-
 	function __clstype__.split(self, sep, max, regex)
 		assert(sep ~= "")
 		assert(max == nil or max >= 1)
@@ -64,7 +62,6 @@ do
 		end
 		return record
 	end
-
 	function __clstype__.set(tbl)
 		local s = {  }
 		for _, v in ipairs(tbl) do
@@ -72,7 +69,6 @@ do
 		end
 		return s
 	end
-
 	-- declare after set()
 	__clstype__.blank_set = Utils.set({ " ", "\t", "\n", "\r" })
 	function __clstype__.trim(self)
@@ -90,14 +86,12 @@ do
 		end
 		return self
 	end
-
 	function __clstype__.seqReduce(tbl, init, func)
 		for i, v in ipairs(tbl) do
 			init = func(init, i, v)
 		end
 		return init
 	end
-
 	__clstype__.read_option = _VERSION == "Lua 5.1" and "*a" or "a"
 	function __clstype__.readFile(file_path)
 		local f = io.open(file_path, "rb")
@@ -108,7 +102,6 @@ do
 		f:close()
 		return data
 	end
-
 	function __clstype__.writeFile(file_path, content)
 		local f = io.open(file_path, "wb")
 		if not f then
@@ -118,15 +111,12 @@ do
 		f:close()
 		return true
 	end
-
 	function __clstype__.debug(str)
 		io.write(str .. "\n")
 	end
-
 	function __clstype__.dump(t)
 		Utils.debug(Utils.serializeTable(t))
 	end
-
 	-- position line in content
 	function __clstype__.posLine(content, lpos, cpos)
 		assert(type(content) == "string", "Invalid content")
@@ -146,7 +136,6 @@ do
 		end
 		return { line = ln_num, message = ln_content }
 	end
-
 	-- declare end
 	local __ins_mt = {
 		__tostring = function() return "instance of " .. __clsname__ end,
