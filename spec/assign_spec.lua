@@ -46,6 +46,32 @@ describe("test success #assign #export #local", function()
    end)
 end)
 
+describe("test success #assign", function()
+     local mnstr=[[body = {1}
+     bt = { stype :"a" }
+     if #body <= 0 or not (bt.stype == "return" or bt.stype == "goto" or bt.stype == "break") {
+         print("hello")
+         return
+     }]]
+
+     local ret, ast = parser.parse(mnstr)
+     it("should get ast", function()
+          assert.is_true(ret)
+          assert.is_true(type(ast) == "table")
+     end)
+  
+     local ret, content = compile.compile({}, ast)
+     it("should get compiled lua", function()
+          assert.is_true(ret)
+          assert.is_true(type(content) == "string")
+     end)
+  
+     local f = load(content, "test", "t")
+     it("should get function", function()
+          assert(type(f) == "function")
+     end)
+end)
+
 describe("test failed compile #assign", function()
      local mnstr=[[
           q = ((2 * 4) / 5

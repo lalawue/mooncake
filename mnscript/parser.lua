@@ -152,8 +152,8 @@ vBrkSMT = pBlanks * Cmt("break", fMarkStype("break")) * pBlanks, vCntSMT = pBlan
 vRetSMT = pBlanks * Ct(Cg("return", "stype") * (pBlanks * Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr) * pBlanks) ^ 0) ^ 0) * pBlanks * (#pBRight + #P("case") + #P("default") + -1), vDeferSMT = pBlanks * Ct(Cg("defer", "stype") * Cg(Cp(), "pos") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body")) * pBRight, vBlkSMT = pBlanks * Ct(Cg("do", "stype") * pBLeft * Cg(Ct(vFnSMT ^ 1), "body") * pBRight) * pBlanks, --
 vCmSMT = pBlanks * Cmt(pCmLong + pCmShort, fMarkStype("cm")) * pBlanks, --
 vDotExpr = Ct(Cg(P("."), "op") * pVarArg), vParaExpr = Ct(Cg(pPLeft / fTrim, "op") * (pBlanks * Ct(vExpr) * (pBlanks * pComma * pBlanks * Ct(vExpr)) ^ 0) ^ 0 * pPRight), vSquareExpr = Ct(Cg(pSLeft / fTrim, "op") * vExpr * pSRight), vColonExpr = Ct(Cg(P(":"), "op") * pVarArg * vParaExpr), vEvalExpr = pBlanks * Ct(Cg(fName("rexp"), "etype") * pVarRight * (vDotExpr + vColonExpr + vSquareExpr + vParaExpr) ^ 0), vEvalLeft = pBlanks * Ct(Cg(fName("lexp"), "etype") * pVarArg * ((vColonExpr + vParaExpr) ^ 0 * (vDotExpr + vSquareExpr)) ^ 0), --
-vClsOpUnit = pBlanks * (pSingleOp * vOpUnit + vTbDef + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks, vClsExpr = pCPLeft * vClsExpr * pCPRight * (pOperator * vClsExpr) ^ 0 + vClsOpUnit * (pOperator * vClsExpr) ^ 0, --
-vOpUnit = pBlanks * (pSingleOp * vOpUnit + vTbDef + vFnDefOnly + vFnClosure + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks, vExpr = pCPLeft * vExpr * pCPRight * (pOperator * vExpr + vParaExpr) ^ 0 + vOpUnit * (pOperator * vExpr) ^ 0 }
+vClsOpUnit = pBlanks * (pSingleOp * vClsExpr + vTbDef + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks, vClsExpr = pCPLeft * vClsExpr * pCPRight * (pOperator * vClsExpr) ^ 0 + vClsOpUnit * (pOperator * vClsExpr) ^ 0, --
+vOpUnit = pBlanks * (pSingleOp * vExpr + vTbDef + vFnDefOnly + vFnClosure + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks, vExpr = pCPLeft * vExpr * pCPRight * (pOperator * vExpr + vParaExpr) ^ 0 + vOpUnit * (pOperator * vExpr) ^ 0 }
 local grammar = Cf(Ct("") * gG * -1, function(a, b)
 	a[#a + 1] = b
 	return a

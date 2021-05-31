@@ -931,8 +931,9 @@ class M {
         ctx = self.ctx
         out = self.out
         body = t.body
-        if #body <= 0 or body[#body].stype ~= "return" {
-            ctx:errorPos("guard statement need return at last", "guard", t.pos - 1)
+        bt = body[#body]
+        if #body <= 0 or not (bt.stype == "return" or bt.stype == "goto" or bt.stype == "break") {
+            ctx:errorPos("guard statement need return/goto/break at last", "guard", t.pos - 1)
             return
         }
         out:append("if not (")

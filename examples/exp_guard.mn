@@ -1,7 +1,22 @@
 
+while true {
+    guard false else {
+        print("guard break")
+        break
+    }
+    print("guard no break")
+}
+
+guard false else {
+    print("guard goto")
+    goto tagLabel
+}
+print("guard no goto")
+::tagLabel::
+
 guard not true else {
-    print("a")
+    print("guard return")
     return
 }
 
-print("c")
+print("guard no return")

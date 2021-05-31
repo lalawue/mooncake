@@ -879,8 +879,9 @@ do
 		local ctx = self.ctx
 		local out = self.out
 		local body = t.body
-		if #body <= 0 or body[#body].stype ~= "return" then
-			ctx:errorPos("guard statement need return at last", "guard", t.pos - 1)
+		local bt = body[#body]
+		if #body <= 0 or not (bt.stype == "return" or bt.stype == "goto" or bt.stype == "break") then
+			ctx:errorPos("guard statement need return/goto/break at last", "guard", t.pos - 1)
 			return 
 		end
 		out:append("if not (")

@@ -364,10 +364,10 @@ gG = {
     vEvalExpr : pBlanks * Ct(Cg(fName("rexp"), "etype") * pVarRight * (vDotExpr + vColonExpr + vSquareExpr + vParaExpr) ^ 0),
     vEvalLeft : pBlanks * Ct(Cg(fName("lexp"), "etype") * pVarArg * ((vColonExpr + vParaExpr) ^ 0 * (vDotExpr + vSquareExpr)) ^ 0),
     --
-    vClsOpUnit : pBlanks * (pSingleOp * vOpUnit + vTbDef + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
+    vClsOpUnit : pBlanks * (pSingleOp * vClsExpr + vTbDef + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
     vClsExpr : pCPLeft * vClsExpr * pCPRight * (pOperator * vClsExpr) ^ 0 + vClsOpUnit * (pOperator * vClsExpr) ^ 0,
     --
-    vOpUnit : pBlanks * (pSingleOp * vOpUnit + vTbDef + vFnDefOnly + vFnClosure + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
+    vOpUnit : pBlanks * (pSingleOp * vExpr + vTbDef + vFnDefOnly + vFnClosure + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
     vExpr : pCPLeft * vExpr * pCPRight * (pOperator * vExpr + vParaExpr) ^ 0 + vOpUnit * (pOperator * vExpr) ^ 0
 }
 
