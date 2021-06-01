@@ -71,7 +71,7 @@ do
 		end
 	end
 	-- declare end
-	local __ins_mt = {
+	local __ins_mt__ = {
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
 			local v = rawget(t, k)
@@ -86,7 +86,7 @@ do
 		__index = function(_, k) return rawget(__clstype__, k) or (__stype__ and __stype__[k]) end,
 		__newindex = function() end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __ins_mt)
+			local ins = setmetatable({}, __ins_mt__)
 			if ins:init(...) == false then return nil end
 			return ins
 		end,
@@ -262,7 +262,7 @@ do
 		end
 	end
 	-- declare end
-	local __ins_mt = {
+	local __ins_mt__ = {
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
 			local v = rawget(t, k)
@@ -277,7 +277,7 @@ do
 		__index = function(_, k) return rawget(__clstype__, k) or (__stype__ and __stype__[k]) end,
 		__newindex = function() end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __ins_mt)
+			local ins = setmetatable({}, __ins_mt__)
 			if ins:init(...) == false then return nil end
 			return ins
 		end,
@@ -755,6 +755,9 @@ do
 		else
 			ctx:localInsert(name)
 		end
+		if name:find(".", 1, true) then
+			attr = ""
+		end
 		ctx:pushScope("fn", t)
 		out:append(attr .. "function " .. name .. "(" .. Utils.seqReduce(args, "", function(init, i, v)
 			ctx:localInsert(v.value)
@@ -1136,7 +1139,7 @@ do
 		local cls_fns, ins_fns = {  }, {  }
 		local fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns)
 		--
-		out:append("local __ins_mt = {")
+		out:append("local __ins_mt__ = {")
 		out:incIndent()
 		out:append('__tostring = function() return "instance of " .. __clsname__ end,')
 		out:append("__index = function(t, k)")
@@ -1165,7 +1168,7 @@ do
 		out:append('__newindex = function() end,')
 		out:append("__call = function(_, ...)")
 		out:incIndent()
-		out:append("local ins = setmetatable({}, __ins_mt)")
+		out:append("local ins = setmetatable({}, __ins_mt__)")
 		if fn_deinit then
 			out:append('if _VERSION == "Lua 5.1" then')
 			out:incIndent()
@@ -1215,7 +1218,7 @@ do
 		local cls_fns, ins_fns = {  }, {  }
 		local fn_init, fn_deinit = self:hlVarAndFns(t, "__strtype__", ctx, out, cls_fns, ins_fns)
 		--
-		out:append("local __ins_mt = {")
+		out:append("local __ins_mt__ = {")
 		out:incIndent()
 		out:append('__tostring = function() return "one of " .. __strname__ end,')
 		out:append("__index = function(t, k)")
@@ -1248,7 +1251,7 @@ do
 		if fn_init then
 			out:append("if __strtype__.init(ins, ...) == false then return nil end")
 		end
-		out:append("ins = setmetatable(ins, __ins_mt)")
+		out:append("ins = setmetatable(ins, __ins_mt__)")
 		if fn_deinit then
 			out:append('if _VERSION == "Lua 5.1" then')
 			out:incIndent()
@@ -1346,7 +1349,7 @@ do
 		ctx:popScope()
 	end
 	-- declare end
-	local __ins_mt = {
+	local __ins_mt__ = {
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
 			local v = rawget(t, k)
@@ -1361,7 +1364,7 @@ do
 		__index = function(_, k) return rawget(__clstype__, k) or (__stype__ and __stype__[k]) end,
 		__newindex = function() end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __ins_mt)
+			local ins = setmetatable({}, __ins_mt__)
 			if ins:init(...) == false then return nil end
 			return ins
 		end,

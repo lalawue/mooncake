@@ -137,7 +137,7 @@ do
 		return { line = ln_num, message = ln_content }
 	end
 	-- declare end
-	local __ins_mt = {
+	local __ins_mt__ = {
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
 			local v = rawget(t, k)
@@ -152,7 +152,7 @@ do
 		__index = function(_, k) return rawget(__clstype__, k) or (__stype__ and __stype__[k]) end,
 		__newindex = function() end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __ins_mt)
+			local ins = setmetatable({}, __ins_mt__)
 			return ins
 		end,
 	})
