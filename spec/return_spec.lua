@@ -8,7 +8,7 @@ describe("test success #return", function()
         if false {
             return (loadstring or load)("", "", unpack({}))
         }        
-        return 0
+        return 0 -- hello
     ]]
 
     local ast = core.toAST({}, mnstr)
@@ -32,7 +32,7 @@ end)
 describe("test failed #return", function()
     local mnstr=[[
         return 9
-        {
+        do {
             return 1
         }
     ]]

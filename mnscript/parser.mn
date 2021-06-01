@@ -351,7 +351,7 @@ gG = {
                           Cg(P("::"), "stype") * pBlanks * Cg(pVarArg, "name") * pBlanks * P("::")) * pBlanks,
     --
     vRetSMT : pBlanks * Ct(Cg("return", "stype") * (pBlanks * Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr) * pBlanks) ^ 0) ^ 0) * pBlanks *
-        (#pBRight + #P("case") + #P("default") + -1),
+             vCmSMT ^ 0 * (#pBRight + #P("case") + #P("default") + -1),
     vDeferSMT : pBlanks * Ct(Cg("defer", "stype") * Cg(Cp(), "pos") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body")) * pBRight,
     vBlkSMT : pBlanks * Ct(Cg("do", "stype") * pBLeft * Cg(Ct(vFnSMT ^ 1), "body") * pBRight) * pBlanks,
     --
