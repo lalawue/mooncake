@@ -141,15 +141,18 @@ do
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
 			local v = rawget(t, k)
-			if v then return v end
+			if v ~= nil then return v end
 			v = __clstype__[k]
-			if v then rawset(t, k, v) end
+			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
 	}
 	setmetatable(__clstype__, {
 		__tostring = function() return "class " .. __clsname__ end,
-		__index = function(_, k) return rawget(__clstype__, k) or (__stype__ and __stype__[k]) end,
+		__index = function(_, k)
+			local v = rawget(__clstype__, k)
+			return ((v ~= nil) and v) or (__stype__ and __stype__[k]) or nil
+		end,
 		__newindex = function() end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt__)
