@@ -306,7 +306,7 @@ gG = {
     vTbKV : vCmSMT ^ -1 * Ct(vTbNk + vTbVk * vTbVal + vTbBk * vTbVal + vTbVal),
     vTbNk : pBlanks * pColon * pBlanks * Cg(pVarArg, "nkey"),
     vTbVk : pBlanks * Cg(pVarArg, "vkey") * pBlanks * pColon,
-    vTbBk : Cg(vExpr, "bkey") * pColon,
+    vTbBk : (pSLeft * Cg(vExpr, "bkey") * pSRight + Cg(vExpr, "bkey")) * pColon,
     vTbVal : pBlanks * Cg(Ct(vExpr), "value"),
     --
     vFnDefKW : pBlanks * Cg(P("fn"), "stype") * pBlanks,

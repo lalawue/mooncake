@@ -13,7 +13,8 @@ describe("test success #table", function()
              false : tonumber("10"),
              c : 1 + ...,
              :b,
-             d : b
+             d : b,
+             [b] : b
              -- 999
         }
         a [ "d"] = 3
