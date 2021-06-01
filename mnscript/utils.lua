@@ -151,7 +151,7 @@ do
 		__tostring = function() return "class " .. __clsname__ end,
 		__index = function(_, k)
 			local v = rawget(__clstype__, k)
-			return ((v ~= nil) and v) or (__stype__ and __stype__[k]) or nil
+			return ((v ~= nil) and v) or (__stype__ and __stype__[k])
 		end,
 		__newindex = function() end,
 		__call = function(_, ...)
