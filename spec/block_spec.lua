@@ -31,26 +31,33 @@ describe("test success #block #fn", function()
    end)
 end)
 
-describe("test failed 1 #block", function()
+describe("test success #block", function()
     local mnstr=[[
     do {        
     }]]
 
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
-         assert.is_false(ret)
+         assert.is_true(ret)
          assert.is_true(type(ast) == "table")
     end)
 end)
 
-describe("test failed 2 #block", function()
+describe("test failed #block", function()
      local mnstr=[[
-     do {        
+     do {
+          break          
      }]]
  
      local ret, ast = parser.parse(mnstr)
      it("should get ast", function()
-          assert.is_false(ret)
+          assert.is_true(ret)
           assert.is_true(type(ast) == "table")
+     end)
+
+     local ret, content = compile.compile({}, ast)
+     it("should get compiled lua", function()
+          assert.is_false(ret)     
+          assert.is_equal(content, "_:2:           break           <not in loop 'break'>")
      end)
  end)

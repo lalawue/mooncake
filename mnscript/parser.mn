@@ -353,7 +353,7 @@ gG = {
     vRetSMT : pBlanks * Ct(Cg("return", "stype") * (pBlanks * Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr) * pBlanks) ^ 0) ^ 0) * pBlanks *
              vCmSMT ^ 0 * (#pBRight + #P("case") + #P("default") + -1),
     vDeferSMT : pBlanks * Ct(Cg("defer", "stype") * Cg(Cp(), "pos") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body")) * pBRight,
-    vBlkSMT : pBlanks * Ct(Cg("do", "stype") * pBLeft * Cg(Ct(vFnSMT ^ 1), "body") * pBRight) * pBlanks,
+    vBlkSMT : pBlanks * Ct(Cg("do", "stype") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body") * pBRight) * pBlanks,
     --
     vCmSMT : pBlanks * Cmt(pCmLong + pCmShort, fMarkStype("cm")) * pBlanks,
     --
