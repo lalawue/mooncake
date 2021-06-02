@@ -9,6 +9,7 @@ function Cmd.help()
     utils.debug("Usage: [OPTIONS] FILE")
     utils.debug("\t'' load FILE and run")
     utils.debug("\t-h print help")
+    utils.debug("\t-d print library path")
     utils.debug("\t-a print AST")
     utils.debug("\t-s print Lua code")
     utils.debug("\t-p generate Lua code with project config")
@@ -39,6 +40,9 @@ function Cmd.option(...)
         config.shebang = true
     elseif a == "-v" then
         utils.debug(core.version())
+        return
+    elseif a == "-d" then
+        utils.debug(_mn_path or "./mnscript")
         return
     else
         config.option = "run"
