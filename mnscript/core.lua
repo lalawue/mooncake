@@ -25,18 +25,6 @@ do
 	concat, insert, remove = __lib__.concat, __lib__.insert, __lib__.remove
 end
 unpack = unpack or table.unpack
--- create mnpath from pkg_path
-local function createPath(pkg_path)
-	local tbl = {  }
-	local list = split(pkg_path, ";")
-	for i = 1, #list do
-		local prefix = list[i]:match("^(.-)%.lua")
-		if prefix then
-			tbl[#tbl + 1] = prefix .. ".mn"
-		end
-	end
-	return concat(tbl, ";")
-end
 -- mn source to AST
 local function toAST(config, text)
 	local t = type(text)
@@ -68,7 +56,9 @@ local tmp_config = {  }
 local function mnLoader(name)
 	local name_path = name:gsub("%.", dir_spliter)
 	local file, file_path = nil, nil
-	for path in package.mnpath:gmatch("[^;]+") do
+	for path in package.path:gmatch("[^;]+") do
+		local len = path:len()
+		path = path:sub(1, len - 4) .. ".mn"
 		file_path = path:gsub("?", name_path)
 		file = io.open(file_path)
 		if file then
@@ -120,23 +110,25 @@ local function mnDoFile(...)
 	local f = assert(mnLoadFile(...))
 	return f()
 end
+local _mn_loaded = false
 local function mnRemoveLoader()
+	if not _mn_loaded then
+		return 
+	end
 	local loaders = package.loaders or package.searchers
 	for i, loader in ipairs(loaders) do
 		if loader == mnLoader then
 			remove(loaders, i)
-			package.mnpath = nil
+			_mn_loaded = false
 			return true
 		end
 	end
 	return false
 end
-local function mnVersion()
-	return "mnscript v0.0.3, " .. _VERSION
-end
--- run
-if not package.mnpath then
-	package.mnpath = createPath(package.path)
+local function mnAppendLoader()
+	if _mn_loaded then
+		return 
+	end
 	local loaders = package.loaders or package.searchers
 	local has_loader = false
 	for i = 1, #loaders do
@@ -145,7 +137,16 @@ if not package.mnpath then
 		end
 	end
 	if not has_loader then
+		_mn_loaded = true
 		insert(loaders, mnLoader)
 	end
 end
-return { loadstring = mnLoadString, loadfile = mnLoadFile, dofile = mnDoFile, removeloader = mnRemoveLoader, toAST = toAST, toLua = toLua, version = mnVersion }
+local function mnVersion()
+	return "mnscript v0.3.20210601, " .. _VERSION
+end
+local function mnLoaded()
+	return _mn_loaded
+end
+-- append loader
+mnAppendLoader()
+return { loadstring = mnLoadString, loadfile = mnLoadFile, dofile = mnDoFile, removeloader = mnRemoveLoader, appendloader = mnAppendLoader, toAST = toAST, toLua = toLua, version = mnVersion, loaded = mnLoaded }

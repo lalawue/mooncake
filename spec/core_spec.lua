@@ -1,7 +1,7 @@
 local core = require("mnscript.core")
 
 describe("test success #core", function()
-    package.mnpath = package.mnpath .. ";./spec/?.mn"
+    package.path = package.path .. ";./spec/?.lua"
 
     local f, err = core.loadfile("./spec/_success_class.mn")
     it("should loadfile", function()
@@ -38,6 +38,6 @@ describe("test success #core", function()
     it("should remove mn loader", function()
         local ret = core.removeloader()
         assert.is_true(ret)
-        assert.is_nil(package.mnpath)
+        assert.is_false(core.loaded())
     end)
 end)

@@ -12,19 +12,6 @@ import concat, insert, remove from table {}
 
 unpack = unpack or table.unpack
 
--- create mnpath from pkg_path
-fn createPath(pkg_path) {
-    tbl = {}
-    list = split(pkg_path, ";")
-    for i = 1, #list {
-        prefix = list[i]:match("^(.-)%.lua")
-        if prefix {
-            tbl[#tbl + 1] = prefix .. ".mn"
-        }
-    }
-    return concat(tbl, ";")
-}
-
 -- mn source to AST
 fn toAST(config, text) {
     t = type(text)
@@ -59,7 +46,9 @@ tmp_config = {}
 fn mnLoader(name) {
     name_path = name:gsub("%.", dir_spliter)
     file, file_path = nil, nil
-    for path in package.mnpath:gmatch("[^;]+") {
+    for path in package.path:gmatch("[^;]+") {
+        len = path:len()
+        path = path:sub(1, len - 4) .. ".mn"
         file_path = path:gsub("?", name_path)
         file = io.open(file_path)
         if file {
@@ -115,25 +104,27 @@ fn mnDoFile(...) {
     return f()
 }
 
+local _mn_loaded = false
+
 fn mnRemoveLoader() {
+    if not _mn_loaded {
+        return
+    }
     loaders = package.loaders or package.searchers
     for i, loader in ipairs(loaders) {
         if loader == mnLoader {
             remove(loaders, i)
-            package.mnpath = nil
+            _mn_loaded = false
             return true
         }
     }
     return false    
 }
 
-fn mnVersion() {
-    return "mnscript v0.0.3, " .. _VERSION
-}
-
--- run
-if not package.mnpath {
-    package.mnpath = createPath(package.path)
+fn mnAppendLoader() {
+    if _mn_loaded {
+        return
+    }
     loaders = package.loaders or package.searchers
     has_loader = false
     for i=1, #loaders {
@@ -142,16 +133,30 @@ if not package.mnpath {
         }
     }
     if not has_loader {
+        _mn_loaded = true
         insert(loaders, mnLoader)
     }
 }
+
+fn mnVersion() {
+    return "mnscript v0.3.20210601, " .. _VERSION
+}
+
+fn mnLoaded() {
+    return _mn_loaded
+}
+
+-- append loader
+mnAppendLoader()
 
 return {
     loadstring : mnLoadString,
     loadfile : mnLoadFile,
     dofile : mnDoFile,
     removeloader : mnRemoveLoader,
+    appendloader : mnAppendLoader,
     toAST : toAST,
     toLua : toLua,
-    version : mnVersion
+    version : mnVersion,
+    loaded : mnLoaded
 }
