@@ -34,6 +34,9 @@ describe("test normal #class", function()
             fn change(a) {
                 Self.a = a
             }
+            static fn test() {
+                Self.takeTime(Self, 1, 2)
+            }
         }
         ClsA.b = 100
         return ClsA, ClsB
@@ -63,6 +66,7 @@ describe("test normal #class", function()
         assert.is_equal(b:takeTime(1, 2), 5)
         b:change(99)
         assert.is_equal(ClsB.a, 99)
+        b.test()
     end)
 
     it("should deinit", function()

@@ -791,7 +791,11 @@ do
 		if t[1].etype == "lvar" then
 			n = 1
 			ctx:checkName(t[1], true)
-			out:append(t[1].value, true)
+			if ctx.in_clsname and t[1].value == "Self" then
+				out:append(ctx.in_clsname, true)
+			else
+				out:append(t[1].value, true)
+			end
 		end
 		for i, e in ipairs(t) do
 			if i > n then
