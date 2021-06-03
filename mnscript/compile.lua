@@ -1240,7 +1240,7 @@ do
 		out:incIndent()
 		out:append("local v = rawget(t, k)")
 		out:append("if v ~= nil then return v end")
-		out:append("v = __strtype__[k]")
+		out:append("v = rawget(__strtype__, k)")
 		out:append("if v ~= nil then rawset(t, k, v) end")
 		out:append("return v")
 		out:decIndent()
@@ -1256,17 +1256,17 @@ do
 		out:decIndent()
 		out:append("}")
 		--
-		out:append("setmetatable(__strtype__, {")
+		out:append(strname .. " = setmetatable({}, {")
 		out:incIndent()
 		out:append('__tostring = function() return "struct " .. __strname__ end,')
-		out:append('__newindex = function() end,')
+		out:append('__index = function(_, k) return rawget(__strtype__, k) end,')
+		out:append('__newindex = function(_, k, v) if v ~= nil and rawget(__strtype__, k) ~= nil then rawset(__strtype__, k, v) end end,')
 		out:append("__call = function(_, ...)")
 		out:incIndent()
-		out:append("local ins = {}")
+		out:append("local ins = setmetatable({}, __ins_mt__)")
 		if fn_init then
-			out:append("if __strtype__.init(ins, ...) == false then return nil end")
+			out:append("if ins:init(...) == false then return nil end")
 		end
-		out:append("ins = setmetatable(ins, __ins_mt__)")
 		if fn_deinit then
 			out:append('if _VERSION == "Lua 5.1" then')
 			out:incIndent()

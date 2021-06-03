@@ -9,14 +9,14 @@ struct StructA {
     fn deinit() {
         print("deinit .. " .. tostring(self))
     }
-    fn takeOne(c) {
+    fn takeTwo(c) {
+        return Self.takeOne(c) + c
+    }
+    static fn takeOne(c) {
         return Self.a + c
     }
-    static fn takeTwo(c) {
-        return Self.a + Self.b + c
-    }
     fn __add(a, b) {
-        return "a + b"
+        return "a + b = " .. tostring(a.a + b.a)
     }
     static fn __add(a, b) {
         return '( ' .. tostring(a) .. " + " .. tostring(b) .. ' )'
@@ -28,9 +28,10 @@ b = StructA()
 a.a = 13
 a.c = 9
 StructA.c = 9
-print("a", a.a, a.c)
-print("StructA", StructA.a, StructA.c)
+assert(a.c == nil)
+assert(StructA.c == nil)
+print("StructA = " .. tostring(StructA.a))
+print("a = " .. tostring(a.a))
 print(a + b)
 print(StructA + StructA)
-print("takeOne", a:takeOne(8))
-print("takeTwo", a.takeTwo(1))
+print("takeTwo", a:takeTwo(8))

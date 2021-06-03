@@ -6,6 +6,7 @@ describe("test normal #struct", function()
         local struct ClsA {
             a = 11
             fn init() {
+                self.a = 9
                 self.b = 0
             }
             fn takeTime(c) {
@@ -45,8 +46,9 @@ describe("test normal #struct", function()
         local a = ClsA()
         assert.is_equal(ClsA.a, 11)
         assert.is_equal(ClsA.b, nil)
-        assert.is_equal(a.b, 0)
-        assert.is_equal(a:takeTime(2), 110)
+        assert.is_equal(a.a, 9)
+        assert.is_equal(a.b, nil)
+        assert.is_equal(a:takeTime(2), 108)
         a.c = 100
         assert.is_equal(a.c, nil)
     end)
@@ -67,7 +69,7 @@ describe("test normal #struct", function()
         assert(type(f) == "function")
         local ClsA = f()
         local a = ClsA()
-        assert.is_equal(a.b, 0)
+        assert.is_equal(a.b, nil)
         assert.is_equal((ClsA + ClsA), "add")
         assert.is_equal((a + a), 666)
     end)
