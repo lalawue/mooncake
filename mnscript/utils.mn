@@ -75,8 +75,8 @@ class Utils {
     static fn trim(self) {
         i = 1
         j = self:len()
-        blank_set = Utils.blank_set        
-        while true {
+        blank_set = Self.blank_set        
+        while i <= j {
             if blank_set[self:sub(i, i)] {
                 i = i + 1
             } elseif blank_set[self:sub(j, j)] {

@@ -75,7 +75,7 @@ do
 		local i = 1
 		local j = self:len()
 		local blank_set = Utils.blank_set
-		while true do
+		while i <= j do
 			if blank_set[self:sub(i, i)] then
 				i = i + 1
 			elseif blank_set[self:sub(j, j)] then
