@@ -74,9 +74,7 @@ do
 	local __ins_mt__ = {
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
-			local v = rawget(t, k)
-			if v ~= nil then return v end
-			v = __clstype__[k]
+			local v = __clstype__[k]
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
@@ -268,9 +266,7 @@ do
 	local __ins_mt__ = {
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
-			local v = rawget(t, k)
-			if v ~= nil then return v end
-			v = __clstype__[k]
+			local v = __clstype__[k]
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
@@ -1154,9 +1150,7 @@ do
 		out:append('__tostring = function() return "instance of " .. __clsname__ end,')
 		out:append("__index = function(t, k)")
 		out:incIndent()
-		out:append("local v = rawget(t, k)")
-		out:append("if v ~= nil then return v end")
-		out:append("v = __clstype__[k]")
+		out:append("local v = __clstype__[k]")
 		out:append("if v ~= nil then rawset(t, k, v) end")
 		out:append("return v")
 		out:decIndent()
@@ -1238,9 +1232,7 @@ do
 		out:append('__tostring = function() return "one of " .. __strname__ end,')
 		out:append("__index = function(t, k)")
 		out:incIndent()
-		out:append("local v = rawget(t, k)")
-		out:append("if v ~= nil then return v end")
-		out:append("v = rawget(__strtype__, k)")
+		out:append("local v = rawget(__strtype__, k)")
 		out:append("if v ~= nil then rawset(t, k, v) end")
 		out:append("return v")
 		out:decIndent()
@@ -1367,9 +1359,7 @@ do
 	local __ins_mt__ = {
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
-			local v = rawget(t, k)
-			if v ~= nil then return v end
-			v = __clstype__[k]
+			local v = __clstype__[k]
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,

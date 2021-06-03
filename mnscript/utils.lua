@@ -140,9 +140,7 @@ do
 	local __ins_mt__ = {
 		__tostring = function() return "instance of " .. __clsname__ end,
 		__index = function(t, k)
-			local v = rawget(t, k)
-			if v ~= nil then return v end
-			v = __clstype__[k]
+			local v = __clstype__[k]
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
