@@ -16,10 +16,11 @@ do
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
 	-- declare struct var and methods
+	__clstype__._indent = 0
+	__clstype__._changeLine = false
+	__clstype__._output = {  }
+	__clstype__._inline = 0
 	function __clstype__:init()
-		self:reset()
-	end
-	function __clstype__:reset()
 		self._indent = 0
 		-- indent char
 		self._changeLine = false
@@ -78,14 +79,13 @@ do
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
+		__newindex = function(t, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(t, k, v) end end,
 	}
-	setmetatable(__clstype__, {
+	setmetatable(__clstype__, { __index = function(t, k) return __stype__ and __stype__[k] end })
+	Out = setmetatable({}, {
 		__tostring = function() return "class " .. __clsname__ end,
-		__index = function(_, k)
-			local v = rawget(__clstype__, k)
-			return ((v ~= nil) and v) or (__stype__ and __stype__[k])
-		end,
-		__newindex = function() end,
+		__index = function(_, k) return __clstype__[k] end,
+		__newindex = function(_, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(__clstype__, k, v) end end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt__)
 			if ins:init(...) == false then return nil end
@@ -106,19 +106,26 @@ do
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
 	-- declare struct var and methods
+	__clstype__.config = false
+	__clstype__.ast = false
+	__clstype__.content = false
+	__clstype__.scopes = false
+	__clstype__.in_defer = false
+	__clstype__.in_clsvar = false
+	__clstype__.in_clsname = false
+	__clstype__.err_info = false
+	__clstype__.last_pos = 0
+	-- MARK:
 	function __clstype__:init(config, ast, content)
 		self.config = config
 		self.ast = ast
 		self.content = content
-		self:reset()
-	end
-	function __clstype__:reset()
 		-- { otype : "gl|fi|fn|lo|if|do|gu", defers : {}, vars : {}, info : {} }
 		self.scopes = { _scope_global, { otype = "fi", defers = {  }, vars = {  }, info = nil } }
 		self.in_defer = false
 		self.in_clsvar = false
-		self.in_clsname = nil
-		self.error = nil
+		self.in_clsname = false
+		self.err_info = false
 		self.last_pos = 0
 	end
 	function __clstype__:pushScope(ot, exp)
@@ -247,18 +254,18 @@ do
 		return false, n, pos
 	end
 	function __clstype__:errorPos(msg, symbol, pos)
-		if self.error then
+		if self.err_info then
 			return 
 		end
 		pos = pos or math.max(0, self.last_pos - 1)
 		local err = Utils.posLine(self.content, pos)
-		self.error = string.format("%s:%d: %s <%s '%s'>", self.config.fname or "_", err.line, err.message, msg, symbol)
+		self.err_info = string.format("%s:%d: %s <%s '%s'>", self.config.fname or "_", err.line, err.message, msg, symbol)
 	end
 	function __clstype__:hasError()
-		return self.error ~= nil
+		return self.err_info
 	end
 	function __clstype__:updatePos(pos)
-		if type(pos) == "number" and self.error == nil then
+		if type(pos) == "number" and not self.err_info then
 			self.last_pos = pos
 		end
 	end
@@ -270,14 +277,13 @@ do
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
+		__newindex = function(t, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(t, k, v) end end,
 	}
-	setmetatable(__clstype__, {
+	setmetatable(__clstype__, { __index = function(t, k) return __stype__ and __stype__[k] end })
+	Ctx = setmetatable({}, {
 		__tostring = function() return "class " .. __clsname__ end,
-		__index = function(_, k)
-			local v = rawget(__clstype__, k)
-			return ((v ~= nil) and v) or (__stype__ and __stype__[k])
-		end,
-		__newindex = function() end,
+		__index = function(_, k) return __clstype__[k] end,
+		__newindex = function(_, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(__clstype__, k, v) end end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt__)
 			if ins:init(...) == false then return nil end
@@ -302,6 +308,8 @@ do
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
 	-- declare struct var and methods
+	__clstype__.ctx = false
+	__clstype__.out = false
 	function __clstype__:init(ctx, out)
 		self.ctx = ctx
 		self.out = out
@@ -1155,6 +1163,7 @@ do
 		out:append("return v")
 		out:decIndent()
 		out:append("end,")
+		out:append("__newindex = function(t, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(t, k, v) end end,")
 		if fn_deinit then
 			out:append("__gc = function(t) t:deinit() end,")
 		end
@@ -1165,23 +1174,19 @@ do
 		out:decIndent()
 		out:append("}")
 		--
-		out:append("setmetatable(__clstype__, {")
+		out:append("setmetatable(__clstype__, { __index = function(t, k) return __stype__ and __stype__[k] end })")
+		out:append(clsname .. " = setmetatable({}, {")
 		out:incIndent()
 		out:append('__tostring = function() return "class " .. __clsname__ end,')
-		out:append('__index = function(_, k)')
-		out:incIndent()
-		out:append('local v = rawget(__clstype__, k)')
-		out:append('return ((v ~= nil) and v) or (__stype__ and __stype__[k])')
-		out:decIndent()
-		out:append("end,")
-		out:append('__newindex = function() end,')
+		out:append('__index = function(_, k) return __clstype__[k] end,')
+		out:append('__newindex = function(_, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(__clstype__, k, v) end end,')
 		out:append("__call = function(_, ...)")
 		out:incIndent()
 		out:append("local ins = setmetatable({}, __ins_mt__)")
 		if fn_deinit then
 			out:append('if _VERSION == "Lua 5.1" then')
 			out:incIndent()
-			out:append("ins.__gc_proxy = newproxy(true)")
+			out:append("rawset(ins, '__gc_proxy', newproxy(true))")
 			out:append("getmetatable(ins.__gc_proxy).__gc = function() ins:deinit() end")
 			out:decIndent()
 			out:append("end")
@@ -1201,7 +1206,7 @@ do
 		--
 		out:decIndent()
 		out:append("end")
-		ctx.in_clsname = nil
+		ctx.in_clsname = false
 	end
 	function __clstype__:trStStruct(t)
 		assert(t.stype == "struct", "Invalid stype class")
@@ -1279,7 +1284,7 @@ do
 		--
 		out:decIndent()
 		out:append("end")
-		ctx.in_clsname = nil
+		ctx.in_clsname = false
 	end
 	function __clstype__:hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns)
 		out:append("-- declare struct var and methods")
@@ -1363,14 +1368,13 @@ do
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
+		__newindex = function(t, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(t, k, v) end end,
 	}
-	setmetatable(__clstype__, {
+	setmetatable(__clstype__, { __index = function(t, k) return __stype__ and __stype__[k] end })
+	M = setmetatable({}, {
 		__tostring = function() return "class " .. __clsname__ end,
-		__index = function(_, k)
-			local v = rawget(__clstype__, k)
-			return ((v ~= nil) and v) or (__stype__ and __stype__[k])
-		end,
-		__newindex = function() end,
+		__index = function(_, k) return __clstype__[k] end,
+		__newindex = function(_, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(__clstype__, k, v) end end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt__)
 			if ins:init(...) == false then return nil end
@@ -1391,7 +1395,7 @@ local function compile(config, data)
 	local comp = M(ctx, out)
 	comp:trStatement(ctx.ast)
 	if ctx:hasError() then
-		return false, ctx.error
+		return false, ctx.err_info
 	end
 	return true, table.concat(out._output, "\n")
 end

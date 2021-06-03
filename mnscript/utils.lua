@@ -144,14 +144,13 @@ do
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
+		__newindex = function(t, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(t, k, v) end end,
 	}
-	setmetatable(__clstype__, {
+	setmetatable(__clstype__, { __index = function(t, k) return __stype__ and __stype__[k] end })
+	Utils = setmetatable({}, {
 		__tostring = function() return "class " .. __clsname__ end,
-		__index = function(_, k)
-			local v = rawget(__clstype__, k)
-			return ((v ~= nil) and v) or (__stype__ and __stype__[k])
-		end,
-		__newindex = function() end,
+		__index = function(_, k) return __clstype__[k] end,
+		__newindex = function(_, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(__clstype__, k, v) end end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt__)
 			return ins

@@ -9,11 +9,12 @@ import Utils from "mnscript.utils"
 
 class Out {
 
-    fn init() {
-        self:reset()
-    }
+    _indent = 0
+    _changeLine = false
+    _output = {}
+    _inline = 0
 
-    fn reset() {
+    fn init() {
         self._indent = 0 -- indent char
         self._changeLine = false -- force change line
         self._output = {} -- output table
@@ -121,14 +122,24 @@ local _scope_global = { otype : "gl", defers : {}, vars : _preserv_keyword }
 
 class Ctx {
 
+    config = false
+    ast = false
+    content = false
+
+    scopes = false    
+    in_defer = false
+    in_clsvar = false
+    in_clsname = false
+
+    err_info = false
+    last_pos = 0
+
+    -- MARK:
+
     fn init(config, ast, content) {
         self.config = config
         self.ast = ast
         self.content = content
-        self:reset()
-    }
-
-    fn reset() {
         -- { otype : "gl|fi|fn|lo|if|do|gu", defers : {}, vars : {}, info : {} }
         self.scopes = {
             _scope_global,
@@ -136,8 +147,8 @@ class Ctx {
         }
         self.in_defer = false
         self.in_clsvar = false
-        self.in_clsname = nil
-        self.error = nil
+        self.in_clsname = false
+        self.err_info = false
         self.last_pos = 0
     }
 
@@ -280,20 +291,20 @@ class Ctx {
     }
 
     fn errorPos(msg, symbol, pos) {
-        if self.error {
+        if self.err_info {
             return
         }
         pos = pos or math.max(0, self.last_pos - 1)
         err = Utils.posLine(self.content, pos)
-        self.error = string.format("%s:%d: %s <%s '%s'>", self.config.fname or "_", err.line, err.message, msg, symbol)
+        self.err_info = string.format("%s:%d: %s <%s '%s'>", self.config.fname or "_", err.line, err.message, msg, symbol)
     }
 
     fn hasError() {
-        return self.error ~= nil
+        return self.err_info
     }
 
     fn updatePos(pos) {
-        if type(pos) == "number" and self.error == nil {
+        if type(pos) == "number" and not self.err_info {
             self.last_pos = pos
         }
     }
@@ -333,6 +344,9 @@ local _no_space_op = Utils.set({"(", ")", "#", "~", "-"})
 local _right_space_op = Utils.set({"not"})
 
 class M {
+
+    ctx = false
+    out = false
 
     fn init(ctx, out) {
         self.ctx = ctx
@@ -1219,6 +1233,7 @@ class M {
         out:append("return v")
         out:decIndent()
         out:append("end,")
+        out:append("__newindex = function(t, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(t, k, v) end end,")
         if fn_deinit {
             out:append("__gc = function(t) t:deinit() end,")
         }
@@ -1229,23 +1244,19 @@ class M {
         out:decIndent()
         out:append("}")
         --
-        out:append("setmetatable(__clstype__, {")
+        out:append("setmetatable(__clstype__, { __index = function(t, k) return __stype__ and __stype__[k] end })")
+        out:append(clsname .. " = setmetatable({}, {")
         out:incIndent()
         out:append('__tostring = function() return "class " .. __clsname__ end,')
-        out:append('__index = function(_, k)')
-        out:incIndent()
-        out:append('local v = rawget(__clstype__, k)')
-        out:append('return ((v ~= nil) and v) or (__stype__ and __stype__[k])')
-        out:decIndent()
-        out:append("end,")
-        out:append('__newindex = function() end,')
+        out:append('__index = function(_, k) return __clstype__[k] end,')
+        out:append('__newindex = function(_, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(__clstype__, k, v) end end,')
         out:append("__call = function(_, ...)")
         out:incIndent()
         out:append("local ins = setmetatable({}, __ins_mt__)")
         if fn_deinit {
             out:append('if _VERSION == "Lua 5.1" then')
             out:incIndent()
-            out:append("ins.__gc_proxy = newproxy(true)")
+            out:append("rawset(ins, '__gc_proxy', newproxy(true))")
             out:append("getmetatable(ins.__gc_proxy).__gc = function() ins:deinit() end")
             out:decIndent()
             out:append("end")
@@ -1265,7 +1276,7 @@ class M {
         --
         out:decIndent()
         out:append("end")
-        ctx.in_clsname = nil
+        ctx.in_clsname = false
     }
     
     fn trStStruct(t) {
@@ -1344,7 +1355,7 @@ class M {
         --
         out:decIndent()
         out:append("end")
-        ctx.in_clsname = nil
+        ctx.in_clsname = false
     }
 
     fn hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns) {
@@ -1440,7 +1451,7 @@ fn compile(config, data) {
     comp:trStatement(ctx.ast)
 
     if ctx:hasError() {
-        return false, ctx.error
+        return false, ctx.err_info
     }
 
     return true, table.concat(out._output, "\n")
