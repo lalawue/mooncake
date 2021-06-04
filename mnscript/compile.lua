@@ -79,13 +79,14 @@ do
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
-		__newindex = function(t, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(t, k, v) end end,
 	}
-	setmetatable(__clstype__, { __index = function(t, k) return __stype__ and __stype__[k] end })
-	Out = setmetatable({}, {
+	setmetatable(__clstype__, {
 		__tostring = function() return "class " .. __clsname__ end,
-		__index = function(_, k) return __clstype__[k] end,
-		__newindex = function(_, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(__clstype__, k, v) end end,
+		__index = function(_, k)
+			local v = __stype__ and __stype__[k]
+			if v ~= nil then rawset(__clstype__, k, v) end
+			return v
+		end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt__)
 			if ins:init(...) == false then return nil end
@@ -277,13 +278,14 @@ do
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
-		__newindex = function(t, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(t, k, v) end end,
 	}
-	setmetatable(__clstype__, { __index = function(t, k) return __stype__ and __stype__[k] end })
-	Ctx = setmetatable({}, {
+	setmetatable(__clstype__, {
 		__tostring = function() return "class " .. __clsname__ end,
-		__index = function(_, k) return __clstype__[k] end,
-		__newindex = function(_, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(__clstype__, k, v) end end,
+		__index = function(_, k)
+			local v = __stype__ and __stype__[k]
+			if v ~= nil then rawset(__clstype__, k, v) end
+			return v
+		end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt__)
 			if ins:init(...) == false then return nil end
@@ -1167,7 +1169,6 @@ do
 		out:append("return v")
 		out:decIndent()
 		out:append("end,")
-		out:append("__newindex = function(t, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(t, k, v) end end,")
 		if fn_deinit then
 			out:append("__gc = function(t) t:deinit() end,")
 		end
@@ -1178,12 +1179,16 @@ do
 		out:decIndent()
 		out:append("}")
 		--
-		out:append("setmetatable(__clstype__, { __index = function(t, k) return __stype__ and __stype__[k] end })")
-		out:append(clsname .. " = setmetatable({}, {")
+		out:append("setmetatable(__clstype__, {")
 		out:incIndent()
 		out:append('__tostring = function() return "class " .. __clsname__ end,')
-		out:append('__index = function(_, k) return __clstype__[k] end,')
-		out:append('__newindex = function(_, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(__clstype__, k, v) end end,')
+		out:append('__index = function(_, k)')
+		out:incIndent()
+		out:append('local v = __stype__ and __stype__[k]')
+		out:append('if v ~= nil then rawset(__clstype__, k, v) end')
+		out:append('return v')
+		out:decIndent()
+		out:append('end,')
 		out:append("__call = function(_, ...)")
 		out:incIndent()
 		out:append("local ins = setmetatable({}, __ins_mt__)")
@@ -1372,13 +1377,14 @@ do
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
-		__newindex = function(t, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(t, k, v) end end,
 	}
-	setmetatable(__clstype__, { __index = function(t, k) return __stype__ and __stype__[k] end })
-	M = setmetatable({}, {
+	setmetatable(__clstype__, {
 		__tostring = function() return "class " .. __clsname__ end,
-		__index = function(_, k) return __clstype__[k] end,
-		__newindex = function(_, k, v) if v ~= nil and __clstype__[k] ~= nil then rawset(__clstype__, k, v) end end,
+		__index = function(_, k)
+			local v = __stype__ and __stype__[k]
+			if v ~= nil then rawset(__clstype__, k, v) end
+			return v
+		end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __ins_mt__)
 			if ins:init(...) == false then return nil end
