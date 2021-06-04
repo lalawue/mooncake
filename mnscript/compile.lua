@@ -771,6 +771,7 @@ do
 		ctx:pushScope("fn", t)
 		if name:find(":", 1, true) then
 			ctx:localInsert("self")
+			attr = ""
 		end
 		out:append(attr .. "function " .. name .. "(" .. Utils.seqReduce(args, "", function(init, i, v)
 			ctx:localInsert(v.value)

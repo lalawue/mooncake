@@ -823,6 +823,7 @@ class M {
         ctx:pushScope("fn", t)
         if name:find(":", 1, true) {
             ctx:localInsert("self")
+            attr = ""
         }
         out:append(attr .. "function " .. name .. "(" .. Utils.seqReduce(args, "", fn(init, i, v) {
             ctx:localInsert(v.value)
