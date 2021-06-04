@@ -86,8 +86,10 @@ describe("test success 2 #function", function()
     local mnstr=[[
         B = { C : {} }        
         fn B.C:echo() {
-        }        
-        return B.C   
+            self.d = 9
+            return self.d
+        }
+        return B.C
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -106,9 +108,8 @@ describe("test success 2 #function", function()
     it("should get function", function()
         assert(type(f) == "function")
         local c = f()
-        stub(c, "echo")
-        c.echo()
-        assert.stub(c.echo).was.called()       
+        local d = c:echo()
+        assert.is_equal(d, 9)
     end)
 end)
 
