@@ -1,5 +1,5 @@
 package = "mnscript"
-version = "0.0.3-1"
+version = "0.0.3-20210604"
 source = {
    url = "git+https://gitee.com/lalawue/mnscript"
 }
