@@ -77,7 +77,7 @@ end)
 
 describe("test success #struct", function()
     local mnstr=[[
-        struct Tbl {
+        export struct Tbl {
             a = Tbl
     
             static fn b() {
