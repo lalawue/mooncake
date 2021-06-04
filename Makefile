@@ -52,7 +52,6 @@ install:
 	rm -rf $(MN_DIR)
 	mkdir -p $(MN_DIR)
 	echo "#!$(INSTALL_LUA_EXEC)\n" > $(MN_BIN)
-	echo "local _mn_path=\"$(INSTALL_LUA_PATH)\"" >> $(MN_BIN)
 	echo "package.cpath = package.cpath .. \";$(INSTALL_LUA_CPATH)/?.so;\"" >> $(MN_BIN)
 	echo "package.path = package.path .. \";$(INSTALL_LUA_PATH)/?.lua;\"" >> $(MN_BIN)
 	cat bin/mnscript | grep -v '#!' >> $(MN_BIN)
