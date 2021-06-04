@@ -48,7 +48,7 @@ describe("test success #function", function()
     end)
 end)
 
-describe("test success #function", function()
+describe("test success 1 #function", function()
     local mnstr=[[
         local tbl = {  }
         tbl.__index = tbl
@@ -79,6 +79,36 @@ describe("test success #function", function()
         assert(type(f) == "function")
         local c = f()
         assert.is_equal(c, "c")     
+    end)
+end)
+
+describe("test success 2 #function", function()
+    local mnstr=[[
+        B = { C : {} }        
+        fn B.C:echo() {
+        }        
+        return B.C   
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+ 
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local c = f()
+        stub(c, "echo")
+        c.echo()
+        assert.stub(c.echo).was.called()       
     end)
 end)
 

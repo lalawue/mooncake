@@ -63,10 +63,12 @@ pBlank = Cmt(S(" \t\r\n"), fn(s, p, c) {
 pBlanks = pBlank ^ 0
 
 pAlphaNum = R("az", "AZ", "__") * R("az", "AZ", "09", "__") ^ 0
-pVarLeft = Cmt(pAlphaNum * (P(".") ^ -1 * pAlphaNum) ^ 0, fNoKWL)
+pVarLDot = Cmt(pAlphaNum * (P(".") ^ -1 * pAlphaNum) ^ 0, fNoKWL)
+pVarRDot = Cmt(pAlphaNum * (P(".") ^ -1 * pAlphaNum) ^ 0, fNoKWR)
 pVarRight = Cmt(pAlphaNum, fNoKWR)
 pVarArg = Cmt(pAlphaNum, fNoKWL)
 pVArgList = Cmt("...", fMarkEtype("varg"))
+pVarColon = Cmt(pAlphaNum * (P(".") * pAlphaNum) ^ 0 * P(":") * pAlphaNum, fNoKWR)
 
 pNumber = Cmt(P("0x") * R("09", "af", "AF") ^ 1 * (S("uU") ^ -1 * S("lL") ^ 2) ^ -1 + R("09") ^ 1 * (S("uU") ^ -1 * S("lL") ^ 2) +
  (R("09") ^ 1 * (P(".") * R("09") ^ 1) ^ -1 + P(".") * R("09") ^ 1) * (S("eE") * P("-") ^ -1 * R("09") ^ 1) ^ -1, fn(s, p, c) {
@@ -294,8 +296,8 @@ gG = {
     vExLeft : pBlanks * Ct(pVarArg * pBlanks * (pComma * pBlanks * pVarArg) ^ 0) * pBlanks,
     --
     vImSMT : pBlanks * Ct(Cg(P("import"), "stype") * pBlanks * (Cg(pStr, "slib") + vExLeft * P("from") * vImLib * Ct(pBLeft * vImRight ^ -1 * pBRight) ^ -1)) * pBlanks,
-    vImLib : pBlanks * (Cg(pStr, "slib") + Cg(pVarLeft, "tlib")) * pBlanks,
-    vImRight : pVarLeft * (pBlanks * pComma * pBlanks * pVarLeft) ^ 0,
+    vImLib : pBlanks * (Cg(pStr, "slib") + Cg(pVarRDot, "tlib")) * pBlanks,
+    vImRight : pVarRDot * (pBlanks * pComma * pBlanks * pVarRDot) ^ 0,
     --
     vAsSMT : Ct(vAsLeft * Cg(pEqual, "stype") * vAsRight),
     vAsLeft : pBlanks * Ct(vEvalLeft * pBlanks * (pComma * pBlanks * vEvalLeft) ^ 0) * pBlanks,
@@ -314,7 +316,7 @@ gG = {
     vFnDefVArg : pBlanks * Cg(pVArgList) * pBlanks,
     vFnDefArgs : Ct((vFnDefArg * pComma) ^ 0 * vFnDefVArg + vFnDefArg * (pComma * vFnDefArg) ^ 0),
     vFnDefBody : pBLeft * Ct(vFnSMT ^ 0) * pBRight,
-    vFnDefName : pBlanks * Ct( Cg(P("local") + P("export"), "attr") ^ -1 * vFnDefKW * Cg(pVarLeft, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ -1 *
+    vFnDefName : pBlanks * Ct( Cg(P("local") + P("export"), "attr") ^ -1 * vFnDefKW * Cg(pVarColon + pVarLDot, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ -1 *
             pPRight * Cg(vFnDefBody, "body")),
     --    
     vFnDefOnly : pBlanks * Ct(Cg(P("fn"), "etype") * pPLeft * Cg(vFnDefArgs, "args") ^ -1 * pPRight * Cg(vFnDefBody, "body")),

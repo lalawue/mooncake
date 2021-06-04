@@ -63,10 +63,12 @@ local pBlank = Cmt(S(" \t\r\n"), function(s, p, c)
 end)
 local pBlanks = pBlank ^ 0
 local pAlphaNum = R("az", "AZ", "__") * R("az", "AZ", "09", "__") ^ 0
-local pVarLeft = Cmt(pAlphaNum * (P(".") ^ -1 * pAlphaNum) ^ 0, fNoKWL)
+local pVarLDot = Cmt(pAlphaNum * (P(".") ^ -1 * pAlphaNum) ^ 0, fNoKWL)
+local pVarRDot = Cmt(pAlphaNum * (P(".") ^ -1 * pAlphaNum) ^ 0, fNoKWR)
 local pVarRight = Cmt(pAlphaNum, fNoKWR)
 local pVarArg = Cmt(pAlphaNum, fNoKWL)
 local pVArgList = Cmt("...", fMarkEtype("varg"))
+local pVarColon = Cmt(pAlphaNum * (P(".") * pAlphaNum) ^ 0 * P(":") * pAlphaNum, fNoKWR)
 local pNumber = Cmt(P("0x") * R("09", "af", "AF") ^ 1 * (S("uU") ^ -1 * S("lL") ^ 2) ^ -1 + R("09") ^ 1 * (S("uU") ^ -1 * S("lL") ^ 2) + (R("09") ^ 1 * (P(".") * R("09") ^ 1) ^ -1 + P(".") * R("09") ^ 1) * (S("eE") * P("-") ^ -1 * R("09") ^ 1) ^ -1, function(s, p, c)
 	return p, { etype = "number", pos = p, value = c }
 end)
@@ -137,10 +139,10 @@ vShebang = Ct(Cg("#!", "stype") * C(P(1 - (P("\r") ^ -1 * P("\n"))) ^ 0)), --
 vClsDef = pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * pBlanks * Cg(P("class"), "stype") * pBlanks * Cg(pVarArg, "name") * pBlanks * (pColon * pBlanks * Cg(pVarArg, "super")) ^ -1 * vClsBody), vClsBody = pBlanks * pBLeft * (vCmSMT + vClsAsSMT + vClsFnDef) ^ 0 * pBRight * pBlanks, vClsAsSMT = pBlanks * Ct(pVarArg * pBlanks * Cg(pEqual, "stype") * pBlanks * vClsExpr) * pBlanks, vClsFnDef = Ct(Cg("static", "attr") ^ -1 * vFnDefKW * Cg(pVarArg, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ 0 * pPRight * Cg(vFnDefBody, "body")), --
 vStructDef = pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * pBlanks * Cg(P("struct"), "stype") * pBlanks * Cg(pVarArg, "name") * vClsBody), --
 vExSMT = pBlanks * Ct(Cg(fName("ex"), "stype") * Cg(P("local") + P("export"), "attr") * vExLeft * (Cg(pEqual, "op") * vAsRight) ^ 0) * pBlanks, vExLeft = pBlanks * Ct(pVarArg * pBlanks * (pComma * pBlanks * pVarArg) ^ 0) * pBlanks, --
-vImSMT = pBlanks * Ct(Cg(P("import"), "stype") * pBlanks * (Cg(pStr, "slib") + vExLeft * P("from") * vImLib * Ct(pBLeft * vImRight ^ -1 * pBRight) ^ -1)) * pBlanks, vImLib = pBlanks * (Cg(pStr, "slib") + Cg(pVarLeft, "tlib")) * pBlanks, vImRight = pVarLeft * (pBlanks * pComma * pBlanks * pVarLeft) ^ 0, --
+vImSMT = pBlanks * Ct(Cg(P("import"), "stype") * pBlanks * (Cg(pStr, "slib") + vExLeft * P("from") * vImLib * Ct(pBLeft * vImRight ^ -1 * pBRight) ^ -1)) * pBlanks, vImLib = pBlanks * (Cg(pStr, "slib") + Cg(pVarRDot, "tlib")) * pBlanks, vImRight = pVarRDot * (pBlanks * pComma * pBlanks * pVarRDot) ^ 0, --
 vAsSMT = Ct(vAsLeft * Cg(pEqual, "stype") * vAsRight), vAsLeft = pBlanks * Ct(vEvalLeft * pBlanks * (pComma * pBlanks * vEvalLeft) ^ 0) * pBlanks, vAsRight = pBlanks * Ct(Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr)) ^ 0) * pBlanks, vAswSMT = pBlanks * Ct(vEvalLeft * pBlanks * Cg(pTwoOp, "stype") * pBlanks * Ct(vExpr)) * pBlanks, --
 vTbDef = Ct(Cg(pBLeft / fTrim, "etype") * (vTbKV * pBlanks * (pComma * pBlanks * vTbKV * pBlanks) ^ 0 * (pComma + vCmSMT) ^ -1) ^ -1 * pBRight), vTbKV = vCmSMT ^ -1 * Ct(vTbNk + vTbVk * vTbVal + vTbBk * vTbVal + vTbVal), vTbNk = pBlanks * pColon * pBlanks * Cg(pVarArg, "nkey"), vTbVk = pBlanks * Cg(pVarArg, "vkey") * pBlanks * pColon, vTbBk = (pSLeft * Cg(vExpr, "bkey") * pSRight + Cg(vExpr, "bkey")) * pColon, vTbVal = pBlanks * Cg(Ct(vExpr), "value"), --
-vFnDefKW = pBlanks * Cg(P("fn"), "stype") * pBlanks, vFnDefArg = pBlanks * Cg(pVarArg) * pBlanks, vFnDefVArg = pBlanks * Cg(pVArgList) * pBlanks, vFnDefArgs = Ct((vFnDefArg * pComma) ^ 0 * vFnDefVArg + vFnDefArg * (pComma * vFnDefArg) ^ 0), vFnDefBody = pBLeft * Ct(vFnSMT ^ 0) * pBRight, vFnDefName = pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * vFnDefKW * Cg(pVarLeft, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ -1 * pPRight * Cg(vFnDefBody, "body")), --    
+vFnDefKW = pBlanks * Cg(P("fn"), "stype") * pBlanks, vFnDefArg = pBlanks * Cg(pVarArg) * pBlanks, vFnDefVArg = pBlanks * Cg(pVArgList) * pBlanks, vFnDefArgs = Ct((vFnDefArg * pComma) ^ 0 * vFnDefVArg + vFnDefArg * (pComma * vFnDefArg) ^ 0), vFnDefBody = pBLeft * Ct(vFnSMT ^ 0) * pBRight, vFnDefName = pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * vFnDefKW * Cg(pVarColon + pVarLDot, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ -1 * pPRight * Cg(vFnDefBody, "body")), --    
 vFnDefOnly = pBlanks * Ct(Cg(P("fn"), "etype") * pPLeft * Cg(vFnDefArgs, "args") ^ -1 * pPRight * Cg(vFnDefBody, "body")), vFnClosure = pBLeft * Ct(Cg(fName("fn"), "etype") * Cg(vFnDefArgs, "args") ^ -1 * pBlanks * P("in") * pBlanks * Cg(Ct(vFnSMT ^ 0), "body")) * pBRight, --
 vFnCall = pBlanks * Ct(Cg(fName("("), "stype") * (pVarArg + pCPLeft * vExpr * pCPRight) * ((vDotExpr + vSquareExpr) ^ 0 * (vColonExpr + vParaExpr)) ^ 1), --
 vIfSMT = pBlanks * Ct(Cg(P("if"), "stype") * pBlanks * Cg(Ct(vExpr), "cond") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body")) * vElseIfSMT ^ 0 * vElseSMT ^ -1 * Cmt(pBRight / fTrim, fMarkStype("ifend")), vElseIfSMT = pBRight * Ct(Cg(P("elseif"), "stype") * pBlanks * Cg(Ct(vExpr), "cond") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body")), vElseSMT = pBRight * Ct(Cg(P("else"), "stype") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body")), --
