@@ -7,7 +7,7 @@
 
 import Utils from "mnscript.utils"
 
-class Out {
+struct Out {
 
     _indent = 0
     _changeLine = false
@@ -120,7 +120,7 @@ local _preserv_keyword = Utils.set({
 
 local _scope_global = { otype : "gl", defers : {}, vars : _preserv_keyword }
 
-class Ctx {
+struct Ctx {
 
     config = false
     ast = false
@@ -343,7 +343,7 @@ local _cls_metafns = Utils.set({"__add",
 local _no_space_op = Utils.set({"(", ")", "#", "~", "-"})
 local _right_space_op = Utils.set({"not"})
 
-class M {
+struct M {
 
     ctx = false
     out = false
