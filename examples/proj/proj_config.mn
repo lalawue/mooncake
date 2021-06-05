@@ -2,8 +2,15 @@
 -- return valid project config
 return {
     {
-        name : "first",
+        name : "proj first",
+        proj_export : "exp_export.mn",
         proj_dir : "examples",
         proj_out : "out"
-    }
+    },
+    {
+        name : "proj second",
+        proj_export : "exp_export.mn",
+        proj_dir : "examples",
+        proj_out : "out"
+    },
 }

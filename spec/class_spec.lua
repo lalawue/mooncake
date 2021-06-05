@@ -5,6 +5,7 @@ describe("test normal #class", function()
     local mnstr=[[
         local class ClsA {
             a = 11
+            f = Self.a + 99
             fn init() {
                 self.b = 0
             }
@@ -62,6 +63,7 @@ describe("test normal #class", function()
         assert.is_equal(ClsA.a, 11)
         assert.is_equal(ClsA.b, 100)
         assert.is_equal(ClsB.b, 1206)
+        assert.is_equal(ClsA.f, 110)
         assert.is_equal(ClsB.runAway(10), 1216)
         local b = ClsB()
         assert.is_equal(b:takeTime(1, 2), 5)

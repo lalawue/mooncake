@@ -117,6 +117,23 @@ class Utils {
         return true
     }
 
+    static fn copy(it) {
+        ot = {}
+        for k, v in pairs(it) {
+            ot[k] = v
+        }
+        return ot
+    }
+
+    static fn suffix(str) {
+        for i = str:len(), 1, -1 {
+            if str:sub(i, i) == '.' {
+                return str:sub(i + 1, str:len())
+            }
+        }
+        return ""
+    }
+
     static fn debug(str) {
         io.write(str .. "\n")
     }

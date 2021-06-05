@@ -6,7 +6,7 @@
 --
 
 import parse from "mnscript.parser" {}
-import compile from "mnscript.compile" {}
+import compile, clearproj from "mnscript.compile" {}
 import split, posLine from "mnscript.utils" {}
 import concat, insert, remove from table {}
 
@@ -157,6 +157,7 @@ return {
     appendloader : mnAppendLoader,
     toAST : toAST,
     toLua : toLua,
+    clearProj : clearproj,
     version : mnVersion,
     loaded : mnLoaded
 }

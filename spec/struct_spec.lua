@@ -5,6 +5,7 @@ describe("test normal #struct", function()
     local mnstr=[[
         local struct ClsA {
             a = 11
+            f = Self.a + 109
             fn init() {
                 self.a = 9
                 self.b = 0
@@ -46,6 +47,7 @@ describe("test normal #struct", function()
         local a = ClsA()
         assert.is_equal(ClsA.a, 11)
         assert.is_equal(ClsA.b, nil)
+        assert.is_equal(ClsA.f, 120)
         assert.is_equal(a.a, 9)
         assert.is_equal(a.b, nil)
         assert.is_equal(a:takeTime(2), 108)

@@ -9,10 +9,10 @@ do
 	local __lib__ = require("mnscript.parser")
 	parse = __lib__.parse
 end
-local compile
+local compile, clearproj
 do
 	local __lib__ = require("mnscript.compile")
-	compile = __lib__.compile
+	compile, clearproj = __lib__.compile, __lib__.clearproj
 end
 local split, posLine
 do
@@ -149,4 +149,4 @@ local function mnLoaded()
 end
 -- append loader
 mnAppendLoader()
-return { loadstring = mnLoadString, loadfile = mnLoadFile, dofile = mnDoFile, removeloader = mnRemoveLoader, appendloader = mnAppendLoader, toAST = toAST, toLua = toLua, version = mnVersion, loaded = mnLoaded }
+return { loadstring = mnLoadString, loadfile = mnLoadFile, dofile = mnDoFile, removeloader = mnRemoveLoader, appendloader = mnAppendLoader, toAST = toAST, toLua = toLua, clearProj = clearproj, version = mnVersion, loaded = mnLoaded }

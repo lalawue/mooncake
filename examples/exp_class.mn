@@ -5,6 +5,8 @@ class ClsA {
     -- declare class var a, also can visited by its instance
     a = 10
 
+    f = Self.a + 31
+
     -- init when ClsA(...)
     fn init(aa) {
         self.aa = aa
@@ -28,7 +30,7 @@ class ClsA {
 
     -- instance metamethod
     fn __add(a, b) {
-        return a.aa + b.aa
+        return a.a + b.a
     }
 
     -- class metamethod
@@ -42,16 +44,15 @@ class ClsB : ClsA {
 
     b = 100
 
-    -- inherit fn init(...)
-
     -- overwrite :add()
     fn add(c) {
-        return self.a + self.b + self.aa + c
+        return self.a + self.b + c
     }
 }
 
 a = ClsA(20)
 b = ClsB(200)
+print("a.f = " .. a.f)
 print("a.aa = " .. a.aa)
 print("a:add(30) = " .. a:add(30))
 print("b:add(30) = " .. b:add(30))

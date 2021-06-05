@@ -71,7 +71,7 @@ struct Out {
     }
 }
 
-local _preserv_keyword = Utils.set({
+local _global_names = Utils.set({
     "_G",
     "_VERSION",
     "_ENV",
@@ -118,7 +118,8 @@ local _preserv_keyword = Utils.set({
     "false",
 })
 
-local _scope_global = { otype : "gl", defers : {}, vars : _preserv_keyword }
+local _scope_global = { otype : "gl", vars : _global_names }
+local _scope_proj = { otype : "pj", vars : {} }
 
 struct Ctx {
 
@@ -140,10 +141,11 @@ struct Ctx {
         self.config = config
         self.ast = ast
         self.content = content
-        -- { otype : "gl|fi|fn|lo|if|do|gu", defers : {}, vars : {}, info : {} }
+        -- { otype : "gl|fi|fn|lo|if|do|gu", vars : {} }
         self.scopes = {
             _scope_global,
-            { otype : "fi", defers : {}, vars : {}, info : nil }
+            _scope_proj,
+            { otype : "fi", vars : {} }
         }
         self.in_defer = false
         self.in_clsvar = false
@@ -154,7 +156,7 @@ struct Ctx {
 
     fn pushScope(ot, exp) {
         t = self.scopes
-        t[#t + 1] = { otype : ot, defers : {}, vars : {}, exp : exp}
+        t[#t + 1] = { otype : ot, vars : {}, exp : exp}
     }
 
     fn popScope() {
@@ -164,8 +166,8 @@ struct Ctx {
 
     fn supportDefer() {
         t = self.scopes
-        if #t > 2 {
-            for i = #t, 1, -1 {
+        if #t > 3 {
+            for i = #t, 3, -1 {
                 if t[i].otype == "fn" {
                     return true
                 }
@@ -176,11 +178,12 @@ struct Ctx {
 
     fn isInLoop() {
         t = self.scopes
-        if #t > 2 {
-            for i = #t, 1, -1 {
-                if t[i].otype == "fn" {
+        if #t > 3 {
+            for i = #t, 3, -1 {
+                v = t[i]
+                if v.otype == "fn" {
                     return false
-                } elseif t[i].otype == "lo" {
+                } elseif v.otype == "lo" {
                     return true
                 }
             }
@@ -190,10 +193,11 @@ struct Ctx {
 
     fn getScopeExpr(otype) {
         t = self.scopes
-        if #t > 2 {
-            for i = #t, 1, -1 {
-                if t[i].otype == otype {
-                    return t[i].exp
+        if #t > 3 {
+            for i = #t, 3, -1 {
+                v = t[i]
+                if v.otype == otype {
+                    return v.exp
                 }
             }
         }
@@ -201,10 +205,10 @@ struct Ctx {
 
     fn pushDefer() {
         t = self.scopes
-        for i = #t, 1, -1 {
-            if t[i].otype == "fn" {
-                d = t[i].defers
-                d[#d + 1] = true
+        for i = #t, 3, -1 {
+            v = t[i]
+            if v.otype == "fn" {
+                v.has_defer = true
                 break
             }
         }
@@ -212,13 +216,11 @@ struct Ctx {
 
     fn hasDefers(){
         t = self.scopes
-        if #t > 2 {
-            for i = #t, 1, -1 {
-                if #t[i].defers > 0 {
-                    return true
-                }
-                if t[i].otype == "fn" {
-                    return false
+        if #t > 3 {
+            for i = #t, 3, -1 {
+                v = t[i]
+                if v.otype == "fn" {
+                    return v.has_defer
                 }
             }
         }
@@ -232,8 +234,8 @@ struct Ctx {
 
     fn getOutInfo(otype) {
         t = self.scopes
-        if #t > 2 {
-            for i = #t, 1, -1 {
+        if #t > 3 {
+            for i = #t, 3, -1 {
                 v = t[i]
                 if v.otype == otype {
                     return v.info                
@@ -244,7 +246,7 @@ struct Ctx {
 
     fn globalInsert(n) {
         t = self.scopes
-        t[1].vars[n] = true
+        t[2].vars[n] = true
     }
 
     fn localInsert(n) {
@@ -1224,6 +1226,8 @@ struct M {
             out:append("__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end")
         }
         --
+        ctx:pushScope("cl")
+        ctx:localInsert("Self")
         cls_fns, ins_fns = {}, {}
         fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns) 
         --
@@ -1283,6 +1287,7 @@ struct M {
         --
         out:decIndent()
         out:append("end")
+        ctx:popScope()
         ctx.in_clsname = false
     }
     
@@ -1307,6 +1312,8 @@ struct M {
         out:append("__strtype__.structname = __strname__")
         out:append("__strtype__.structtype = __strtype__")
         --
+        ctx:pushScope("cl")
+        ctx:localInsert("Self")
         cls_fns, ins_fns = {}, {}
         fn_init, fn_deinit = self:hlVarAndFns(t, "__strtype__", ctx, out, cls_fns, ins_fns)
         --
@@ -1362,6 +1369,7 @@ struct M {
         --
         out:decIndent()
         out:append("end")
+        ctx:popScope()
         ctx.in_clsname = false
     }
 
@@ -1428,7 +1436,6 @@ struct M {
         if fn_ins {
             ctx:localInsert("self")
         }
-        ctx:localInsert("Self")
         out:append(")")
         out:incIndent()
         out:popInline()
@@ -1464,4 +1471,9 @@ fn compile(config, data) {
     return true, table.concat(out._output, "\n")
 }
 
-return { :compile }
+-- clear proj exports
+fn clearproj() {
+    _scope_proj.vars = {}
+}
+
+return { :compile, :clearproj }

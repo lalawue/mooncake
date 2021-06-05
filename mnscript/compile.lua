@@ -88,8 +88,9 @@ do
 		end,
 	})
 end
-local _preserv_keyword = Utils.set({ "_G", "_VERSION", "_ENV", "assert", "bit32", "collectgarbage", "coroutine", "debug", "dofile", "error", "getfenv", "getmetatable", "io", "ipairs", "jit", "load", "loadfile", "loadstring", "math", "module", "next", "os", "package", "pairs", "pcall", "print", "rawequal", "rawget", "rawlen", "rawset", "require", "select", "setfenv", "setmetatable", "string", "table", "tonumber", "tostring", "type", "unpack", "xpcall", "nil", "true", "false" })
-local _scope_global = { otype = "gl", defers = {  }, vars = _preserv_keyword }
+local _global_names = Utils.set({ "_G", "_VERSION", "_ENV", "assert", "bit32", "collectgarbage", "coroutine", "debug", "dofile", "error", "getfenv", "getmetatable", "io", "ipairs", "jit", "load", "loadfile", "loadstring", "math", "module", "next", "os", "package", "pairs", "pcall", "print", "rawequal", "rawget", "rawlen", "rawset", "require", "select", "setfenv", "setmetatable", "string", "table", "tonumber", "tostring", "type", "unpack", "xpcall", "nil", "true", "false" })
+local _scope_global = { otype = "gl", vars = _global_names }
+local _scope_proj = { otype = "pj", vars = {  } }
 local Ctx = {}
 do
 	local __strname__ = "Ctx"
@@ -111,8 +112,8 @@ do
 		self.config = config
 		self.ast = ast
 		self.content = content
-		-- { otype : "gl|fi|fn|lo|if|do|gu", defers : {}, vars : {}, info : {} }
-		self.scopes = { _scope_global, { otype = "fi", defers = {  }, vars = {  }, info = nil } }
+		-- { otype : "gl|fi|fn|lo|if|do|gu", vars : {} }
+		self.scopes = { _scope_global, _scope_proj, { otype = "fi", vars = {  } } }
 		self.in_defer = false
 		self.in_clsvar = false
 		self.in_clsname = false
@@ -121,7 +122,7 @@ do
 	end
 	function __strtype__:pushScope(ot, exp)
 		local t = self.scopes
-		t[#t + 1] = { otype = ot, defers = {  }, vars = {  }, exp = exp }
+		t[#t + 1] = { otype = ot, vars = {  }, exp = exp }
 	end
 	function __strtype__:popScope()
 		local t = self.scopes
@@ -129,8 +130,8 @@ do
 	end
 	function __strtype__:supportDefer()
 		local t = self.scopes
-		if #t > 2 then
-			for i = #t, 1, -1 do
+		if #t > 3 then
+			for i = #t, 3, -1 do
 				if t[i].otype == "fn" then
 					return true
 				end
@@ -140,11 +141,12 @@ do
 	end
 	function __strtype__:isInLoop()
 		local t = self.scopes
-		if #t > 2 then
-			for i = #t, 1, -1 do
-				if t[i].otype == "fn" then
+		if #t > 3 then
+			for i = #t, 3, -1 do
+				local v = t[i]
+				if v.otype == "fn" then
 					return false
-				elseif t[i].otype == "lo" then
+				elseif v.otype == "lo" then
 					return true
 				end
 			end
@@ -153,33 +155,32 @@ do
 	end
 	function __strtype__:getScopeExpr(otype)
 		local t = self.scopes
-		if #t > 2 then
-			for i = #t, 1, -1 do
-				if t[i].otype == otype then
-					return t[i].exp
+		if #t > 3 then
+			for i = #t, 3, -1 do
+				local v = t[i]
+				if v.otype == otype then
+					return v.exp
 				end
 			end
 		end
 	end
 	function __strtype__:pushDefer()
 		local t = self.scopes
-		for i = #t, 1, -1 do
-			if t[i].otype == "fn" then
-				local d = t[i].defers
-				d[#d + 1] = true
+		for i = #t, 3, -1 do
+			local v = t[i]
+			if v.otype == "fn" then
+				v.has_defer = true
 				break
 			end
 		end
 	end
 	function __strtype__:hasDefers()
 		local t = self.scopes
-		if #t > 2 then
-			for i = #t, 1, -1 do
-				if #t[i].defers > 0 then
-					return true
-				end
-				if t[i].otype == "fn" then
-					return false
+		if #t > 3 then
+			for i = #t, 3, -1 do
+				local v = t[i]
+				if v.otype == "fn" then
+					return v.has_defer
 				end
 			end
 		end
@@ -191,8 +192,8 @@ do
 	end
 	function __strtype__:getOutInfo(otype)
 		local t = self.scopes
-		if #t > 2 then
-			for i = #t, 1, -1 do
+		if #t > 3 then
+			for i = #t, 3, -1 do
 				local v = t[i]
 				if v.otype == otype then
 					return v.info
@@ -202,7 +203,7 @@ do
 	end
 	function __strtype__:globalInsert(n)
 		local t = self.scopes
-		t[1].vars[n] = true
+		t[2].vars[n] = true
 	end
 	function __strtype__:localInsert(n)
 		local t = self.scopes
@@ -1140,6 +1141,8 @@ do
 			out:append("__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end")
 		end
 		--
+		ctx:pushScope("cl")
+		ctx:localInsert("Self")
 		local cls_fns, ins_fns = {  }, {  }
 		local fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns)
 		--
@@ -1199,6 +1202,7 @@ do
 		--
 		out:decIndent()
 		out:append("end")
+		ctx:popScope()
 		ctx.in_clsname = false
 	end
 	function __strtype__:trStStruct(t)
@@ -1222,6 +1226,8 @@ do
 		out:append("__strtype__.structname = __strname__")
 		out:append("__strtype__.structtype = __strtype__")
 		--
+		ctx:pushScope("cl")
+		ctx:localInsert("Self")
 		local cls_fns, ins_fns = {  }, {  }
 		local fn_init, fn_deinit = self:hlVarAndFns(t, "__strtype__", ctx, out, cls_fns, ins_fns)
 		--
@@ -1277,6 +1283,7 @@ do
 		--
 		out:decIndent()
 		out:append("end")
+		ctx:popScope()
 		ctx.in_clsname = false
 	end
 	function __strtype__:hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns)
@@ -1341,7 +1348,6 @@ do
 		if fn_ins then
 			ctx:localInsert("self")
 		end
-		ctx:localInsert("Self")
 		out:append(")")
 		out:incIndent()
 		out:popInline()
@@ -1391,4 +1397,8 @@ local function compile(config, data)
 	end
 	return true, table.concat(out._output, "\n")
 end
-return { compile = compile }
+-- clear proj exports
+local function clearproj()
+	_scope_proj.vars = {  }
+end
+return { compile = compile, clearproj = clearproj }

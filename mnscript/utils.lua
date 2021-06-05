@@ -111,6 +111,21 @@ do
 		f:close()
 		return true
 	end
+	function __clstype__.copy(it)
+		local ot = {  }
+		for k, v in pairs(it) do
+			ot[k] = v
+		end
+		return ot
+	end
+	function __clstype__.suffix(str)
+		for i = str:len(), 1, -1 do
+			if str:sub(i, i) == '.' then
+				return str:sub(i + 1, str:len())
+			end
+		end
+		return ""
+	end
 	function __clstype__.debug(str)
 		io.write(str .. "\n")
 	end
