@@ -1,7 +1,7 @@
 #!/usr/bin/env lua
 
-local Utils = require("mnscript.utils")
-local Core = require("mnscript.core")
+local Utils = require("moocscript.utils")
+local Core = require("moocscript.core")
 
 local Cmd = {}
 
@@ -50,10 +50,10 @@ function Cmd.option(...)
         return
     end
     config.ftype = Utils.suffix(config.fname)
-    if config.ftype == "mn" or config.ftype == "lua" then
+    if config.ftype == "mooc" or config.ftype == "lua" then
         return config
     end
-    Utils.debug("FILE only support '.lua' or '.mn'")
+    Utils.debug("FILE only support '.lua' or '.mooc'")
 end
 
 function Cmd.toCode(config)
@@ -136,7 +136,7 @@ function Cmd.project(config)
                     if not toLuaDir(config, inpath, outpath) then
                         return false
                     end
-                elseif flen > 3 and fname:sub(flen - 2, flen) == ".mn" then
+                elseif flen > 3 and fname:sub(flen - 2, flen) == ".mooc" then
                     tmp_config.fname = inpath
                     local code = Cmd.toCode(tmp_config)
                     if not code then

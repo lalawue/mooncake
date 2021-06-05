@@ -1,4 +1,4 @@
-local core = require("mnscript.core")
+local core = require("moocscript.core")
 
 describe("test success #return", function()
     local mnstr=[[

@@ -1,15 +1,15 @@
-local parser = require("mnscript.parser")
-local compile = require("mnscript.compile")
-local utils = require("mnscript.utils")
+local parser = require("moocscript.parser")
+local compile = require("moocscript.compile")
+local utils = require("moocscript.utils")
 
 describe("test success #import", function()
     local mnstr=[[
-        import "mnscript.utils"
-        import utils from "mnscript.utils"
+        import "moocscript.utils"
+        import utils from "moocscript.utils"
         import ut from utils
         import split, trim from ut {}
         fn call() {
-            import s from "mnscript.utils" { split }
+            import s from "moocscript.utils" { split }
             return { s, trim, utils }
         }
         return call()
@@ -39,7 +39,7 @@ end)
 
 describe("test failed #import", function()
     local mnstr=[[
-        import from "mnscript.utils"
+        import from "moocscript.utils"
     ]]
 
     local ret, ast = parser.parse(mnstr)

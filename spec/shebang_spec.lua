@@ -1,11 +1,11 @@
-local parser = require("mnscript.parser")
-local compile = require("mnscript.compile")
+local parser = require("moocscript.parser")
+local compile = require("moocscript.compile")
 
 describe("test success #shebang", function()
-    local mnstr=[[#!/usr/bin/env lua ./core/mn_loader.lua
+    local mnstr=[[#!/usr/bin/env lua ./moocscript/core.lua
 
         fn echo() {
-            return "hello, mnscript!"
+            return "hello, MoonCake !"
         }
         return echo()
     ]]
@@ -32,6 +32,6 @@ describe("test success #shebang", function()
     it("should get function", function()
         assert(type(f) == "function")
         local a = f()
-        assert.is_equal(a, "hello, mnscript!")
+        assert.is_equal(a, "hello, MoonCake !")
     end)
 end)

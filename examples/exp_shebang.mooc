@@ -1,6 +1,6 @@
-#!/usr/bin/env mnscript
+#!/usr/bin/env moocscript
 
 fn echo() {
-    print("hello, mnscript!")
+    print("hello, MoonCake !")
 }
 echo()

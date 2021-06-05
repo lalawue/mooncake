@@ -5,14 +5,14 @@
 -- under the terms of the MIT license. See LICENSE for details.
 --
 
-import parse from "mnscript.parser" {}
-import compile, clearproj from "mnscript.compile" {}
-import split, posLine from "mnscript.utils" {}
+import parse from "moocscript.parser" {}
+import compile, clearproj from "moocscript.compile" {}
+import split, posLine from "moocscript.utils" {}
 import concat, insert, remove from table {}
 
 unpack = unpack or table.unpack
 
--- mn source to AST
+-- source to AST
 fn toAST(config, text) {
     t = type(text)
     if t ~= "string" {
@@ -42,13 +42,13 @@ dir_spliter = package.config and package.config[1] or '/'
 all_option = _VERSION == "Lua 5.1" and "*a" or "a"
 tmp_config = {}
 
--- register ?.mn loader
-fn mnLoader(name) {
+-- register loader
+fn mcLoader(name) {
     name_path = name:gsub("%.", dir_spliter)
     file, file_path = nil, nil
     for path in package.path:gmatch("[^;]+") {
         len = path:len()
-        path = path:sub(1, len - 4) .. ".mn"
+        path = path:sub(1, len - 4) .. ".mooc"
         file_path = path:gsub("?", name_path)
         file = io.open(file_path)
         if file {
@@ -60,7 +60,7 @@ fn mnLoader(name) {
         text = file:read(all_option)
         file:close()
     } else {
-        return nil, "Could not find mn file"
+        return nil, "Could not find .mooc file"
     }
     tmp_config.fname = file_path
     res, emsg = toAST(tmp_config, text)
@@ -75,7 +75,7 @@ fn mnLoader(name) {
     return f
 }
 
-fn mnLoadString(text, cname, mode, env) {
+fn mcLoadString(text, cname, mode, env) {
     tmp_config.fname = cname
     res, emsg = toAST(tmp_config, text)
     if not res {
@@ -89,75 +89,75 @@ fn mnLoadString(text, cname, mode, env) {
     return f(res, cname, unpack({ mode : mode, env : env }))
 }
 
-fn mnLoadFile(fname, ...) {
+fn mcLoadFile(fname, ...) {
     f, err = io.open(fname)
     if not f {
       return nil, err
     }
     local text = assert(f:read(all_option))
     f:close()
-    return mnLoadString(text, fname, ...)
+    return mcLoadString(text, fname, ...)
 }
 
-fn mnDoFile(...) {
-    f = assert(mnLoadFile(...))
+fn mcDoFile(...) {
+    f = assert(mcLoadFile(...))
     return f()
 }
 
-local _mn_loaded = false
+local _mc_loaded = false
 
-fn mnRemoveLoader() {
-    if not _mn_loaded {
+fn mcRemoveLoader() {
+    if not _mc_loaded {
         return
     }
     loaders = package.loaders or package.searchers
     for i, loader in ipairs(loaders) {
-        if loader == mnLoader {
+        if loader == mcLoader {
             remove(loaders, i)
-            _mn_loaded = false
+            _mc_loaded = false
             return true
         }
     }
     return false    
 }
 
-fn mnAppendLoader() {
-    if _mn_loaded {
+fn mcAppendLoader() {
+    if _mc_loaded {
         return
     }
     loaders = package.loaders or package.searchers
     has_loader = false
     for i=1, #loaders {
-        if loaders[i] == mnLoader {
+        if loaders[i] == mcLoader {
             has_loader = true
         }
     }
     if not has_loader {
-        _mn_loaded = true
-        insert(loaders, mnLoader)
+        _mc_loaded = true
+        insert(loaders, mcLoader)
     }
 }
 
-fn mnVersion() {
-    return "mnscript v0.3.20210605, " .. _VERSION
+fn mcVersion() {
+    return "moocscript v0.3.20210605, " .. _VERSION
 }
 
-fn mnLoaded() {
-    return _mn_loaded
+fn mcLoaded() {
+    return _mc_loaded
 }
 
 -- append loader
-mnAppendLoader()
+mcAppendLoader()
 
 return {
-    loadstring : mnLoadString,
-    loadfile : mnLoadFile,
-    dofile : mnDoFile,
-    removeloader : mnRemoveLoader,
-    appendloader : mnAppendLoader,
+    loadstring : mcLoadString,
+    loadfile : mcLoadFile,
+    dofile : mcDoFile,
+    removeloader : mcRemoveLoader,
+    appendloader : mcAppendLoader,
     toAST : toAST,
     toLua : toLua,
     clearProj : clearproj,
-    version : mnVersion,
-    loaded : mnLoaded
+    version : mcVersion,
+    loaded : mcLoaded
 }

@@ -16,7 +16,7 @@ do
 end
 local fSet, fSplit, fTrim
 do
-	local __lib__ = require("mnscript.utils")
+	local __lib__ = require("moocscript.utils")
 	fSet, fSplit, fTrim = __lib__.set, __lib__.split, __lib__.trim
 end
 fSetmaxstack(10240)

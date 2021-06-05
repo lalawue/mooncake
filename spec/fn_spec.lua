@@ -1,5 +1,5 @@
-local parser = require("mnscript.parser")
-local compile = require("mnscript.compile")
+local parser = require("moocscript.parser")
+local compile = require("moocscript.compile")
 
 describe("test success #function", function()
     local mnstr=[[

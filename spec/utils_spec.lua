@@ -1,4 +1,4 @@
-local parser = require("mnscript.parser")
+local parser = require("moocscript.parser")
 
 
 describe("test success #utils", function()
@@ -28,7 +28,7 @@ describe("test success #utils", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local utils = require("mnscript.utils")
+    local utils = require("moocscript.utils")
     stub(utils, "debug")
 
     it("should get compiled lua", function()

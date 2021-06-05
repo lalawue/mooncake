@@ -7,26 +7,28 @@
 .PHONY : install
 .PHONY : uninstall
 
+NAME=moocscript
+SUFX=mooc
 OLIB=export LUA_PATH="./out/?.lua;"
-ODIR=out/mnscript
-CS=./bin/mnscript -s
+ODIR=out/$(NAME)
+CS=./bin/$(NAME) -s
 
 #
 # edit path before install
 
-# bin/mnscript
+# bin/$(NAME)
 INSTALL_BIN_PATH=/usr/local/bin
 # Lua/LuaJIT interpreter
 INSTALL_LUA_EXEC=/usr/local/bin/lua
-# for store mnscript core *.lua
-INSTALL_LUA_PATH=/usr/local/opt/mnscript
+# for store $(NAME) core *.lua
+INSTALL_LUA_PATH=/usr/local/opt/$(NAME)
 # lpeg.so and lfs.so location
 INSTALL_LUA_CPATH=/usr/local/lib/lua/5.1
 
 all:
 	@echo "Usage:"
-	@echo "\t $ make test \t# mnscript busted -c"
-	@echo "\t $ make out  \t# self hosted mnscript busted -c"
+	@echo "\t $ make test \t# $(NAME) busted -c"
+	@echo "\t $ make out  \t# self hosted $(NAME) busted -c"
 	@echo "\t $ make install \t# please edit Makefile first"
 	@echo "\t $ make uninstall"
 
@@ -39,14 +41,14 @@ out:
 	rm -f *.out
 	rm -rf out/
 	mkdir -p $(ODIR)
-	$(CS) mnscript/compile.mn > $(ODIR)/compile.lua
-	$(CS) mnscript/core.mn > $(ODIR)/core.lua
-	$(CS) mnscript/parser.mn > $(ODIR)/parser.lua
-	$(CS) mnscript/utils.mn > $(ODIR)/utils.lua
+	$(CS) $(NAME)/compile.$(SUFX) > $(ODIR)/compile.lua
+	$(CS) $(NAME)/core.$(SUFX) > $(ODIR)/core.lua
+	$(CS) $(NAME)/parser.$(SUFX) > $(ODIR)/parser.lua
+	$(CS) $(NAME)/utils.$(SUFX) > $(ODIR)/utils.lua
 	$(OLIB) && busted -c
 
-MN_DIR=$(INSTALL_LUA_PATH)/mnscript/
-MN_BIN=$(INSTALL_BIN_PATH)/mnscript
+MN_DIR=$(INSTALL_LUA_PATH)/$(NAME)/
+MN_BIN=$(INSTALL_BIN_PATH)/$(NAME)
 
 install:
 	rm -rf $(MN_DIR)
@@ -54,8 +56,8 @@ install:
 	echo "#!$(INSTALL_LUA_EXEC)\n" > $(MN_BIN)
 	echo "package.cpath = package.cpath .. \";$(INSTALL_LUA_CPATH)/?.so;\"" >> $(MN_BIN)
 	echo "package.path = package.path .. \";$(INSTALL_LUA_PATH)/?.lua;\"" >> $(MN_BIN)
-	cat bin/mnscript | grep -v '#!' >> $(MN_BIN)
-	cp -a mnscript/*.lua $(MN_DIR)
+	cat bin/$(NAME) | grep -v '#!' >> $(MN_BIN)
+	cp -a $(NAME)/*.lua $(MN_DIR)
 	chmod +x $(MN_BIN)
 
 uninstall:

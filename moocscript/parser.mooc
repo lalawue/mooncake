@@ -7,7 +7,7 @@
 
 import P, R, S, V, C, Cb, Cf, Cg, Cp, Ct, Cmt from "lpeg" {}
 import fType, fSetmaxstack from "lpeg" { type, setmaxstack }
-import fSet, fSplit, fTrim from "mnscript.utils" { set, split, trim }
+import fSet, fSplit, fTrim from "moocscript.utils" { set, split, trim }
 
 fSetmaxstack(10240)
 
