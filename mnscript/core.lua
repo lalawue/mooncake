@@ -142,7 +142,7 @@ local function mnAppendLoader()
 	end
 end
 local function mnVersion()
-	return "mnscript v0.3.20210604, " .. _VERSION
+	return "mnscript v0.3.20210605, " .. _VERSION
 end
 local function mnLoaded()
 	return _mn_loaded

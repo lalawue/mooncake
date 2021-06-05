@@ -139,7 +139,7 @@ fn mnAppendLoader() {
 }
 
 fn mnVersion() {
-    return "mnscript v0.3.20210604, " .. _VERSION
+    return "mnscript v0.3.20210605, " .. _VERSION
 }
 
 fn mnLoaded() {
