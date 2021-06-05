@@ -1,7 +1,18 @@
 
-for i = 1, 10 {
-    if i < 9 {
+math.randomseed(os.time())
+value = math.random(1, 20)
+
+for i=1, 20 {
+    if i < value {
         continue
     }
-    print(i)
+    for j=20, 1, -1 {
+        if j > value {
+            continue
+        }
+        do {
+            print(i + j + value)
+            return
+        }
+    }
 }

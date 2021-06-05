@@ -62,15 +62,17 @@ end)
 describe("test success #continue", function()
     local mnstr=[[
         fn testContinue(a) {
-            for i=a, 20, 1 {
-                if i < 10 {
+            for i=1, 20 {
+                if i < a {
                     continue
                 }
-                elseif i > 15 {
-                    continue
-                }
-                else {
-                    return i
+                for j=20, 1, -1 {
+                    if j > a {
+                        continue
+                    }
+                    do {
+                        return i + j + a
+                    }
                 }
             };
             return 0
@@ -94,12 +96,12 @@ describe("test success #continue", function()
     it("should get function", function()
         assert(type(f) == "function")
         local fn = f()
-        assert.is_equal(fn(8), 10)
-        assert.is_equal(fn(16), 0)
+        assert.is_equal(fn(8), 24)
+        assert.is_equal(fn(16), 48)
     end)
 end)
 
-describe("test failed #continue", function()
+describe("test failed 1 #continue", function()
     local mnstr=[[
         fn failedContinue(a) {
             if a < 2 {
@@ -118,5 +120,55 @@ describe("test failed #continue", function()
         local ret, content = compile.compile({}, ast)
         assert.is_false(ret)
         assert.is_equal(content, "_:3:                 continue <not in loop 'continue'>")
+   end)
+end)
+
+describe("test failed return #continue", function()
+    local mnstr=[[
+        fn failedContinue(a) {
+            for i=1, 2 {
+                if a < 2 {
+                    continue
+                }
+                return a
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+         assert.is_true(type(ast) == "table")
+    end)
+
+    it("has error", function()
+        local ret, content = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(content, "_:6:                 return a <try do { return } for continue will insert label after 'return'>")
+   end)
+end)
+
+describe("test failed break #continue", function()
+    local mnstr=[[
+        fn failedContinue(a) {
+            for i=1, 2 {
+                if a < 2 {
+                    continue
+                }
+                break
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+         assert.is_true(type(ast) == "table")
+    end)
+
+    it("has error", function()
+        local ret, content = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(content, "_:6:                 break <try do { break } for continue will insert label after 'break'>")
    end)
 end)

@@ -141,11 +141,11 @@ struct Ctx {
         self.config = config
         self.ast = ast
         self.content = content
-        -- { otype : "gl|fi|fn|lo|if|do|gu", vars : {} }
+        -- { otype : "gl|pj|fi|cl|fn|lo|if|do|gu", vars : {} }
         self.scopes = {
             _scope_global,
             _scope_proj,
-            { otype : "fi", vars : {} }
+            { otype : "fi", vars : {}, loidx : 0 }
         }
         self.in_defer = false
         self.in_clsvar = false
@@ -156,7 +156,12 @@ struct Ctx {
 
     fn pushScope(ot, exp) {
         t = self.scopes
-        t[#t + 1] = { otype : ot, vars : {}, exp : exp}
+        scope = { otype : ot, vars : {}, exp : exp }
+        t[#t + 1] = scope
+        if ot == "lo" {
+            t[3].loidx += 1
+            scope.loidx =  t[3].loidx
+        }
     }
 
     fn popScope() {
@@ -164,13 +169,21 @@ struct Ctx {
         t[#t] = nil
     }
 
+    fn getScope(otype) {
+        t = self.scopes
+        for i = #t, 1, -1 {
+            v = t[i]
+            if v.otype == otype {
+                return v
+            }
+        }
+    }
+
     fn supportDefer() {
         t = self.scopes
-        if #t > 3 {
-            for i = #t, 3, -1 {
-                if t[i].otype == "fn" {
-                    return true
-                }
+        for i = #t, 3, -1 {
+            if t[i].otype == "fn" {
+                return true
             }
         }
         return false
@@ -178,29 +191,15 @@ struct Ctx {
 
     fn isInLoop() {
         t = self.scopes
-        if #t > 3 {
-            for i = #t, 3, -1 {
-                v = t[i]
-                if v.otype == "fn" {
-                    return false
-                } elseif v.otype == "lo" {
-                    return true
-                }
+        for i = #t, 3, -1 {
+            otype = t[i].otype
+            if otype == "fn" {
+                return false
+            } elseif otype == "lo" {
+                return true
             }
         }
         return false
-    }
-
-    fn getScopeExpr(otype) {
-        t = self.scopes
-        if #t > 3 {
-            for i = #t, 3, -1 {
-                v = t[i]
-                if v.otype == otype {
-                    return v.exp
-                }
-            }
-        }
     }
 
     fn pushDefer() {
@@ -216,12 +215,10 @@ struct Ctx {
 
     fn hasDefers(){
         t = self.scopes
-        if #t > 3 {
-            for i = #t, 3, -1 {
-                v = t[i]
-                if v.otype == "fn" {
-                    return v.has_defer
-                }
+        for i = #t, 3, -1 {
+            v = t[i]
+            if v.otype == "fn" {
+                return v.has_defer
             }
         }
         return false
@@ -234,12 +231,10 @@ struct Ctx {
 
     fn getOutInfo(otype) {
         t = self.scopes
-        if #t > 3 {
-            for i = #t, 3, -1 {
-                v = t[i]
-                if v.otype == otype {
-                    return v.info                
-                }
+        for i = #t, 3, -1 {
+            v = t[i]
+            if v.otype == otype {
+                return v.info                
             }
         }
     }
@@ -1098,10 +1093,17 @@ struct M {
             ctx:errorPos("not in loop", t.stype, t.pos - 1)
             return
         }
-        out:append("goto __continue__")
-        le = ctx:getScopeExpr("lo").body
-        if le and (#le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue") {
-            le[#le + 1] = { stype : "raw", sub : "continue", "::__continue__::"}
+        scope = ctx:getScope("lo")
+        if scope and scope.exp and scope.exp.body {
+            label = "__continue" .. tostring(scope.loidx) .. "__"
+            out:append("goto " .. label)
+            le = scope.exp.body
+            v = le[#le]
+            if v.stype == "return" or v.stype == "break" {
+                ctx:errorPos("try do { " .. v.stype .. " } for continue will insert label after", v.stype, v.pos - 1)
+            } elseif #le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue" {
+                le[#le + 1] = { stype : "raw", sub : "continue", "::" .. label .. "::" }
+            }
         }
     }
 

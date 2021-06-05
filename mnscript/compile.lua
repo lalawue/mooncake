@@ -112,8 +112,8 @@ do
 		self.config = config
 		self.ast = ast
 		self.content = content
-		-- { otype : "gl|fi|fn|lo|if|do|gu", vars : {} }
-		self.scopes = { _scope_global, _scope_proj, { otype = "fi", vars = {  } } }
+		-- { otype : "gl|pj|fi|cl|fn|lo|if|do|gu", vars : {} }
+		self.scopes = { _scope_global, _scope_proj, { otype = "fi", vars = {  }, loidx = 0 } }
 		self.in_defer = false
 		self.in_clsvar = false
 		self.in_clsname = false
@@ -122,47 +122,46 @@ do
 	end
 	function __strtype__:pushScope(ot, exp)
 		local t = self.scopes
-		t[#t + 1] = { otype = ot, vars = {  }, exp = exp }
+		local scope = { otype = ot, vars = {  }, exp = exp }
+		t[#t + 1] = scope
+		if ot == "lo" then
+			t[3].loidx = t[3].loidx + (1)
+			scope.loidx = t[3].loidx
+		end
 	end
 	function __strtype__:popScope()
 		local t = self.scopes
 		t[#t] = nil
 	end
+	function __strtype__:getScope(otype)
+		local t = self.scopes
+		for i = #t, 1, -1 do
+			local v = t[i]
+			if v.otype == otype then
+				return v
+			end
+		end
+	end
 	function __strtype__:supportDefer()
 		local t = self.scopes
-		if #t > 3 then
-			for i = #t, 3, -1 do
-				if t[i].otype == "fn" then
-					return true
-				end
+		for i = #t, 3, -1 do
+			if t[i].otype == "fn" then
+				return true
 			end
 		end
 		return false
 	end
 	function __strtype__:isInLoop()
 		local t = self.scopes
-		if #t > 3 then
-			for i = #t, 3, -1 do
-				local v = t[i]
-				if v.otype == "fn" then
-					return false
-				elseif v.otype == "lo" then
-					return true
-				end
+		for i = #t, 3, -1 do
+			local otype = t[i].otype
+			if otype == "fn" then
+				return false
+			elseif otype == "lo" then
+				return true
 			end
 		end
 		return false
-	end
-	function __strtype__:getScopeExpr(otype)
-		local t = self.scopes
-		if #t > 3 then
-			for i = #t, 3, -1 do
-				local v = t[i]
-				if v.otype == otype then
-					return v.exp
-				end
-			end
-		end
 	end
 	function __strtype__:pushDefer()
 		local t = self.scopes
@@ -176,12 +175,10 @@ do
 	end
 	function __strtype__:hasDefers()
 		local t = self.scopes
-		if #t > 3 then
-			for i = #t, 3, -1 do
-				local v = t[i]
-				if v.otype == "fn" then
-					return v.has_defer
-				end
+		for i = #t, 3, -1 do
+			local v = t[i]
+			if v.otype == "fn" then
+				return v.has_defer
 			end
 		end
 		return false
@@ -192,12 +189,10 @@ do
 	end
 	function __strtype__:getOutInfo(otype)
 		local t = self.scopes
-		if #t > 3 then
-			for i = #t, 3, -1 do
-				local v = t[i]
-				if v.otype == otype then
-					return v.info
-				end
+		for i = #t, 3, -1 do
+			local v = t[i]
+			if v.otype == otype then
+				return v.info
 			end
 		end
 	end
@@ -1022,10 +1017,17 @@ do
 			ctx:errorPos("not in loop", t.stype, t.pos - 1)
 			return 
 		end
-		out:append("goto __continue__")
-		local le = ctx:getScopeExpr("lo").body
-		if le and (#le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue") then
-			le[#le + 1] = { stype = "raw", sub = "continue", "::__continue__::" }
+		local scope = ctx:getScope("lo")
+		if scope and scope.exp and scope.exp.body then
+			local label = "__continue" .. tostring(scope.loidx) .. "__"
+			out:append("goto " .. label)
+			local le = scope.exp.body
+			local v = le[#le]
+			if v.stype == "return" or v.stype == "break" then
+				ctx:errorPos("try do { " .. v.stype .. " } for continue will insert label after", v.stype, v.pos - 1)
+			elseif #le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue" then
+				le[#le + 1] = { stype = "raw", sub = "continue", "::" .. label .. "::" }
+			end
 		end
 	end
 	function __strtype__:trStGoto(t)
