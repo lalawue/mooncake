@@ -13,8 +13,8 @@ fSetmaxstack(10240)
 
 -- remove keyword pattern
 kwTableR = fSet({ "and", "break", "case", "class", "continue", "default", "defer", "do", "else", "elseif", "end",
-"export", "fn", "for", "from", "function", "goto", "guard", "if", "import", "in", "local", "not", "or", "repeat",
-"return", "static", "switch", "then", "until", "while", "...", ".."})
+"export", "extension", "fn", "for", "from", "function", "goto", "guard", "if", "import", "in", "local", "not", "or",
+"repeat", "return", "static", "switch", "then", "until", "while", "...", ".."})
 kwTableL = fSet({"false", "nil", "true"})
 
 fn fNoKWL(s, p, c) {
@@ -159,6 +159,7 @@ local vFile,
     vClsAsSMT,
     vClsFnDef,
     vStructDef,
+    vExtension,
     vTbDef,
     vTbKV,
     vTbNk,
@@ -221,6 +222,7 @@ local vFile,
     V("vClsAsSMT"),
     V("vClsFnDef"),
     V("vStructDef"),
+    V("vExtension"),
     V("vTbDef"),
     V("vTbKV"),
     V("vTbNk"),
@@ -279,8 +281,8 @@ local vFile,
 gG = {
     vFile,
     vFile : vShebang ^ -1 * vFnSMT ^ 0,
-    vFnSMT : (vBrkSMT + vCntSMT + vCmSMT + vClsDef + vStructDef + vFnDefName + vIfSMT + vSwSMT + vForSMT + vRptSMT + vWhileSMT + vRetSMT + vGoSMT + vAsSMT +
-             vFnCall + vAswSMT + vExSMT + vImSMT + vDeferSMT + vBlkSMT + vGuardSMT) * Cmt(pSemi * pBlanks / fTrim, fMarkStype(";")) ^ -1,
+    vFnSMT : (vBrkSMT + vCntSMT + vCmSMT + vClsDef + vStructDef + vExtension + vFnDefName + vIfSMT + vSwSMT + vForSMT + vRptSMT + vWhileSMT + vRetSMT +
+             vGoSMT + vAsSMT + vFnCall + vAswSMT + vExSMT + vImSMT + vDeferSMT + vBlkSMT + vGuardSMT) * Cmt(pSemi * pBlanks / fTrim, fMarkStype(";")) ^ -1,
     --
     vShebang : Ct(Cg("#!", "stype") * C(P(1 - (P("\r") ^ -1 * P("\n"))) ^ 0)),
     --
@@ -291,6 +293,7 @@ gG = {
     vClsFnDef : Ct( Cg("static", "attr") ^ -1 * vFnDefKW * Cg(pVarArg, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ 0 * pPRight * Cg(vFnDefBody, "body")),
     --
     vStructDef : pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * pBlanks * Cg(P("struct"), "stype") * pBlanks * Cg(pVarArg, "name") * vClsBody),
+    vExtension : pBlanks * Ct(Cg(P("extension"), "stype") * pBlanks * Cg(pVarArg, "name") * pBlanks * (pColon * pBlanks * Cg(pVarArg, "extend")) ^ -1 * vClsBody),
     --
     vExSMT : pBlanks * Ct(Cg(fName("ex"), "stype") * Cg(P("local") + P("export"), "attr") * vExLeft * (Cg(pEqual, "op") * vAsRight) ^ 0) * pBlanks,
     vExLeft : pBlanks * Ct(pVarArg * pBlanks * (pComma * pBlanks * pVarArg) ^ 0) * pBlanks,

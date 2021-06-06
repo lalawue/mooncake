@@ -1,0 +1,33 @@
+
+class ClsA {
+    ret = 0
+    fn add(a) {
+        print(" + " .. tostring(a))
+        self.ret += a
+        return self
+    }
+    fn result() {        
+        print(" = " .. tostring(self.ret))
+    }
+}
+
+struct StructB {
+    ret = 0
+    fn sub(a) {
+        print(" - " .. tostring(a))
+        self.ret -= a
+        return self
+    }
+}
+
+extension ClsA: StructB {
+    fn muti(a) {
+        print(" x " .. tostring(a))
+        self.ret *= a
+        return self
+    }
+}
+
+ins = ClsA()
+print(" : " .. tostring(ins.ret))
+ins:add(10):sub(5):muti(3):result()

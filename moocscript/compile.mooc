@@ -447,6 +447,8 @@ struct M {
                 self:trStClass(t)
             case "struct":
                 self:trStStruct(t)
+            case "extension":
+                self:trStExtension(t)
             case "ex":
                 self:trStExport(t)
             case "return":
@@ -1207,7 +1209,7 @@ struct M {
             ctx:localInsert(clsname)
         }
         if supertype {
-            ctx:checkName(t.super)
+            ctx:checkName(t.super, true)
         }
         out:append(attr .. clsname .. " = {}")
         out:append("do")
@@ -1220,7 +1222,8 @@ struct M {
             out:append('assert(type(__stype__) == "table" and type(__stype__.classtype) == "table")')
             out:append('for k, v in pairs(__stype__) do __clstype__[k] = v end')
         }
-        out:append("__clstype__.classname = __clsname__")
+        out:append("__clstype__.typename = __clsname__")
+        out:append("__clstype__.typekind = 'class'")
         out:append("__clstype__.classtype = __clstype__")
         out:append("__clstype__.supertype = __stype__")
         if not supertype {
@@ -1294,7 +1297,7 @@ struct M {
     }
     
     fn trStStruct(t) {
-        assert(t.stype == "struct", "Invalid stype class")
+        assert(t.stype == "struct", "Invalid stype struct")
         ctx = self.ctx
         out = self.out
         attr = (t.attr == "export") and "" or "local "
@@ -1309,27 +1312,28 @@ struct M {
         out:append("do")
         out:changeLine()
         out:incIndent()
-        out:append('local __strname__ = "' .. strname .. '"')
-        out:append("local __strtype__ = " .. strname)
-        out:append("__strtype__.structname = __strname__")
-        out:append("__strtype__.structtype = __strtype__")
+        out:append('local __clsname__ = "' .. strname .. '"')
+        out:append("local __clstype__ = " .. strname)
+        out:append("__clstype__.typename = __clsname__")
+        out:append("__clstype__.typekind = 'struct'")
+        out:append("__clstype__.classtype = __clstype__")
         --
         ctx:pushScope("cl")
         ctx:localInsert("Self")
         cls_fns, ins_fns = {}, {}
-        fn_init, fn_deinit = self:hlVarAndFns(t, "__strtype__", ctx, out, cls_fns, ins_fns)
+        fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns)
         --
         out:append("local __ins_mt__ = {")
         out:incIndent()
-        out:append('__tostring = function() return "one of " .. __strname__ end,')
+        out:append('__tostring = function() return "one of " .. __clsname__ end,')
         out:append("__index = function(t, k)")
         out:incIndent()
-        out:append("local v = rawget(__strtype__, k)")
+        out:append("local v = rawget(__clstype__, k)")
         out:append("if v ~= nil then rawset(t, k, v) end")
         out:append("return v")
         out:decIndent()
         out:append("end,")
-        out:append("__newindex = function(t, k, v) if rawget(__strtype__, k) ~= nil then rawset(t, k, v) end end,")
+        out:append("__newindex = function(t, k, v) if rawget(__clstype__, k) ~= nil then rawset(t, k, v) end end,")
         if fn_deinit {
             out:append("__gc = function(t) t:deinit() end,")
         }
@@ -1342,9 +1346,9 @@ struct M {
         --
         out:append(strname .. " = setmetatable({}, {")
         out:incIndent()
-        out:append('__tostring = function() return "struct " .. __strname__ end,')
-        out:append('__index = function(_, k) return rawget(__strtype__, k) end,')
-        out:append('__newindex = function(_, k, v) if v ~= nil and rawget(__strtype__, k) ~= nil then rawset(__strtype__, k, v) end end,')
+        out:append('__tostring = function() return "struct " .. __clsname__ end,')
+        out:append('__index = function(_, k) return rawget(__clstype__, k) end,')
+        out:append('__newindex = function(_, k, v) if v ~= nil and rawget(__clstype__, k) ~= nil then rawset(__clstype__, k, v) end end,')
         out:append("__call = function(_, ...)")
         out:incIndent()
         out:append("local ins = setmetatable({}, __ins_mt__)")
@@ -1374,6 +1378,46 @@ struct M {
         ctx:popScope()
         ctx.in_clsname = false
     }
+
+    fn trStExtension(t) {
+        assert(t.stype == "extension", "Invalid stype extension")
+        ctx = self.ctx
+        out = self.out
+        clsname = t.name.value
+        extype = t.extend and t.extend.value
+        ctx.in_clsname = clsname
+        ctx:checkName(t.name, true)
+        if extype {
+            ctx:checkName(t.extend, true)
+        }
+        out:append("do")
+        out:changeLine()
+        out:incIndent()
+        out:append("local __extype__ = " .. (extype or "nil"))
+        out:append("local __clstype__ = " .. clsname)
+        out:append('assert(type(__clstype__) == "table" and type(__clstype__.classtype) == "table")')
+        if extype {
+            -- extype can be class or struct
+            out:append('assert(type(__extype__) == "table" and type(__extype__.classtype) == "table")')
+            out:append('for k, v in pairs(__extype__.classtype) do')
+            out:incIndent()
+            out:append('if __clstype__[k] == nil and 1 ~= k:find("__", 1, true) and k ~= "supertype" and k ~= "isKindOf" and k ~= "isMemberOf" then')
+            out:incIndent()
+            out:append('__clstype__[k] = v')
+            out:decIndent()
+            out:append("end")
+            out:decIndent()
+            out:append("end")
+        }
+        --
+        ctx:pushScope("cl")
+        ctx:localInsert("Self")
+        self:hlVarAndFns(t, "__clstype__", ctx, out, {}, {})    
+        out:decIndent()
+        out:append("end")
+        ctx:popScope()
+        ctx.in_clsname = nil
+    }    
 
     fn hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns) {
         out:append("-- declare struct var and methods")

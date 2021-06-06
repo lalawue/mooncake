@@ -166,3 +166,22 @@ describe("test failed #class", function()
         assert.is_equal(content, "_:4:                 return self.a + 101 - c <undefined variable 'self'>")
    end)
 end)
+
+describe("test failed #class", function()
+    local mnstr=[[
+        class ClsA: ClsC {
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+         assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("has error", function()
+        assert.is_false(ret)
+        assert.is_equal(content, "_:1:         class ClsA: ClsC { <undefined variable 'ClsC'>")
+   end)
+end)

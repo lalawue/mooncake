@@ -9,12 +9,13 @@ do
 	local __stype__ = nil
 	local __clsname__ = "Utils"
 	local __clstype__ = Utils
-	__clstype__.classname = __clsname__
+	__clstype__.typename = __clsname__
+	__clstype__.typekind = 'class'
 	__clstype__.classtype = __clstype__
 	__clstype__.supertype = __stype__
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
-	-- declare struct var and methods
+	-- declare var and methods
 	function __clstype__.serializeTable(t, p, c, s)
 		local n = 0
 		for i, v in next, t do
