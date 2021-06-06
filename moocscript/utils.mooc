@@ -98,9 +98,9 @@ class Utils {
     read_option = _VERSION == "Lua 5.1" and "*a" or "a"
 
     static fn readFile(file_path) {
-        f = io.open(file_path, "rb")
+        f, err = io.open(file_path, "rb")
         if not f {
-            return
+            return nil, err
         }
         data = f:read(Utils.read_option)
         f:close()

@@ -1456,9 +1456,9 @@ struct M {
     data as { content : CONTENT, ast : AST_TREE }
 ]]
 fn compile(config, data) {
-    assert(type(data) == "table", "Invalid data")
-    assert(type(data.ast) == "table", "Invalid AST")
-    assert(type(data.content) == "string", "Invalid content")
+    guard type(data) == "table" and data.ast and data.content else {
+        return false, "Invalid data"
+    }
 
     ctx = Ctx(config, data.ast, data.content)
     out = Out()

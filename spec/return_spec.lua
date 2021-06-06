@@ -1,4 +1,5 @@
-local core = require("moocscript.core")
+local parser = require("moocscript.parser")
+local compile = require("moocscript.compile")
 
 describe("test success #return", function()
     local mnstr=[[
@@ -11,17 +12,19 @@ describe("test success #return", function()
         return 0 -- hello
     ]]
 
-    local ast = core.toAST({}, mnstr)
+    local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
-        assert.is_table(ast)
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
     end)
 
-    local code = core.toLua({}, ast)
+    local ret, content = compile.compile({}, ast)
     it("should get compiled lua", function()
-        assert.is_string(code)
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
     end)
  
-    local f = load(code, "test", "t")
+    local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
         local a = f()
@@ -37,8 +40,9 @@ describe("test failed #return", function()
         }
     ]]
 
-    local ast = core.toAST({}, mnstr)
+    local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
-        assert.is_nil(ret)
+        assert.is_false(ret)
+        assert.is_true(type(ast) == "table")        
     end)
 end)

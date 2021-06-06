@@ -94,9 +94,9 @@ do
 	end
 	__clstype__.read_option = _VERSION == "Lua 5.1" and "*a" or "a"
 	function __clstype__.readFile(file_path)
-		local f = io.open(file_path, "rb")
+		local f, err = io.open(file_path, "rb")
 		if not f then
-			return 
+			return nil, err
 		end
 		local data = f:read(Utils.read_option)
 		f:close()

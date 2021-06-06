@@ -14,10 +14,10 @@ do
 	local __lib__ = require("moocscript.compile")
 	compile, clearproj = __lib__.compile, __lib__.clearproj
 end
-local split, posLine
+local split, posLine, readFile
 do
 	local __lib__ = require("moocscript.utils")
-	split, posLine = __lib__.split, __lib__.posLine
+	split, posLine, readFile = __lib__.split, __lib__.posLine, __lib__.readFile
 end
 local concat, insert, remove
 do
@@ -50,26 +50,21 @@ local function toLua(config, tbl)
 end
 -- directory separator
 local dir_spliter = package.config and package.config[1] or '/'
-local all_option = _VERSION == "Lua 5.1" and "*a" or "a"
 local tmp_config = {  }
 -- register loader
 local function mcLoader(name)
 	local name_path = name:gsub("%.", dir_spliter)
-	local file, file_path = nil, nil
+	local text, file_path = nil, nil
 	for path in package.path:gmatch("[^;]+") do
 		local len = path:len()
 		path = path:sub(1, len - 4) .. ".mooc"
 		file_path = path:gsub("?", name_path)
-		file = io.open(file_path)
-		if file then
+		text = readFile(file_path)
+		if text then
 			break
 		end
 	end
-	local text = nil
-	if file then
-		text = file:read(all_option)
-		file:close()
-	else
+	if not (text) then
 		return nil, "Could not find .mooc file"
 	end
 	tmp_config.fname = file_path
@@ -98,54 +93,42 @@ local function mcLoadString(text, cname, mode, env)
 	return f(res, cname, unpack({ mode = mode, env = env }))
 end
 local function mcLoadFile(fname, ...)
-	local f, err = io.open(fname)
-	if not f then
+	local text, err = readFile(fname)
+	if not (text) then
 		return nil, err
 	end
-	local text = assert(f:read(all_option))
-	f:close()
 	return mcLoadString(text, fname, ...)
 end
 local function mcDoFile(...)
 	local f = assert(mcLoadFile(...))
 	return f()
 end
-local _mc_loaded = false
 local function mcRemoveLoader()
-	if not _mc_loaded then
+	if not (package.mooc_loaded) then
 		return 
 	end
 	local loaders = package.loaders or package.searchers
-	for i, loader in ipairs(loaders) do
-		if loader == mcLoader then
+	for i = #loaders, 1, -1 do
+		if package.mooc_loaded == loaders[i] then
 			remove(loaders, i)
-			_mc_loaded = false
+			package.mooc_loaded = nil
 			return true
 		end
 	end
-	return false
 end
 local function mcAppendLoader()
-	if _mc_loaded then
+	if package.mooc_loaded then
 		return 
 	end
 	local loaders = package.loaders or package.searchers
-	local has_loader = false
-	for i = 1, #loaders do
-		if loaders[i] == mcLoader then
-			has_loader = true
-		end
-	end
-	if not has_loader then
-		_mc_loaded = true
-		insert(loaders, mcLoader)
-	end
+	insert(loaders, mcLoader)
+	package.mooc_loaded = mcLoader
 end
 local function mcVersion()
-	return "moocscript v0.3.20210605, " .. _VERSION
+	return "moocscript v0.3.20210606, " .. _VERSION
 end
 local function mcLoaded()
-	return _mc_loaded
+	return package.mooc_loaded ~= nil
 end
 -- append loader
 mcAppendLoader()

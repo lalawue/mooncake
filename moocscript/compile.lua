@@ -1387,9 +1387,9 @@ end
     data as { content : CONTENT, ast : AST_TREE }
 ]]
 local function compile(config, data)
-	assert(type(data) == "table", "Invalid data")
-	assert(type(data.ast) == "table", "Invalid AST")
-	assert(type(data.content) == "string", "Invalid content")
+	if not (type(data) == "table" and data.ast and data.content) then
+		return false, "Invalid data"
+	end
 	local ctx = Ctx(config, data.ast, data.content)
 	local out = Out()
 	local comp = M(ctx, out)
