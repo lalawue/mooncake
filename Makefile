@@ -27,15 +27,15 @@ INSTALL_LUA_CPATH=/usr/local/lib/lua/5.1
 
 all:
 	@echo "Usage:"
-	@echo "\t $ make test \t# $(NAME) busted -c"
-	@echo "\t $ make out  \t# self hosted $(NAME) busted -c"
+	@echo "\t $ make test \t# $(NAME) busted"
+	@echo "\t $ make out  \t# self hosted $(NAME) busted"
 	@echo "\t $ make install \t# please edit Makefile first"
 	@echo "\t $ make uninstall"
 
 test:
 	rm -f *.out
 	rm -rf out/
-	busted -c
+	busted
 
 out:
 	rm -f *.out
@@ -45,7 +45,7 @@ out:
 	$(CS) $(NAME)/core.$(SUFX) > $(ODIR)/core.lua
 	$(CS) $(NAME)/parser.$(SUFX) > $(ODIR)/parser.lua
 	$(CS) $(NAME)/utils.$(SUFX) > $(ODIR)/utils.lua
-	$(OLIB) && busted -c
+	$(OLIB) && busted
 
 MN_DIR=$(INSTALL_LUA_PATH)/$(NAME)/
 MN_BIN=$(INSTALL_BIN_PATH)/$(NAME)

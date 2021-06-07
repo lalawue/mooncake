@@ -35,4 +35,29 @@ describe("test success #utils", function()
         utils.dump(ast.ast)
         assert.stub(utils.debug).was.called()
     end)
+
+    it("should write file", function()
+        local path = "_____out.txt"
+        utils.writeFile(path, "111222")
+        local content = utils.readFile(path)
+        assert.is_equal(content, "111222")
+        os.remove(path)
+    end)
+
+    it("should copy table", function()
+        local t1 = {1, 3, a = 2 }
+        local t2 = utils.copy(t1)
+        for i, v in ipairs(t1) do
+            assert.is_equal(t2[i], t1[i])
+        end
+        for k, v in ipairs(t1) do
+            assert.is_equal(t2[k], t1[k])
+        end
+    end)
+
+    it("should suffix", function()
+        assert.is_equal(utils.suffix("aaa.lua"), "lua")
+        assert.is_equal(utils.suffix("aaa.mooc"), "mooc")
+        assert.is_equal(utils.suffix("abcdef"), "")
+    end)
 end)
