@@ -45,7 +45,7 @@ $ busted
 
 you can install [LuaCov](https://keplerproject.github.io/luacov/) to get code coverage report
 
-```lua
+```sh
 $ luarocks install luacov
 $ busted -c
 $ luacov
