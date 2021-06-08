@@ -126,6 +126,10 @@ pStr = Cmt(pStrDot + pStrQuote + fSymPatt(nil, "[", "]"), fn(s, p, c) {
     return p, {etype : "string", pos : p, value : c}
 })
 
+pStrRaw = Cmt((P("\\\\") + P("\\" .. '"') + (1 - P('"') - P("\n") - #P("\\("))) ^ 0, fn(s, p, c) {
+    return p, {etype : "strraw", pos : p, value : c}
+})
+
 fn fNotCm(s, p, c) {
     ret = s:sub(p, p + 1) == "--" or s:sub(p - 1, p) == "--"
     return not ret, c
@@ -204,6 +208,7 @@ local vFile,
     vDeferSMT,
     vBlkSMT,
     vCmSMT,
+    vStrExpr,
     vDotExpr,
     vParaExpr,
     vSquareExpr,
@@ -267,6 +272,7 @@ local vFile,
     V("vDeferSMT"),
     V("vBlkSMT"),
     V("vCmSMT"),
+    V("vStrExpr"),
     V("vDotExpr"),
     V("vParaExpr"),
     V("vSquareExpr"),
@@ -361,6 +367,7 @@ gG = {
     vBlkSMT : pBlanks * Ct(Cg("do", "stype") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body") * pBRight) * pBlanks,
     --
     vCmSMT : pBlanks * Cmt(pCmLong + pCmShort, fMarkStype("cm")) * pBlanks,
+    vStrExpr : pBlanks * Ct(Cg(fName("sexp"), "etype") * P('"') * (pStrRaw * P("\\(") * pBlanks *  Ct(vExpr) * pBlanks * P(")") * pStrRaw) ^ 1 * P('"')),
     --
     vDotExpr : Ct(Cg(P("."), "op") * pVarArg),
     vParaExpr : Ct(Cg(pPLeft / fTrim, "op") * (pBlanks * Ct(vExpr) * (pBlanks * pComma * pBlanks * Ct(vExpr)) ^ 0) ^ 0 * pPRight),
@@ -369,10 +376,10 @@ gG = {
     vEvalExpr : pBlanks * Ct(Cg(fName("rexp"), "etype") * pVarRight * (vDotExpr + vColonExpr + vSquareExpr + vParaExpr) ^ 0),
     vEvalLeft : pBlanks * Ct(Cg(fName("lexp"), "etype") * pVarArg * ((vColonExpr + vParaExpr) ^ 0 * (vDotExpr + vSquareExpr)) ^ 0),
     --
-    vClsOpUnit : pBlanks * (pSingleOp * vClsExpr + vTbDef + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
+    vClsOpUnit : pBlanks * (pSingleOp * vClsExpr + vTbDef + vStrExpr + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
     vClsExpr : pCPLeft * vClsExpr * pCPRight * (pOperator * vClsExpr) ^ 0 + vClsOpUnit * (pOperator * vClsExpr) ^ 0,
     --
-    vOpUnit : pBlanks * (pSingleOp * vExpr + vTbDef + vFnDefOnly + vFnClosure + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
+    vOpUnit : pBlanks * (pSingleOp * vExpr + vTbDef + vFnDefOnly + vFnClosure + vStrExpr + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
     vExpr : pCPLeft * vExpr * pCPRight * (pOperator * vExpr + vParaExpr) ^ 0 + vOpUnit * (pOperator * vExpr) ^ 0
 }
 

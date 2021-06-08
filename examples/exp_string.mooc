@@ -1,0 +1,3 @@
+
+a = "Hello, world \(6 * 100 + 6 * 10 + 6) !"
+print(a)

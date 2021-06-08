@@ -365,6 +365,8 @@ do
 				self:trEtRexp(t)
 			elseif __sw__ == ("lexp") then
 				self:trEtLexp(t)
+			elseif __sw__ == ("sexp") then
+				self:trEtSexp(t)
 			else
 				if t.op then
 					self:trOp(t)
@@ -588,6 +590,26 @@ do
 				self:trOp(e)
 			end
 		end
+	end
+	function __clstype__:trEtSexp(t)
+		assert(t.etype == "sexp", "Invalid etype sexp")
+		local out = self.out
+		out:pushInline()
+		for i, e in ipairs(t) do
+			if i > 1 then
+				out:append(" .. ")
+			end
+			if e.etype == "strraw" then
+				out:append('"' .. e.value .. '"')
+			else
+				out:append("(")
+				for _, v in ipairs(e) do
+					self:trExpr(v)
+				end
+				out:append(")")
+			end
+		end
+		out:popInline()
 	end
 	-- MARK: Statement
 	function __clstype__:trStEqual(t)

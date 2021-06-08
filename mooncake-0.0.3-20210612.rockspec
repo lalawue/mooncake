@@ -1,5 +1,5 @@
 package = "mooncake"
-version = "0.0.3-20210606"
+version = "0.0.3-20210612"
 source = {
    url = "git+https://gitee.com/lalawue/mooncake"
 }

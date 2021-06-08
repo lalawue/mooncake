@@ -414,6 +414,8 @@ struct M {
             self:trEtRexp(t)
         case "lexp":
             self:trEtLexp(t)
+        case "sexp":
+            self:trEtSexp(t)
         default:
             if t.op {
                 self:trOp(t)
@@ -645,6 +647,27 @@ struct M {
                 self:trOp(e)
             }
         }
+    }
+
+    fn trEtSexp(t) {
+        assert(t.etype == "sexp", "Invalid etype sexp")
+        out = self.out
+        out:pushInline()
+        for i, e in ipairs(t) {
+            if i > 1 {
+                out:append(" .. ")
+            }
+            if e.etype == "strraw" {
+                out:append('"' .. e.value .. '"')
+            } else {
+                out:append("(")
+                for _, v in ipairs(e) {
+                    self:trExpr(v)
+                }
+                out:append(")")
+            }
+        }
+        out:popInline()
     }
 
     -- MARK: Statement
