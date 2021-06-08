@@ -19,18 +19,42 @@ recommend install from [LuaRocks](https://luarocks.org/)
 $ luarocks install mooncake
 ```
 
-or edit Makefile for a custom one, then
+or edit Makefile for a custom install
 
 ```sh
 $ vi Makefile
 $ make install
 ```
 
-and with minimal requirement
+with requirement
 
 - lua >= 5.1
 - lpeg >= 1.0.2
 - luafilesystem >= 1.5 ( only if you need project compile )
+
+## Running
+
+check install first
+
+```sh
+$ moocscript -v
+moocscript v0.3.20210612, Lua 5.1, LPeg 1.0.2
+```
+
+you can run .lua or .mooc source directly, support options below
+
+```
+$ moocscript
+Usage: [OPTIONS] SOURCE.[lua|mooc]
+        '' load SOURCE and run
+        -h print help
+        -a print AST
+        -s print Lua code
+        -p generate Lua code with project config
+        -v version
+```
+
+project config example locates in examples/proj/proj_config.mooc
 
 ## Test
 
@@ -40,7 +64,7 @@ using [busted](https://olivinelabs.com/busted/), running from project dir
 $ luarocks install busted
 $ busted
 ●●●●●●●●●●●●●●●●●●...
-180 successes / 0 failures / 0 errors / 0 pending : 0.306014 seconds
+183 successes / 0 failures / 0 errors / 0 pending : 0.298494 seconds
 ```
 
 you can install [LuaCov](https://keplerproject.github.io/luacov/) to get code coverage report
@@ -51,9 +75,9 @@ $ busted -c
 $ luacov
 $ cat luacov.report.out | grep 'moocscript/'
 ...
-moocscript/compile.lua                                            1118 9      99.20%
-moocscript/core.lua                                               83   1      98.81%
-moocscript/parser.lua                                             234  2      99.15%
+moocscript/compile.lua                                            1134 9      99.21%
+moocscript/core.lua                                               84   1      98.82%
+moocscript/parser.lua                                             238  2      99.17%
 moocscript/utils.lua                                              98   4      96.08%
 ...
 ```

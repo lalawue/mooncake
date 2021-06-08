@@ -125,7 +125,8 @@ local function mcAppendLoader()
 	package.mooc_loaded = mcLoader
 end
 local function mcVersion()
-	return "moocscript v0.3.20210606, " .. _VERSION
+	local lpeg = assert(require("lpeg"))
+	return "moocscript v0.3.20210612, " .. _VERSION .. ", LPeg " .. lpeg.version()
 end
 local function mcLoaded()
 	return package.mooc_loaded ~= nil

@@ -367,7 +367,8 @@ gG = {
     vBlkSMT : pBlanks * Ct(Cg("do", "stype") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body") * pBRight) * pBlanks,
     --
     vCmSMT : pBlanks * Cmt(pCmLong + pCmShort, fMarkStype("cm")) * pBlanks,
-    vStrExpr : pBlanks * Ct(Cg(fName("sexp"), "etype") * P('"') * (pStrRaw * P("\\(") * pBlanks *  Ct(vExpr) * pBlanks * P(")") * pStrRaw) ^ 1 * P('"')),
+    --
+    vStrExpr : pBlanks * Ct(Cg(fName("sexp"), "etype") * P('"') * (pStrRaw * P("\\(") * pBlanks *  Ct(vExpr) * pBlanks * P(")")) ^ 1 * pStrRaw * P('"')),
     --
     vDotExpr : Ct(Cg(P("."), "op") * pVarArg),
     vParaExpr : Ct(Cg(pPLeft / fTrim, "op") * (pBlanks * Ct(vExpr) * (pBlanks * pComma * pBlanks * Ct(vExpr)) ^ 0) ^ 0 * pPRight),

@@ -654,13 +654,13 @@ struct M {
         out = self.out
         out:pushInline()
         for i, e in ipairs(t) {
-            if i > 1 {
-                out:append(" .. ")
-            }
+        local prefix = i > 1 and " .. " or ""
             if e.etype == "strraw" {
-                out:append('"' .. e.value .. '"')
+                if e.value:len() > 0 {
+                    out:append(prefix .. '"' .. e.value .. '"')
+                }
             } else {
-                out:append("(")
+                out:append(prefix .. "tostring(")
                 for _, v in ipairs(e) {
                     self:trExpr(v)
                 }

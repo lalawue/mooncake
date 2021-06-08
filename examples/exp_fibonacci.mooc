@@ -6,5 +6,5 @@ fn fib(n) {
     return fib(n-1) + fib(n-2)
 }
 
-a = math.abs(tonumber(... or 6))
-print("fib " .. tostring(a) .. " is " .. fib(a))
+result = math.abs(tonumber(... or 6))
+print("fib \(result) is \( fib(result) )")

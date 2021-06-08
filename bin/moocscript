@@ -6,8 +6,8 @@ local Core = require("moocscript.core")
 local Cmd = {}
 
 function Cmd.help()
-    Utils.debug("Usage: [OPTIONS] FILE")
-    Utils.debug("\t'' load FILE and run")
+    Utils.debug("Usage: [OPTIONS] SOURCE.[lua|mooc]")
+    Utils.debug("\t'' load SOURCE and run")
     Utils.debug("\t-h print help")
     Utils.debug("\t-a print AST")
     Utils.debug("\t-s print Lua code")
@@ -67,7 +67,12 @@ function Cmd.toCode(config)
 
     -- if Lua file already
     if config.ftype == 'lua' then
-        return text
+        if config.option == "ast" then
+            Utils.debug("Not support to dump Lua AST")
+        elseif config.option == "source" then
+            Utils.debug(text)
+        end
+        return
     end
 
     -- generate AST
@@ -114,7 +119,7 @@ function Cmd.project(config)
 
     -- get config table
     local st, pt = pcall(f)
-    if not st or type(pt) ~= "table" then
+    if not st or type(pt) ~= "table" or #pt <= 0 then
         Utils.debug("Invalid config: " .. tostring(pt))
         return
     end

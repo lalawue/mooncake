@@ -596,13 +596,13 @@ do
 		local out = self.out
 		out:pushInline()
 		for i, e in ipairs(t) do
-			if i > 1 then
-				out:append(" .. ")
-			end
+			local prefix = i > 1 and " .. " or ""
 			if e.etype == "strraw" then
-				out:append('"' .. e.value .. '"')
+				if e.value:len() > 0 then
+					out:append(prefix .. '"' .. e.value .. '"')
+				end
 			else
-				out:append("(")
+				out:append(prefix .. "tostring(")
 				for _, v in ipairs(e) do
 					self:trExpr(v)
 				end
