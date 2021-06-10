@@ -1,17 +1,52 @@
 
+- [MoonCake](#mooncake)
+  - [Forbiden words](#forbiden-words)
+- [Content](#content)
+  - [String](#string)
+  - [Comment](#comment)
+  - [Assigment & Scope](#assigment--scope)
+    - [Operators](#operators)
+  - [Table](#table)
+  - [Function](#function)
+    - [fn](#fn)
+    - [anonymous](#anonymous)
+    - [defer](#defer)
+  - [Do statement](#do-statement)
+  - [Loop](#loop)
+    - [for](#for)
+    - [while](#while)
+    - [repeat / until](#repeat--until)
+  - [Flow Control](#flow-control)
+    - [if](#if)
+    - [guard](#guard)
+    - [switch](#switch)
+    - [continue](#continue)
+    - [break](#break)
+    - [goto](#goto)
+  - [Class](#class)
+    - [self / Self](#self--self)
+    - [metamethod](#metamethod)
+  - [Struct](#struct)
+  - [Extension](#extension)
+  - [Import](#import)
+  - [Errors](#errors)
+    - [parse](#parse)
+    - [compile](#compile)
+
+
 # MoonCake
 
-MoonCake was a bit Swift like language compares to Lua, main difference are
+MoonCake was a bit Swift like language compiles to Lua, and compares to Lua, main difference are
 
-- always declare variable as 'local', unless using 'export' keyword, otherwise will cause `undefined` assertion
-- using parentheses '{' and '}' instead of keyword 'do', 'then', 'end' to seperate code block, can easily folding code block in VSCode
-- support 'guard' keyword, which must transfer control at the block end
+- always declare variable as 'local', unless using 'export' keyword
+- using '{' and '}' instead of keyword 'do', 'then', 'end' to seperate code block
+- support 'guard' keyword, which must transfer control at the scope end
 - support 'switch' keyword, you can 'case' a lot of conditions at a time
-- support 'continue' keyword, implemented by 'goto', available in Lua 5.2 and LuaJIT, also has the limitation where the 'goto' has
+- support 'continue' keyword, implemented by 'goto', available in Lua 5.2 and LuaJIT
 - support 'defer' keyword in function scope, including anonymous function
 - support 'class' and 'struct' for simpler Object Oriented programming
 - support 'import' keyword for simpler 'require' a lot of sub modules
-- can declare anonymous function as '{ _ in }' style, a bit like in Swift
+- can declare anonymous function as '{ _ in }' form, a bit like in Swift
 
 ## Forbiden words
 
@@ -25,27 +60,777 @@ forget them at this language.
 
 # Content
 
-* String / Number
-* Comment
-* Assigment & Scope
-* Table
-* Function
-  * fn
-  * anonymous
-  * defer
-* Do statement
-* Loop
-  * for
-  * while
-  * repeat / until
-* Flow Control
-  * if
-  * guard
-  * switch
-  * continue
-  * break
-  * goto
-* Class
-* Struct
-* Extension
-* Import
+MoonCake using internal variable like '_\_name__' to accomplish some functionality, so please avoiding define variable like this.
+
+## String
+
+support Lua single string form, or multi-line string form, you can put paired '=' inside '[[' and ']]'.
+
+```lua
+print('Hello, world !')
+print("Hello, world !")
+print([[Hello,
+   world !]])
+```
+  
+and support another form can contains expression likes in Swift
+
+```lua
+-- print("Hello, world " .. tostring(6 * 100 + 6 * 10 + 6) .. " !")
+print("Hello, world \(600 + 60 + 6) !")
+-- Hello, world 666 !
+```
+
+## Comment
+
+support single and multi line comment, but has limitations.
+
+only support comment in seperate line, not support mixed comment with another keyword in one line, except table definition.
+
+```lua
+-- comment in seperate line
+--[[
+  multi line comment
+]]
+tbl = {
+  10 --- comment ok
+}
+```
+
+## Assigment & Scope
+
+default is local scope, unless using 'export' keyword.
+
+you can export variable, function, table, class and struct.
+
+```lua
+-- local a = 10
+-- b = 11
+a = 10
+export b = 11
+```
+
+you can use 'local' to shadow existed variable, like in Lua
+
+```lua
+local b = 10
+```
+
+and when using global variable defined in another library not export before, will cause undefined variable error.
+
+these global names are pre-defined:
+
+```lua
+    "_G",
+    "_VERSION",
+    "_ENV",
+    "assert",
+    "bit32",
+    "collectgarbage",
+    "coroutine",
+    "debug",
+    "dofile",
+    "error",
+    "getfenv",
+    "getmetatable",
+    "io",
+    "ipairs",
+    "jit",
+    "load",
+    "loadfile",
+    "loadstring",
+    "math",
+    "module",
+    "next",
+    "os",
+    "package",
+    "pairs",
+    "pcall",
+    "print",
+    "rawequal",
+    "rawget",
+    "rawlen",
+    "rawset",
+    "require",
+    "select",
+    "setfenv",
+    "setmetatable",
+    "string",
+    "table",
+    "tonumber",
+    "tostring",
+    "type",
+    "unpack",
+    "xpcall",
+```
+
+### Operators
+
+"*=", "/=", "%=", "+=", "-=", "..=", "or=", "and=", "^=" operators was added for convenient as expended form, "^=" is supported after Lua 5.2.
+
+```lua
+--[[
+  a = a + 100
+]]
+a += 100
+```
+
+
+## Table
+
+likes in Lua, but using ':' instead of '=' between key and value.
+
+```lua
+--[[
+  local a = 3
+  local tbl = {
+    1,
+    "2",
+    ["3"] = 4,
+    ["7"] = 6
+  }
+]]
+a = 3
+tbl = {
+  1,
+  "2",
+  "3" : 4,
+  ["5"] : 6
+}
+```
+
+'[' and ']' can always treat key as expression, otherwise, in some cases, it will defined as table literal index, for example
+
+```lua
+--[[
+  local a = 10
+  tbl = {
+    a = 10,  -- tbl.a = 10
+    [a] = 10 -- [10] = 10
+  }
+]]
+a = 10
+tbl = {
+  a : 10,  -- tbl.a = 10
+  [a] : 10 -- [10] = 10
+}
+```
+
+if key and value with same literal name, you can define table as
+
+```lua
+--[[
+local value = 10
+tbl = {
+  value = value
+}
+]]
+value = 10
+tbl = {
+  :value
+}
+```
+
+when using ':' to seperate key and value, there will be some confuse between method call like 'A:call()' in table, it will cause it as array value.
+
+so **keep space** before or after ':' to avoid this.
+
+
+## Function
+
+function definition has shorten keyword 'fn', and holding codes with paired '{' and '}', the origin 'function', 'end' became forbidden words.
+
+and function call should always come with paired '(' and ')', like
+
+```lua
+print("function call should always come with paired '(' and ')'")
+```
+
+beside this, function definition likes in Lua
+
+### fn
+
+you can define function as local or global
+
+```lua
+--[[
+  local function add(a, b)
+    return a + b
+  end
+  function sub(a, b)
+    return a - b
+  end
+]]
+fn add(a, b) {
+  return a + b  
+}
+export sub(a, b) {
+  return a - b
+}
+```
+
+or define function as table keys
+
+```lua
+--[[
+  local Bird = {}
+
+  function Bird.fly()
+  end
+
+  function Bird:eat()
+  end
+]]
+Bird = {}
+
+fn Bird.fly() {  
+}
+
+fn Bird:eat() {
+}
+```
+
+but recommended using 'class' or 'struct' keyword to achive these, for a better object oriented style.
+
+### anonymous
+
+there are two forms to define anonymous function, one is
+
+```lua
+--[[
+  local add = function(a, b)
+    return a + b
+  end
+]]
+add = fn(a, b) {
+  return a + b
+}
+```
+
+another is more like in Swift, just a sugar, using keyword 'in' inside curly braces
+
+```lua
+--[[
+  local add = function(a, b)
+    return a + b
+  end
+]]
+add = { a, b in
+  return a + b
+}
+```
+
+the later form looks more suitable as anonymous callback function, but don't forget to return result.
+
+so, shortest empty anonymous function can defined as
+
+```lua
+a = fn(){}
+b = {in} -- or { _ in }
+```
+
+### defer
+
+'defer' is a keyword to perform some work after function scope exist, not like Swift in all scope.
+
+and defer only take effect after its definition, with the latest defer block will perform first, just last in first out, like in stack.
+
+```lua
+fn test(a) {
+        fp = io.open("record", "w")
+        if fp == nil {
+                return -1
+        }
+        defer {
+                fp:close()
+                -- do not return anything
+        }
+        -- write something
+        if a < 5 {
+                return 5
+        }
+        -- write something
+        -- return nil
+}
+--[[
+  local function test(a)
+        local __df_fns__ = {}
+        local __df_run__ = function() local t=__df_fns__; for i=#t, 1, -1 do t[i]() end; end
+        local fp = io.open("record", "w")
+        if fp == nil then
+                return -1
+        end
+        __df_fns__[#__df_fns__ + 1] = function()
+                fp:close()
+                -- do not return anything
+        end
+        -- write something
+        if a < 5 then
+                return 5, __df_run__()
+        end
+        -- write something
+        -- return nil
+        __df_run__()
+  end
+]]
+```
+
+and do not return anything in defer block, for it will became the last return element in some cases.
+
+## Do statement
+
+it can hold a lexical scope for variables.
+
+```lua
+--[[
+  do
+    local a = 10
+    -- other statement
+  end
+]]
+do {
+  a = 10
+  -- other statement
+}
+```
+
+## Loop
+
+support for, while, repeat until, likes in Lua
+
+
+### for
+
+just replase 'do', 'end' with '{' and '}', keyword 'end' is forbidden.
+
+```lua
+--[[
+  for i=1, 5, 1 do
+
+  end
+]]
+for i=1, 5, 1 {  
+
+}
+```
+
+another form
+
+```lua
+--[[
+  for i, v in ipairs(tbl) do
+
+  end
+]]
+for i, v in ipairs(tbl) {  
+
+}
+```
+
+### while
+
+likes in Lua
+
+```lua
+--[[
+  while true do
+
+  end
+]]
+while true {
+
+}
+```
+
+### repeat / until
+
+likes in Lua, until expression can use variable defined after 'repeat'
+
+```lua
+--[[
+  repeat
+
+  until true
+]]
+repeat {
+
+} until true
+```
+
+## Flow Control
+
+### if
+
+support keyword if, elseif, else, change 'then', 'end' to '{', '}'
+
+```lua
+--[[
+  if true then
+  end
+]]
+if true {
+}
+```
+
+'else' example
+
+```lua
+--[[
+  if false then
+  else
+  end
+]]
+if false {
+} else {
+}
+```
+
+or 'elseif' example
+
+```lua
+--[[
+  if false then
+  elseif false then
+  else
+  end
+]]
+if false {
+
+} elseif false {
+
+} else {
+
+}
+```
+
+
+### guard
+
+'guard' likes 'if not' sugar, and it will check last break/goto/return keyword for transfer control
+
+```lua
+--[[
+  if not (true) then
+    return
+  end  
+]]
+guard true else {
+  return
+}
+```
+
+
+### switch
+
+'switch' is a sugar of 'if .. then ... elseif .. then .. else .. end', expression after switch will only evaluate once.
+
+```lua
+switch animal {
+  case 'dog', 'cat':
+    print("can run")
+  case 'bird':
+    print("can fly")
+  default:
+    print("can swim")
+}
+--[[
+  do
+    local __sw__ = animal
+    if __sw__ == ('dog') or __sw__ == ('cat') then
+      print("can run")
+    elseif __sw__ == ('bird') then
+      print("can fly")
+    else
+      print("can swim")
+    end
+  end
+]]
+```
+
+### continue
+
+'continue' implemented by 'goto', not supoprt Lua 5.1
+
+```lua
+for i=1, 10 {
+  if i < 5 {
+    continue
+  }
+}
+--[[
+  for i = 1, 10 do
+    if i < 5 then
+      goto __continue1__
+    end
+    ::__continue1__::
+  end
+]]
+```
+
+### break
+
+just likes in Lua
+
+```lua
+--[[
+  for i=1, 10 do
+    if i == 2 then
+      break
+    end
+  end
+]]
+for i=1, 10 {
+  if i == 2 {
+    break
+  }
+}
+```
+
+
+### goto
+
+not support Lua 5.1
+
+```lua
+--[[
+  for i=1, 10 do
+    if i==2 then
+      goto label_end
+    end
+  end
+  ::label_end::
+]]
+for i=1, 10 {
+  if i == 2 {
+    goto label_end
+  }
+}
+::label_end::
+```
+
+## Class
+
+something like in normal Lua table with variale and method defined, but unified them in class definition.
+
+in class, you can
+
+- defined class variable, the instance will copy when visit
+- defined class/instance method
+- defined class/instance metamethod
+
+variables and methods below are pre-defined:
+
+- variable typename, typekind, classtype, supertype (only inherit from other class)
+- method isKindOf, isMemberOf
+- method init / deinit (if you defined)
+
+'init', 'deinit' will added when you defined, 'deinit' will be called when collectgarbage, but 'deinit' will cause instance creation a bit slower.
+
+actually, class method will expand as 'function table.name()', and instance method will be 'function table:name()'.
+
+exmaples:
+
+```swift
+class Animal {
+}
+```
+
+will expand as Lua code
+
+```lua
+local Animal = {}
+do
+        local __stype__ = nil
+        local __clsname__ = "Animal"
+        local __clstype__ = Animal
+        __clstype__.typename = __clsname__
+        __clstype__.typekind = 'class'
+        __clstype__.classtype = __clstype__
+        __clstype__.supertype = __stype__
+        __clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
+        __clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
+        -- declare var and methods
+        -- declare end
+        local __ins_mt__ = {
+                __tostring = function() return "instance of " .. __clsname__ end,
+                __index = function(t, k)
+                        local v = __clstype__[k]
+                        if v ~= nil then rawset(t, k, v) end
+                        return v
+                end,
+        }
+        setmetatable(__clstype__, {
+                __tostring = function() return "class " .. __clsname__ end,
+                __index = function(_, k)
+                        local v = __stype__ and __stype__[k]
+                        if v ~= nil then rawset(__clstype__, k, v) end
+                        return v
+                end,
+                __call = function(_, ...)
+                        local ins = setmetatable({}, __ins_mt__)
+                        return ins
+                end,
+        })
+end
+```
+
+you can inherit class, and use 'self' in instance method
+
+```swift
+class Bird : Animal {
+
+  wing_count = 2
+
+  fn init(count) {
+    self.wing_count = count
+  }
+  
+  fn featherColor() {
+    return "dark"
+  }
+
+  static fn hasWings() {
+    return true
+  }
+
+  fn __sub(a, b) {
+    return a.wing_count - b.wing_count
+  }
+
+  static fn __add(a, b) {
+    return a.wing_count + b.wing_count
+  }
+}
+```
+
+will expand to Lua code
+
+```lua
+local Bird = {}
+do
+        local __stype__ = Animal
+        local __clsname__ = "Bird"
+        local __clstype__ = Bird
+        assert(type(__stype__) == "table" and __stype__.typekind == "class")
+        for k, v in pairs(__stype__) do __clstype__[k] = v end
+        __clstype__.typename = __clsname__
+        __clstype__.typekind = 'class'
+        __clstype__.classtype = __clstype__
+        __clstype__.supertype = __stype__
+        -- declare var and methods
+        __clstype__.wing_count = 2
+        function __clstype__:init(count)
+                self.wing_count = count
+        end
+        function __clstype__:featherColor()
+                return "dark"
+        end
+        function __clstype__.hasWings()
+                return true
+        end
+        -- declare end
+        local __ins_mt__ = {
+                __tostring = function() return "instance of " .. __clsname__ end,
+                __index = function(t, k)
+                        local v = __clstype__[k]
+                        if v ~= nil then rawset(t, k, v) end
+                        return v
+                end,
+                __sub = function(a, b)
+                        return a.wing_count - b.wing_count
+                end,
+        }
+        setmetatable(__clstype__, {
+                __tostring = function() return "class " .. __clsname__ end,
+                __index = function(_, k)
+                        local v = __stype__ and __stype__[k]
+                        if v ~= nil then rawset(__clstype__, k, v) end
+                        return v
+                end,
+                __call = function(_, ...)
+                        local ins = setmetatable({}, __ins_mt__)
+                        if ins:init(...) == false then return nil end
+                        return ins
+                end,
+                __add = function(a, b)
+                        return a.wing_count + b.wing_count
+                end,
+        })
+end
+```
+
+in 'init' function, you can return 'false' to create a nil instance for caller, cause creation failure.
+
+you can add variable/method to class or instance at anytime, likes other normal Lua table, but class/instance will copy not exist key/value from super/class when they visited.
+
+so if you modified original definition after running awhile, some of them can not update and run as expected.
+
+you can create instance from class like
+
+```lua
+a = Bird(2)
+b = Bird(4)
+print(b - a)
+-- 2
+```
+
+### self / Self
+
+you can use 'self' in instance method, likes in Lua, and use Self as class itself in class scope, including variable definition.
+
+you can visit defined variable in sequence as what you write in the source.
+
+```lua
+class Example {
+  _name = "example"
+  _full_name = "for " .. Self._name
+
+  static fn getFullName() {
+    return Self._full_name
+  }
+}
+print(Example.getFullName())
+-- for example
+```
+
+### metamethod
+
+only support these class/instance metamethod, and some of them only effective in latest Lua version.
+
+```lua
+  "__add",
+  "__band",
+  "__bnot",
+  "__bor",
+  "__bxor",
+  "__close",
+  "__concat",
+  "__div",
+  "__eq",
+  "__idiv",
+  "__le",
+  "__len",
+  "__lt",
+  "__metatable",
+  "__mod",
+  "__mode",
+  "__mul",
+  "__name",
+  "__pairs",
+  "__pow",
+  "__shl",
+  "__shr",
+  "__sub",
+  "__unm"
+```
+
+## Struct
+
+## Extension
+
+## Import
+
+## Errors
+
+### parse
+### compile

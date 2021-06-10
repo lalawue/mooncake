@@ -282,7 +282,7 @@ end
 --[[
 ]]
 -- class and instance metamethod except __tostring, __index, __newindex, __call
-local _cls_metafns = Utils.set({ "__add", "__band", "__bnot", "__bor", "__bxor", "__close", "__concat", "__div", "__eq", "__gc", "__idiv", "__le", "__len", "__lt", "__metatable", "__mod", "__mode", "__mul", "__name", "__pairs", "__pow", "__shl", "__shr", "__sub", "__unm" })
+local _cls_metafns = Utils.set({ "__add", "__band", "__bnot", "__bor", "__bxor", "__close", "__concat", "__div", "__eq", "__idiv", "__le", "__len", "__lt", "__metatable", "__mod", "__mode", "__mul", "__name", "__pairs", "__pow", "__shl", "__shr", "__sub", "__unm" })
 local _no_space_op = Utils.set({ "(", ")", "#", "~", "-" })
 local _right_space_op = Utils.set({ "not" })
 local M = {}

@@ -26,6 +26,12 @@ $ vi Makefile
 $ make install
 ```
 
+or just run as playground in project root dir, but need lpeg in Lua's package.cpath
+
+```sh
+$ ./bin/moocscript
+```
+
 with requirement
 
 - lua >= 5.1
@@ -54,7 +60,7 @@ Usage: [OPTIONS] SOURCE.[lua|mooc]
         -v version
 ```
 
-project config example locates in examples/proj/proj_config.mooc
+project config example is examples/proj/proj_config.mooc
 
 ## Test
 
