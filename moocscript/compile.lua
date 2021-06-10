@@ -5,6 +5,12 @@
 -- under the terms of the MIT license. See LICENSE for details.
 --
 local Utils = require("moocscript.utils")
+local setmetatable = setmetatable
+local assert = assert
+local type = type
+local srep = string.rep
+local ipairs = ipairs
+local mathmax = math.max
 local Out = {}
 do
 	local __clsname__ = "Out"
@@ -47,11 +53,11 @@ do
 		local t = self._output
 		same_line = same_line or (self._inline > 0)
 		if same_line and not self._changeLine then
-			local i = math.max(#t, 1)
+			local i = mathmax(#t, 1)
 			t[i] = (t[i] or "") .. str
 		else
 			self._changeLine = false
-			local prefix = self._indent > 0 and string.rep("\t", self._indent) or ""
+			local prefix = self._indent > 0 and srep("\t", self._indent) or ""
 			t[#t + 1] = prefix .. str
 		end
 	end
@@ -62,7 +68,7 @@ do
 		local t = self._output
 		if #info > 1 and info[1] <= #t then
 			local idx, indent = info[1], info[2]
-			local prefix = indent > 0 and string.rep("\t", indent) or ""
+			local prefix = indent > 0 and srep("\t", indent) or ""
 			for _, v in ipairs(tbl) do
 				t[idx] = (t[idx] or "") .. "\n" .. prefix .. v
 			end
@@ -246,7 +252,7 @@ do
 		if self.err_info then
 			return 
 		end
-		pos = pos or math.max(0, self.last_pos - 1)
+		pos = pos or mathmax(0, self.last_pos - 1)
 		local err = Utils.posLine(self.content, pos)
 		self.err_info = string.format("%s:%d: %s <%s '%s'>", self.config.fname or "_", err.line, err.message, msg, symbol)
 	end
@@ -295,6 +301,9 @@ do
 	-- declare var and methods
 	__clstype__.ctx = false
 	__clstype__.out = false
+	__clstype__.opfn = {  }
+	__clstype__.exfn = {  }
+	__clstype__.stfn = {  }
 	function __clstype__:init(ctx, out)
 		self.ctx = ctx
 		self.out = out
@@ -302,83 +311,118 @@ do
 	function __clstype__:trOp(t)
 		local ctx = self.ctx
 		ctx:updatePos(t.pos)
+		local op = t.op
+		local func = self.opfn[op]
+		if func then
+			func(self, t)
+			return 
+		end
 		do 
-			local __sw__ = t.op
+			local __sw__ = op
 			if __sw__ == ("(") then
-				self:trOpPara(t)
+				func = self.trOpPara
 			elseif __sw__ == (".") then
-				self:trOpDot(t)
+				func = self.trOpDot
 			elseif __sw__ == (":") then
-				self:trOpColon(t)
+				func = self.trOpColon
 			elseif __sw__ == ("[") then
-				self:trOpSquare(t)
+				func = self.trOpSquare
 			else
 				ctx:errorPos("Invalid op near", (t.op or "unknown"))
+				return 
 			end
 		end
+		self.opfn[op] = func
+		func(self, t)
 	end
 	function __clstype__:trExpr(t)
 		assert(type(t) == "table", "Invalid expr type")
 		local ctx = self.ctx
 		local out = self.out
 		local etype = t.etype
+		local func = self.exfn[etype or t.op]
 		ctx:updatePos(t.pos)
+		if func then
+			func(self, t)
+			return 
+		end
 		do 
 			local __sw__ = etype
 			if __sw__ == ("lvar") then
-				if not ctx.in_clsvar then
-					ctx:checkName(t)
-				end
-				if ctx.in_clsname and t.value == "Self" then
-					out:append(ctx.in_clsname, true)
-				else
-					out:append(t.value, true)
+				func = function(self, t)
+					local ctx = self.ctx
+					local out = self.out
+					if not ctx.in_clsvar then
+						ctx:checkName(t)
+					end
+					if ctx.in_clsname and t.value == "Self" then
+						out:append(ctx.in_clsname, true)
+					else
+						out:append(t.value, true)
+					end
 				end
 			elseif __sw__ == ("rvar") then
-				ctx:checkName(t)
-				if ctx.in_clsname and t.value == "Self" then
-					out:append(ctx.in_clsname, true)
-				else
-					out:append(t.value, true)
+				func = function(self, t)
+					local ctx = self.ctx
+					local out = self.out
+					ctx:checkName(t)
+					if ctx.in_clsname and t.value == "Self" then
+						out:append(ctx.in_clsname, true)
+					else
+						out:append(t.value, true)
+					end
 				end
 			elseif __sw__ == ("number") then
-				out:append(t.value, true)
+				func = function(self, t)
+					self.out:append(t.value, true)
+				end
 			elseif __sw__ == ("string") then
-				out:append(t.value, true)
+				func = function(self, t)
+					self.out:append(t.value, true)
+				end
 			elseif __sw__ == ("varg") then
-				out:append("...", true)
+				func = function(self, t)
+					self.out:append("...", true)
+				end
 			elseif __sw__ == ("op") then
-				if _no_space_op[t.value] and not t.sub then
-					out:append(t.value, true)
-				elseif _right_space_op[t.value] then
-					out:append(t.value .. " ", true)
-				elseif t.value == "!=" then
-					out:append(" ~= ", true)
-				else
-					out:append(" " .. t.value .. " ", true)
+				func = function(self, t)
+					local out = self.out
+					if _no_space_op[t.value] and not t.sub then
+						out:append(t.value, true)
+					elseif _right_space_op[t.value] then
+						out:append(t.value .. " ", true)
+					elseif t.value == "!=" then
+						out:append(" ~= ", true)
+					else
+						out:append(" " .. t.value .. " ", true)
+					end
 				end
 			elseif __sw__ == ("{") then
-				self:trEtTblDef(t)
+				func = self.trEtTblDef
 			elseif __sw__ == ("fn") then
-				self:trEtFnOnly(t)
+				func = self.trEtFnOnly
 			elseif __sw__ == ("rexp") then
-				self:trEtRexp(t)
+				func = self.trEtRexp
 			elseif __sw__ == ("lexp") then
-				self:trEtLexp(t)
+				func = self.trEtLexp
 			elseif __sw__ == ("sexp") then
-				self:trEtSexp(t)
+				func = self.trEtSexp
 			else
 				if t.op then
-					self:trOp(t)
+					func = self.trOp
 				else
 					ctx:errorPos("Invalid expr etype near", (etype or "unknown"))
+					return 
 				end
 			end
 		end
+		self.exfn[etype or t.op] = func
+		func(self, t)
 	end
 	function __clstype__:trStatement(ast)
 		local ctx = self.ctx
 		local out = self.out
+		local stfn = self.stfn
 		local index = 0
 		while true do
 			index = index + (1)
@@ -387,69 +431,80 @@ do
 			end
 			local t = ast[index]
 			local stype = t.stype
-			do 
-				local __sw__ = stype
-				if __sw__ == ("cm") then
-					self:trStComment(t)
-				elseif __sw__ == ("import") then
-					self:trStImport(t)
-				elseif __sw__ == ("fn") then
-					self:trStFnDef(t)
-				elseif __sw__ == ("(") then
-					self:trStCall(t)
-				elseif __sw__ == ("class") then
-					self:trStClass(t)
-				elseif __sw__ == ("struct") then
-					self:trStStruct(t)
-				elseif __sw__ == ("extension") then
-					self:trStExtension(t)
-				elseif __sw__ == ("ex") then
-					self:trStExport(t)
-				elseif __sw__ == ("return") then
-					self:trStReturn(t)
-				elseif __sw__ == ("defer") then
-					self:trStDefer(t)
-				elseif __sw__ == ("if") or __sw__ == ("elseif") or __sw__ == ("else") or __sw__ == ("ifend") then
-					self:trStIfElse(t)
-				elseif __sw__ == ("switch") then
-					self:trStSwitch(t)
-				elseif __sw__ == ("guard") then
-					self:trStGuard(t)
-				elseif __sw__ == ("break") then
-					self:trStBreak(t)
-				elseif __sw__ == ("continue") then
-					self:trStContinue(t)
-				elseif __sw__ == ("goto") or __sw__ == ("::") then
-					self:trStGoto(t)
-				elseif __sw__ == ("for") then
-					self:trStFor(t)
-				elseif __sw__ == ("while") then
-					self:trStWhile(t)
-				elseif __sw__ == ("repeat") then
-					self:trStRepeat(t)
-				elseif __sw__ == ("=") then
-					-- a = b * (2 + 4)
-					self:trStEqual(t)
-				elseif __sw__ == ("do") then
-					self:trStDo(t)
-				elseif __sw__ == ("raw") then
-					-- generate by compiler
-					self:trStRaw(t)
-				elseif __sw__ == (";") then
-					out:append(";", true)
-				elseif __sw__ == ("#!") then
-					if ctx.config.shebang then
-						out:append("#!/usr/bin/env lua")
-					end
-				else
-					if stype and stype:sub(stype:len(), stype:len()) == "=" then
-						-- q ..= "hello"
-						self:trStTwoEqual(t)
+			local func = stfn[stype]
+			if func then
+				func(self, t)
+			else
+				do 
+					local __sw__ = stype
+					if __sw__ == ("cm") then
+						func = self.trStComment
+					elseif __sw__ == ("import") then
+						func = self.trStImport
+					elseif __sw__ == ("fn") then
+						func = self.trStFnDef
+					elseif __sw__ == ("(") then
+						func = self.trStCall
+					elseif __sw__ == ("class") then
+						func = self.trStClass
+					elseif __sw__ == ("struct") then
+						func = self.trStStruct
+					elseif __sw__ == ("extension") then
+						func = self.trStExtension
+					elseif __sw__ == ("ex") then
+						func = self.trStExport
+					elseif __sw__ == ("return") then
+						func = self.trStReturn
+					elseif __sw__ == ("defer") then
+						func = self.trStDefer
+					elseif __sw__ == ("if") or __sw__ == ("elseif") or __sw__ == ("else") or __sw__ == ("ifend") then
+						func = self.trStIfElse
+					elseif __sw__ == ("switch") then
+						func = self.trStSwitch
+					elseif __sw__ == ("guard") then
+						func = self.trStGuard
+					elseif __sw__ == ("break") then
+						func = self.trStBreak
+					elseif __sw__ == ("continue") then
+						func = self.trStContinue
+					elseif __sw__ == ("goto") or __sw__ == ("::") then
+						func = self.trStGoto
+					elseif __sw__ == ("for") then
+						func = self.trStFor
+					elseif __sw__ == ("while") then
+						func = self.trStWhile
+					elseif __sw__ == ("repeat") then
+						func = self.trStRepeat
+					elseif __sw__ == ("=") then
+						-- a = b * (2 + 4)
+						func = self.trStEqual
+					elseif __sw__ == ("do") then
+						func = self.trStDo
+					elseif __sw__ == ("raw") then
+						-- generate by compiler
+						func = self.trStRaw
+					elseif __sw__ == (";") then
+						func = function(self, _)
+							self.out:append(";", true)
+						end
+					elseif __sw__ == ("#!") then
+						func = function(self, _)
+							if self.ctx.config.shebang then
+								self.out:append("#!/usr/bin/env lua")
+							end
+						end
 					else
-						ctx:errorPos("Invalid stype near", (stype or "uknown stype"))
-						return 
+						if stype and stype:sub(stype:len(), stype:len()) == "=" then
+							-- q ..= "hello"
+							func = self.trStTwoEqual
+						else
+							ctx:errorPos("Invalid stype near", (stype or "uknown stype"))
+							return 
+						end
 					end
 				end
+				stfn[stype] = func
+				func(self, t)
 			end
 			local nstype = ast[index + 1] and ast[index + 1].stype
 			if stype ~= ";" then

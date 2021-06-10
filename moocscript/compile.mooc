@@ -6,6 +6,12 @@
 --
 
 import Utils from "moocscript.utils"
+local setmetatable = setmetatable
+local assert = assert
+local type = type
+local srep = string.rep
+local ipairs = ipairs
+local mathmax = math.max
 
 struct Out {
 
@@ -46,11 +52,11 @@ struct Out {
         t = self._output
         same_line = same_line or (self._inline > 0)
         if same_line and not self._changeLine {
-            i = math.max(#t, 1)
+            i = mathmax(#t, 1)
             t[i] = (t[i] or "") .. str
         } else {
             self._changeLine = false
-            prefix = self._indent > 0 and string.rep("\t", self._indent) or ""
+            prefix = self._indent > 0 and srep("\t", self._indent) or ""
             t[#t + 1] = prefix .. str
         }
     }
@@ -63,7 +69,7 @@ struct Out {
         t = self._output
         if #info > 1 and info[1] <= #t {
             idx, indent = info[1], info[2]
-            prefix = indent > 0 and string.rep("\t", indent) or ""
+            prefix = indent > 0 and srep("\t", indent) or ""
             for _, v in ipairs(tbl) {
                 t[idx] = (t[idx] or "") .. "\n" .. prefix .. v
             }
@@ -291,7 +297,7 @@ struct Ctx {
         if self.err_info {
             return
         }
-        pos = pos or math.max(0, self.last_pos - 1)
+        pos = pos or mathmax(0, self.last_pos - 1)
         err = Utils.posLine(self.content, pos)
         self.err_info = string.format("%s:%d: %s <%s '%s'>", self.config.fname or "_", err.line, err.message, msg, symbol)
     }
@@ -343,6 +349,9 @@ struct M {
 
     ctx = false
     out = false
+    opfn = {}
+    exfn = {}
+    stfn = {}
 
     fn init(ctx, out) {
         self.ctx = ctx
@@ -352,18 +361,27 @@ struct M {
     fn trOp(t) {
         ctx = self.ctx
         ctx:updatePos(t.pos)
-        switch t.op {
+        op = t.op
+        func = self.opfn[op]
+        if func {
+            func(self, t)
+            return
+        }
+        switch op {
         case "(":
-            self:trOpPara(t)
+            func = self.trOpPara
         case ".":
-            self:trOpDot(t)
+            func = self.trOpDot
         case ":":
-            self:trOpColon(t)
+            func = self.trOpColon
         case "[":
-            self:trOpSquare(t)
+            func = self.trOpSquare
         default:
             ctx:errorPos("Invalid op near", (t.op or "unknown"))
+            return
         }
+        self.opfn[op] = func
+        func(self, t)
     }
 
     fn trExpr(t) {
@@ -371,62 +389,88 @@ struct M {
         ctx = self.ctx
         out = self.out
         etype = t.etype
+        func = self.exfn[etype or t.op]
         ctx:updatePos(t.pos)
+        if func {
+            func(self, t)
+            return
+        }
         switch etype {
         case "lvar":
-            if not ctx.in_clsvar {
-                ctx:checkName(t)
-            }
-            if ctx.in_clsname and t.value == "Self" {
-                out:append(ctx.in_clsname, true)
-            } else {
-                out:append(t.value, true)
+            func = { self, t in
+                local ctx = self.ctx
+                local out = self.out
+                if not ctx.in_clsvar {
+                    ctx:checkName(t)
+                }
+                if ctx.in_clsname and t.value == "Self" {
+                    out:append(ctx.in_clsname, true)
+                } else {
+                    out:append(t.value, true)
+                }
             }
         case "rvar":
-            ctx:checkName(t)
-            if ctx.in_clsname and t.value == "Self" {
-                out:append(ctx.in_clsname, true)
-            } else {
-                out:append(t.value, true)
+            func = { self, t in
+                local ctx = self.ctx
+                local out = self.out            
+                ctx:checkName(t)
+                if ctx.in_clsname and t.value == "Self" {
+                    out:append(ctx.in_clsname, true)
+                } else {
+                    out:append(t.value, true)
+                }
             }
         case "number":
-            out:append(t.value, true)
+            func = { self, t in
+                self.out:append(t.value, true)
+            }
         case "string":
-            out:append(t.value, true)
+            func = { self, t in
+                self.out:append(t.value, true)
+            }
         case "varg":
-            out:append("...", true)
+            func = { self, t in
+                self.out:append("...", true)
+            }
         case "op":
-            if _no_space_op[t.value] and not t.sub {
-                out:append(t.value, true)
-            } elseif _right_space_op[t.value] {
-                out:append(t.value .. " ", true)
-            } elseif t.value == "!=" {
-                out:append(" ~= ", true)
-            } else {
-                out:append(" " .. t.value .. " ", true)
+            func = { self, t in
+                local out = self.out
+                if _no_space_op[t.value] and not t.sub {
+                    out:append(t.value, true)
+                } elseif _right_space_op[t.value] {
+                    out:append(t.value .. " ", true)
+                } elseif t.value == "!=" {
+                    out:append(" ~= ", true)
+                } else {
+                    out:append(" " .. t.value .. " ", true)
+                }
             }
         case "{":
-            self:trEtTblDef(t)
+            func = self.trEtTblDef
         case "fn":
-            self:trEtFnOnly(t)
+            func = self.trEtFnOnly
         case "rexp":
-            self:trEtRexp(t)
+            func = self.trEtRexp
         case "lexp":
-            self:trEtLexp(t)
+            func = self.trEtLexp
         case "sexp":
-            self:trEtSexp(t)
+            func = self.trEtSexp
         default:
             if t.op {
-                self:trOp(t)
+                func = self.trOp
             } else {
                 ctx:errorPos("Invalid expr etype near", (etype or "unknown"))
+                return
             }
         }
+        self.exfn[etype or t.op] = func
+        func(self, t)
     }
 
     fn trStatement(ast) {
         ctx = self.ctx
         out = self.out
+        stfn = self.stfn
         index = 0
         while true {
             index += 1
@@ -435,67 +479,78 @@ struct M {
             }
             t = ast[index]
             stype = t.stype
-            switch stype {
-            case "cm":
-                self:trStComment(t)
-            case "import":
-                self:trStImport(t)
-            case "fn":
-                self:trStFnDef(t)
-            case "(":
-                self:trStCall(t)
-            case "class":
-                self:trStClass(t)
-            case "struct":
-                self:trStStruct(t)
-            case "extension":
-                self:trStExtension(t)
-            case "ex":
-                self:trStExport(t)
-            case "return":
-                self:trStReturn(t)
-            case "defer":
-                self:trStDefer(t)
-            case "if", "elseif", "else", "ifend":
-                self:trStIfElse(t)
-            case "switch":
-                self:trStSwitch(t)
-            case "guard":
-                self:trStGuard(t)
-            case "break":
-                self:trStBreak(t)
-            case "continue":
-                self:trStContinue(t)
-            case "goto", "::":
-                self:trStGoto(t)
-            case "for":
-                self:trStFor(t)
-            case "while":
-                self:trStWhile(t)
-            case "repeat":
-                self:trStRepeat(t)
-            case "=":
-                -- a = b * (2 + 4)
-                self:trStEqual(t)
-            case "do":
-                self:trStDo(t)
-            case "raw":
-                -- generate by compiler
-                self:trStRaw(t)
-            case ";":
-                out:append(";", true)
-            case "#!":
-                if ctx.config.shebang {
-                    out:append("#!/usr/bin/env lua")
+            func = stfn[stype]
+            if func {
+                func(self, t)
+            } else {
+                switch stype {
+                case "cm":
+                    func = self.trStComment
+                case "import":
+                    func = self.trStImport
+                case "fn":
+                    func = self.trStFnDef
+                case "(":
+                    func = self.trStCall
+                case "class":
+                    func = self.trStClass
+                case "struct":
+                    func = self.trStStruct
+                case "extension":
+                    func = self.trStExtension
+                case "ex":
+                    func = self.trStExport
+                case "return":
+                    func = self.trStReturn
+                case "defer":
+                    func = self.trStDefer
+                case "if", "elseif", "else", "ifend":
+                    func = self.trStIfElse
+                case "switch":
+                    func = self.trStSwitch
+                case "guard":
+                    func = self.trStGuard
+                case "break":
+                    func = self.trStBreak
+                case "continue":
+                    func = self.trStContinue
+                case "goto", "::":
+                    func = self.trStGoto
+                case "for":
+                    func = self.trStFor
+                case "while":
+                    func = self.trStWhile
+                case "repeat":
+                    func = self.trStRepeat
+                case "=":
+                    -- a = b * (2 + 4)
+                    func = self.trStEqual
+                case "do":
+                    func = self.trStDo
+                case "raw":
+                    -- generate by compiler
+                    func = self.trStRaw
+                case ";":
+                    func = { self, _ in
+                        self.out:append(";", true)
+                    }
+                case "#!":
+                    func = { self, _ in
+                        if self.ctx.config.shebang {
+                            self.out:append("#!/usr/bin/env lua")
+                        }
+                    }
+                default:
+                    if stype and stype:sub(stype:len(), stype:len()) == "=" {
+                        -- q ..= "hello"
+                        func = self.trStTwoEqual
+                    } else {
+                        ctx:errorPos("Invalid stype near", (stype or "uknown stype"))
+                        return
+                    }
                 }
-            default:
-                if stype and stype:sub(stype:len(), stype:len()) == "=" {
-                    -- q ..= "hello"
-                    self:trStTwoEqual(t)
-                } else {
-                    ctx:errorPos("Invalid stype near", (stype or "uknown stype"))
-                    return
-                }
+                stfn[stype] = func
+                func(self, t)
             }
             nstype = ast[index + 1] and ast[index + 1].stype
             if stype ~= ";" {

@@ -19,6 +19,7 @@ do
 	local __lib__ = require("moocscript.utils")
 	fSet, fSplit, fTrim = __lib__.set, __lib__.split, __lib__.trim
 end
+local ipairs = ipairs
 fSetmaxstack(10240)
 -- remove keyword pattern
 local kwTableR = fSet({ "and", "break", "case", "class", "continue", "default", "defer", "do", "else", "elseif", "end", "export", "extension", "fn", "for", "from", "function", "goto", "guard", "if", "import", "in", "local", "not", "or", "repeat", "return", "static", "switch", "then", "until", "while", "...", ".." })
@@ -46,9 +47,9 @@ local function fMarkStype(stype)
 		return p, { pos = p, value = c, stype = stype }
 	end
 end
-local function fMarkEtype(type)
+local function fMarkEtype(etype)
 	return function(s, p, c)
-		return p, { pos = p, value = c, etype = type }
+		return p, { pos = p, value = c, etype = etype }
 	end
 end
 -- MARK: pattern
