@@ -656,7 +656,7 @@ struct M {
         ctx = self.ctx
         out = self.out
         ctx:pushScope("fn", t)
-        out:append("function(" .. Utils.seqReduce(args, "", fn(init, i, v) {
+        out:append("function(" .. Utils.seqReduce(args, "", { init, i, v in
             ctx:localInsert(v.value)
             return init .. (i > 1 and ", " or "") .. v.value
         }) .. ")")
@@ -804,7 +804,7 @@ struct M {
             if #rt <= 0 {
                 rt = lt
             }
-            out:append(Utils.seqReduce(lt, "local ", fn(init, i, v) {
+            out:append(Utils.seqReduce(lt, "local ", { init, i, v in
                 ctx:localInsert(v.value)
                 return init .. (i > 1 and ", " or "") .. v.value
             }))
@@ -816,10 +816,10 @@ struct M {
                 ctx:checkName(t.tlib, true)
                 out:append("local __lib__ = " .. t.tlib.value)
             }
-            out:append(Utils.seqReduce(lt, "", fn(init, i, v) {
+            out:append(Utils.seqReduce(lt, "", { init, i, v in
                 return init .. (i > 1 and ", " or "") .. v.value
             }))
-            out:append(" = " .. Utils.seqReduce(rt, "", fn(init, i, v) {
+            out:append(" = " .. Utils.seqReduce(rt, "", { init, i, v in
                 return init .. (i > 1 and ", __lib__." or "__lib__.") .. v.value
             }), true)
             out:decIndent()
@@ -901,7 +901,7 @@ struct M {
             ctx:localInsert("self")
             attr = ""
         }
-        out:append(attr .. "function " .. name .. "(" .. Utils.seqReduce(args, "", fn(init, i, v) {
+        out:append(attr .. "function " .. name .. "(" .. Utils.seqReduce(args, "", { init, i, v in
             ctx:localInsert(v.value)
             return init .. (i > 1 and ", " or "") .. v.value
         }) .. ")")
