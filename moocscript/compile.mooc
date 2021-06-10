@@ -982,8 +982,6 @@ struct M {
         assert(t.stype == "switch", "Invalid stype switch")
         ctx = self.ctx
         out = self.out
-        out:append("do ", t)
-        out:incIndent()
         out:append("local __sw__ = ")
         out:pushInline()
         for _, v in ipairs(t.cond) {
@@ -1023,8 +1021,6 @@ struct M {
         }
         out:append("end")
         out:changeLine()
-        out:decIndent()
-        out:append("end")
     }
 
     fn trStGuard(t) {

@@ -4,6 +4,7 @@
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the MIT license. See LICENSE for details.
 --
+local LPeg = require("lpeg")
 local parse
 do
 	local __lib__ = require("moocscript.parser")
@@ -125,8 +126,8 @@ local function mcAppendLoader()
 	package.mooc_loaded = mcLoader
 end
 local function mcVersion()
-	local lpeg = assert(require("lpeg"))
-	return "moocscript v0.3.20210612, " .. _VERSION .. ", LPeg " .. lpeg.version()
+	local ver = jit and jit.version or _VERSION
+	return "moocscript v0.3.20210612, " .. ver .. ", LPeg " .. LPeg.version()
 end
 local function mcLoaded()
 	return package.mooc_loaded ~= nil

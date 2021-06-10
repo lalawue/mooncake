@@ -534,15 +534,13 @@ switch animal {
     print("can swim")
 }
 --[[
-  do
-    local __sw__ = animal
-    if __sw__ == ('dog') or __sw__ == ('cat') then
-      print("can run")
-    elseif __sw__ == ('bird') then
-      print("can fly")
-    else
-      print("can swim")
-    end
+  local __sw__ = animal
+  if __sw__ == ('dog') or __sw__ == ('cat') then
+          print("can run")
+  elseif __sw__ == ('bird') then
+          print("can fly")
+  else
+          print("can swim")
   end
 ]]
 ```
