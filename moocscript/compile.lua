@@ -1213,7 +1213,6 @@ do
 		out:append("__clstype__.supertype = __stype__")
 		if not supertype then
 			out:append("__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end")
-			out:append("__clstype__.isMemberOf = function(cls, a) return cls.classtype == a end")
 		end
 		--
 		ctx:pushScope("cl")
@@ -1379,12 +1378,13 @@ do
 		out:append("local __extype__ = " .. (extype or "nil"))
 		out:append("local __clstype__ = " .. clsname)
 		out:append('assert(type(__clstype__) == "table" and type(__clstype__.classtype) == "table")')
+		out:append("__clstype__ = __clstype__.classtype")
 		if extype then
 			-- extype can be class or struct
 			out:append('assert(type(__extype__) == "table" and type(__extype__.classtype) == "table")')
 			out:append('for k, v in pairs(__extype__.classtype) do')
 			out:incIndent()
-			out:append('if __clstype__[k] == nil and 1 ~= k:find("__", 1, true) and k ~= "supertype" and k ~= "isKindOf" and k ~= "isMemberOf" then')
+			out:append('if __clstype__[k] == nil and 1 ~= k:find("__", 1, true) and k ~= "supertype" and k ~= "isKindOf" then')
 			out:incIndent()
 			out:append('__clstype__[k] = v')
 			out:decIndent()

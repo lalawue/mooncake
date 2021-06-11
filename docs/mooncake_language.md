@@ -613,18 +613,18 @@ something like in normal Lua table with variale and method defined, but unified 
 in class, you can
 
 - defined class variable, the instance will copy when visit
-- defined class/instance method
-- defined class/instance metamethod
+- defined static/instance method
+- defined static/instance metamethod
 
 variables and methods below are pre-defined:
 
 - variable typename, typekind, classtype, supertype (only inherit from other class)
-- method isKindOf, isMemberOf
+- method isKindOf
 - method init / deinit (if you defined)
 
 'init', 'deinit' will added when you defined, 'deinit' will be called when collectgarbage, but 'deinit' will cause instance creation a bit slower.
 
-actually, class method will expand as 'function table.name()', and instance method will be 'function table:name()'.
+actually, static method will expand as 'function table.name()', and instance method will be 'function table:name()'.
 
 exmaples:
 
@@ -646,7 +646,6 @@ do
         __clstype__.classtype = __clstype__
         __clstype__.supertype = __stype__
         __clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
-        __clstype__.isMemberOf = function(cls, a) return cls.classtype == a end
         -- declare var and methods
         -- declare end
         local __ins_mt__ = {
@@ -824,7 +823,194 @@ only support these class/instance metamethod, and some of them only effective in
 
 ## Struct
 
+struct is a limited Lua table with variable and method defined, the limitation is
+
+- can not inherit from another struct/class
+- can not create/remove keys after definition (even in init() function)
+
+you can change its value after definition, and likes in class, you can
+
+
+- defined struct variable, the instance will copy when visit
+- defined static/instance method
+- defined static/instance metamethod
+
+variables and methods below are pre-defined:
+
+- variable typename, typekind, classtype
+- method init / deinit (if you defined) 
+
+examples:
+
+```lua
+struct Car {
+  _wheel_count = 4
+  fn init(wheel_count) {
+    self._wheel_count = wheel_count
+  }
+  fn __add(a, b) {
+    return a._wheel_count + b._wheel_count
+  }
+}
+```
+
+will expanded to Lua code
+
+```lua
+local Car = {}
+do
+        local __clsname__ = "Car"
+        local __clstype__ = Car
+        __clstype__.typename = __clsname__
+        __clstype__.typekind = 'struct'
+        __clstype__.classtype = __clstype__
+        -- declare var and methods
+        __clstype__._wheel_count = 4
+        function __clstype__:init(wheel_count)
+                self._wheel_count = wheel_count
+        end
+        -- declare end
+        local __ins_mt__ = {
+                __tostring = function() return "one of " .. __clsname__ end,
+                __index = function(t, k)
+                        local v = rawget(__clstype__, k)
+                        if v ~= nil then rawset(t, k, v) end
+                        return v
+                end,
+                __newindex = function(t, k, v) if rawget(__clstype__, k) ~= nil then rawset(t, k, v) end end,
+                __add = function(a, b)
+                        return a._wheel_count + b._wheel_count
+                end,
+        }
+        Car = setmetatable({}, {
+                __tostring = function() return "struct " .. __clsname__ end,
+                __index = function(_, k) return rawget(__clstype__, k) end,
+                __newindex = function(_, k, v) if v ~= nil and rawget(__clstype__, k) ~= nil then rawset(__clstype__, k, v) end end,
+                __call = function(_, ...)
+                        local ins = setmetatable({}, __ins_mt__)
+                        if ins:init(...) == false then return nil end
+                        return ins
+                end,
+        })
+end
+```
+
+create instance likes class, and you can use 'self' or 'Self' in instance method or static method.
+
 ## Extension
+
+'extension' is the only way to extend class/struct variable/method
+
+- support extend class from struct, or extend struct from class
+- defined new variable/method for class/struct
+- extension a class/struct at once
+
+```lua
+class ClsA {
+  name = Self.typename
+}
+
+struct StructA {
+  fn getName() {
+    return self.name or "none"
+  }
+}
+
+extension StructA : ClsA {  
+}
+
+a = StructA()
+print(a:getName())
+-- print output: ClsA
+```
+
+will expanded as
+
+```lua
+local ClsA = {}
+do
+	local __stype__ = nil
+	local __clsname__ = "ClsA"
+	local __clstype__ = ClsA
+	__clstype__.typename = __clsname__
+	__clstype__.typekind = 'class'
+	__clstype__.classtype = __clstype__
+	__clstype__.supertype = __stype__
+	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
+	-- declare var and methods
+	__clstype__.name = ClsA.typename
+	-- declare end
+	local __ins_mt__ = {
+		__tostring = function() return "instance of " .. __clsname__ end,
+		__index = function(t, k)
+			local v = __clstype__[k]
+			if v ~= nil then rawset(t, k, v) end
+			return v
+		end,
+	}
+	setmetatable(__clstype__, {
+		__tostring = function() return "class " .. __clsname__ end,
+		__index = function(_, k)
+			local v = __stype__ and __stype__[k]
+			if v ~= nil then rawset(__clstype__, k, v) end
+			return v
+		end,
+		__call = function(_, ...)
+			local ins = setmetatable({}, __ins_mt__)
+			return ins
+		end,
+	})
+end
+
+local StructA = {}
+do
+	local __clsname__ = "StructA"
+	local __clstype__ = StructA
+	__clstype__.typename = __clsname__
+	__clstype__.typekind = 'struct'
+	__clstype__.classtype = __clstype__
+	-- declare var and methods
+	function __clstype__:getName()
+		return self.name or "none"
+	end
+	-- declare end
+	local __ins_mt__ = {
+		__tostring = function() return "one of " .. __clsname__ end,
+		__index = function(t, k)
+			local v = rawget(__clstype__, k)
+			if v ~= nil then rawset(t, k, v) end
+			return v
+		end,
+		__newindex = function(t, k, v) if rawget(__clstype__, k) ~= nil then rawset(t, k, v) end end,
+	}
+	StructA = setmetatable({}, {
+		__tostring = function() return "struct " .. __clsname__ end,
+		__index = function(_, k) return rawget(__clstype__, k) end,
+		__newindex = function(_, k, v) if v ~= nil and rawget(__clstype__, k) ~= nil then rawset(__clstype__, k, v) end end,
+		__call = function(_, ...)
+			local ins = setmetatable({}, __ins_mt__)
+			return ins
+		end,
+	})
+end
+
+do
+	local __extype__ = ClsA
+	local __clstype__ = StructA
+	assert(type(__clstype__) == "table" and type(__clstype__.classtype) == "table")
+	__clstype__ = __clstype__.classtype
+	assert(type(__extype__) == "table" and type(__extype__.classtype) == "table")
+	for k, v in pairs(__extype__.classtype) do
+		if __clstype__[k] == nil and 1 ~= k:find("__", 1, true) and k ~= "supertype" and k ~= "isKindOf" then
+			__clstype__[k] = v
+		end
+	end
+	-- declare var and methods
+	-- declare end
+end
+local a = StructA()
+print(a:getName())
+```
 
 ## Import
 

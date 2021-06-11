@@ -48,6 +48,43 @@ describe("test success #extension", function()
     end)
 end)
 
+
+describe("test success #extension", function()
+    local mnstr=[[
+        class ClsA {
+            name = Self.typename
+          }
+          struct StructA {
+            fn getName() {
+              return self.name or "none"
+            }
+          }
+          extension StructA : ClsA {
+          }
+          a = StructA()
+          return a:getName()
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+ 
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local name = f()
+        assert.is_equal(name, "ClsA")
+    end)
+end)
+
 describe("test failed parser #extension", function()
     local mnstr=[[
         class ClsA {            
