@@ -404,7 +404,7 @@ support for, while, repeat until, likes in Lua
 
 ### for
 
-just replase 'do', 'end' with '{' and '}', keyword 'end' is forbidden.
+just replace 'do', 'end' with '{' and '}', keyword 'end' is forbidden.
 
 ```lua
 --[[
