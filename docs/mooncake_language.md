@@ -5,7 +5,8 @@
   - [String](#string)
   - [Comment](#comment)
   - [Assigment & Scope](#assigment--scope)
-    - [Operators](#operators)
+    - [global names](#global-names)
+    - [operators](#operators)
   - [Table](#table)
   - [Function](#function)
     - [fn](#fn)
@@ -118,6 +119,8 @@ local b = 10
 
 and when using global variable defined in another library not export before, will cause undefined variable error.
 
+### global names
+
 these global names are pre-defined:
 
 ```lua
@@ -164,9 +167,9 @@ these global names are pre-defined:
     "xpcall",
 ```
 
-### Operators
+### operators
 
-"*=", "/=", "%=", "+=", "-=", "..=", "or=", "and=", "^=" operators was added for convenient as expended form, "^=" is supported after Lua 5.2.
+"*=", "/=", "%=", "+=", "-=", "..=", "or=", "and=", "^=" operators was added for convenient as expended form
 
 ```lua
 --[[
@@ -899,11 +902,11 @@ create instance likes class, and you can use 'self' or 'Self' in instance method
 
 ## Extension
 
-'extension' is the only way to extend class/struct variable/method
+'extension' is the only way to extend class/struct variable/method, the limitation is can not override exist variable/method.
 
 - support extend class from struct, or extend struct from class
-- defined new variable/method for class/struct
-- extension a class/struct at once
+- define new variable/method for class/struct
+- can extend class/struct multiple times
 
 ```lua
 class ClsA {
@@ -916,30 +919,36 @@ struct StructA {
   }
 }
 
-extension StructA : ClsA {  
+extension StructA : ClsA {
+  fn fullName() {
+    return "struct base: " .. self:getName()
+  }
 }
 
 a = StructA()
-print(a:getName())
--- print output: ClsA
+print(a:fullName())
+-- struct base: ClsA
 ```
 
 the last 'extension' keyword will expand as
 
 ```lua
 do
-	local __extype__ = ClsA
-	local __clstype__ = StructA
-	assert(type(__clstype__) == "table" and type(__clstype__.classtype) == "table")
-	__clstype__ = __clstype__.classtype
-	assert(type(__extype__) == "table" and type(__extype__.classtype) == "table")
-	for k, v in pairs(__extype__.classtype) do
-		if __clstype__[k] == nil and 1 ~= k:find("__", 1, true) and k ~= "supertype" and k ~= "isKindOf" then
-			__clstype__[k] = v
-		end
-	end
-	-- declare var and methods
-	-- declare end
+        local __extype__ = ClsA
+        local __clstype__ = StructA
+        assert(type(__clstype__) == "table" and type(__clstype__.classtype) == "table")
+        __clstype__ = __clstype__.classtype
+        assert(type(__extype__) == "table" and type(__extype__.classtype) == "table")
+        for k, v in pairs(__extype__.classtype) do
+                if __clstype__[k] == nil and k:sub(1, 2) ~= "__" and k ~= "supertype" and k ~= "isKindOf" then
+                        __clstype__[k] = v
+                end
+        end
+        -- declare var and methods
+        function __clstype__:fullName()
+                return "struct base: " .. self:getName()
+        end
+        -- declare end
 end
 ```
 

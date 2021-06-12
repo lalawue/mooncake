@@ -1389,7 +1389,7 @@ do
 			out:append('assert(type(__extype__) == "table" and type(__extype__.classtype) == "table")')
 			out:append('for k, v in pairs(__extype__.classtype) do')
 			out:incIndent()
-			out:append('if __clstype__[k] == nil and 1 ~= k:find("__", 1, true) and k ~= "supertype" and k ~= "isKindOf" then')
+			out:append('if __clstype__[k] == nil and k:sub(1, 2) ~= "__" and k ~= "supertype" and k ~= "isKindOf" then')
 			out:incIndent()
 			out:append('__clstype__[k] = v')
 			out:decIndent()
