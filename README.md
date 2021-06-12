@@ -9,7 +9,7 @@
 
 MoonCake was a Swift like programming language that compiles into Lua, runs on Lua 5.1 and above, including LuaJIT.
 
-recommand you install and running first, or get more straight expressions from 'examples/' dir.
+recommand install and running first, or get more straight expressions from 'examples/' dir.
 
 before dig into detials about the language and usage
 
