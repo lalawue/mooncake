@@ -611,15 +611,15 @@ for i=1, 10 {
 
 ## Class
 
-something like in normal Lua table with variale and method defined, but unified them in class definition.
+something like in normal Lua table with variable and method defined, but unified them in class definition.
 
 in class, you can
 
-- defined class variable, the instance will copy when visit
+- defined class variable
 - defined static/instance method
 - defined static/instance metamethod
 
-variables and methods below are pre-defined:
+the instance will copy when visit, and variables and methods below are pre-defined:
 
 - variable typename, typekind, classtype, supertype (only inherit from other class)
 - method isKindOf
@@ -795,7 +795,7 @@ print(Example.getFullName())
 
 ### metamethod
 
-only support these class/instance metamethod, and some of them only effective in latest Lua version.
+only support these class/instance metamethod, and some of them only take effect in latest Lua version.
 
 ```lua
   "__add",
@@ -833,12 +833,11 @@ struct is a limited Lua table with variable and method defined, the limitation i
 
 you can change its value after definition, and likes in class, you can
 
-
-- defined struct variable, the instance will copy when visit
+- defined struct variable
 - defined static/instance method
 - defined static/instance metamethod
 
-variables and methods below are pre-defined:
+the instance will copy when visit, variables and methods below are pre-defined:
 
 - variable typename, typekind, classtype
 - method init / deinit (if defined) 
@@ -1036,4 +1035,4 @@ defer {
 
 ## Debug
 
-you should debug generated .lua source, not .mooc.
+you should debug generated .lua source, not .mooc
