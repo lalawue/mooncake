@@ -33,6 +33,7 @@
   - [Errors](#errors)
     - [parse](#parse)
     - [compile](#compile)
+  - [Debug](#debug)
 
 # MoonCake
 
@@ -949,7 +950,7 @@ do
                 return "struct base: " .. self:getName()
         end
         -- declare end
-end
+en
 ```
 
 ## Import
@@ -999,5 +1000,39 @@ import insert, remove from table {}
 
 ## Errors
 
+there are two phase for generate Lua code, first it parse source to generate AST, then translate AST to Lua code, so some error may happen in these phase.
+
 ### parse
+
+using source 'examples/error/parse_error.mooc' for example
+
+```lua
+tbl = {
+  name = "table"
+}
+-- parse error examples/error/parse_error.mooc:2:   name = "table"
+```
+
+run the source will cause parse error, the right way is using ':' instead of '=' to seperate table key and value.
+
+parse error only contains file name, line number and the source line, for it use farthest match position for indicating, sometimes it can not show the right place.
+
 ### compile
+
+when we got AST, there are some restriction to generate Lua code, for example
+
+- break should only happend inside loop
+- guard should transfer control in the scope end
+- defer should inside function
+
+using source 'examples/error/compile_error.mooc' for example
+
+```lua
+defer {
+}
+-- examples/error/compile_error.mooc:1: defer { <not in function 'defer'>
+```
+
+## Debug
+
+you should debug generated .lua source but .mooc
