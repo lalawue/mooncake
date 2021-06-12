@@ -268,7 +268,7 @@ you can define function as local or global
 fn add(a, b) {
   return a + b  
 }
-export sub(a, b) {
+export fn sub(a, b) {
   return a - b
 }
 ```
@@ -401,7 +401,6 @@ do {
 ## Loop
 
 support for, while, repeat until, likes in Lua
-
 
 ### for
 
@@ -624,7 +623,7 @@ variables and methods below are pre-defined:
 
 - variable typename, typekind, classtype, supertype (only inherit from other class)
 - method isKindOf
-- method init / deinit (if you defined)
+- method init / deinit (if defined)
 
 'init', 'deinit' will added when you defined, 'deinit' will be called when collectgarbage, but 'deinit' will cause instance creation a bit slower.
 
@@ -842,16 +841,18 @@ you can change its value after definition, and likes in class, you can
 variables and methods below are pre-defined:
 
 - variable typename, typekind, classtype
-- method init / deinit (if you defined) 
+- method init / deinit (if defined) 
 
 examples:
 
 ```lua
 struct Car {
   _wheel_count = 4
+
   fn init(wheel_count) {
     self._wheel_count = wheel_count
   }
+
   fn __add(a, b) {
     return a._wheel_count + b._wheel_count
   }
@@ -903,7 +904,7 @@ create instance likes class, and you can use 'self' or 'Self' in instance method
 
 ## Extension
 
-'extension' is the only way to extend class/struct variable/method, the limitation is can not override exist variable/method.
+'extension' is the only way to extend class/struct variable/method, the limitation is can not override exist variable/method, can not add metamethod.
 
 - support extend class from struct, or extend struct from class
 - define new variable/method for class/struct
@@ -1021,7 +1022,7 @@ parse error only contains file name, line number and the source line, for it use
 
 when we got AST, there are some restriction to generate Lua code, for example
 
-- break should only happend inside loop
+- break should inside loop
 - guard should transfer control in the scope end
 - defer should inside function
 
@@ -1035,4 +1036,4 @@ defer {
 
 ## Debug
 
-you should debug generated .lua source but .mooc
+you should debug generated .lua source, not .mooc.

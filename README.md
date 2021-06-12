@@ -9,7 +9,13 @@
 
 MoonCake was a Swift like programming language that compiles into Lua, runs on Lua 5.1 and above, including LuaJIT.
 
-The wiki contains language detail.
+recommand you install and running first, or get more straight expressions from 'examples/' dir.
+
+before dig into detials about the language and usage
+
+- [MoonCake Language](docs/language.md)
+- [CommandLine Usage](docs/cmdline.md)
+- [Library Interface](docs/library.md)
 
 ## Install
 
@@ -26,7 +32,7 @@ $ vi Makefile
 $ make install
 ```
 
-or just run as playground in project root dir, but need lpeg in Lua's package.cpath
+or just run as playground in project root dir, but need [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg/) installed, and in Lua's package.cpath
 
 ```sh
 $ ./bin/moocscript
@@ -34,9 +40,9 @@ $ ./bin/moocscript
 
 with requirement
 
-- lua >= 5.1
-- lpeg >= 1.0.2
-- luafilesystem >= 1.5 ( only if you need project compile )
+- [Lua](https://www.lua.org/) >= 5.1 **OR** [LuaJIT](https://luajit.org/) >= 2.0
+- [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg/) >= 1.0.2
+- [LuaFileSystem](http://keplerproject.github.io/luafilesystem/) >= 1.5 ( only if you need project compile )
 
 ## Running
 
@@ -44,7 +50,7 @@ check install first
 
 ```sh
 $ moocscript -v
-moocscript v0.3.20210612, Lua 5.1, LPeg 1.0.2
+moocscript v0.3.20210612, Lua 5.3, LPeg 1.0.2
 ```
 
 you can run .lua or .mooc source directly, support options below
@@ -81,10 +87,10 @@ $ busted -c
 $ luacov
 $ cat luacov.report.out | grep 'moocscript/'
 ...
-moocscript/compile.lua                                            1134 9      99.21%
-moocscript/core.lua                                               84   1      98.82%
-moocscript/parser.lua                                             238  2      99.17%
-moocscript/utils.lua                                              98   4      96.08%
+moocscript/compile.lua                                            1157 12     98.97%
+moocscript/core.lua                                               76   1      98.70%
+moocscript/parser.lua                                             119  0      100.00%
+moocscript/utils.lua                                              119  12     90.84%
 ...
 ```
 

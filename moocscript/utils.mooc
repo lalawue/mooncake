@@ -15,6 +15,15 @@ local ipairs = ipairs
 
 class Utils {
 
+    static fn stringValue(str) {
+        first = str:sub(1, 1)
+        if first == '"' or first == "'" or first == '[' {
+            return str
+        } else {
+            return '"' .. str .. '"'
+        }
+    }
+
     static fn serializeTable(t, p, c, s) {
         n = 0
         for i, v in fNext, t {
@@ -30,8 +39,7 @@ class Utils {
         s = s or string.rep
 
         local fn _format(v, is_table) {
-            out = (fType(v) == "string" and ('"'..v..'"')) or (fType(v) == "number" and ('['..fString(v)..']')) or fString(v)
-            return is_table and (c[v][2] >= p) and _table(v, p + 1, c, s) or (fType(v) == "string" and ('"'..v..'"') or fString(v))
+            return is_table and (c[v][2] >= p) and _table(v, p + 1, c, s) or (fType(v) == "string" and Self.stringValue(v) or fString(v))
         }
 
         c[t] = {t, 0}

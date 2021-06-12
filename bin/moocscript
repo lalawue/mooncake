@@ -163,7 +163,10 @@ function Cmd.project(config)
     -- check projects
     for i, proj in ipairs(pt) do
         if proj.name and proj.proj_dir and proj.proj_out then
-            Utils.debug("proj: [" .. proj.proj_dir .. ']')
+            Utils.debug("---")
+            Utils.debug("proj: [" .. proj.name .. ']')
+            Utils.debug("from: [" .. proj.proj_dir .. ']')
+            Utils.debug(" to : [" .. proj.proj_out .. ']')
             Core.clearProj()
             if proj.proj_export then
                 tmp_config.fname = proj.proj_dir .. '/' .. proj.proj_export

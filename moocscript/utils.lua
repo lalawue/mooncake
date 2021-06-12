@@ -22,6 +22,14 @@ do
 	__clstype__.supertype = __stype__
 	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
 	-- declare var and methods
+	function __clstype__.stringValue(str)
+		local first = str:sub(1, 1)
+		if first == '"' or first == "'" or first == '[' then
+			return str
+		else
+			return '"' .. str .. '"'
+		end
+	end
 	function __clstype__.serializeTable(t, p, c, s)
 		local n = 0
 		for i, v in fNext, t do
@@ -35,8 +43,7 @@ do
 		p = p or 1
 		s = s or string.rep
 		local function _format(v, is_table)
-			local out = (fType(v) == "string" and ('"' .. v .. '"')) or (fType(v) == "number" and ('[' .. fString(v) .. ']')) or fString(v)
-			return is_table and (c[v][2] >= p) and _table(v, p + 1, c, s) or (fType(v) == "string" and ('"' .. v .. '"') or fString(v))
+			return is_table and (c[v][2] >= p) and _table(v, p + 1, c, s) or (fType(v) == "string" and Utils.stringValue(v) or fString(v))
 		end
 		c[t] = { t, 0 }
 		for i, v in fNext, t do
