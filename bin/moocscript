@@ -146,7 +146,7 @@ function Cmd.project(config)
                     tmp_config.fname = inpath
                     local code = Cmd.toCode(tmp_config)
                     if code then
-                        local outname = outpath:sub(1, outpath:len() - 3) .. ".lua"
+                        local outname = outpath:sub(1, outpath:len() - 5) .. ".lua"
                         Utils.writeFile(outname, code)
                         Utils.debug("FILE '" .. outname .. "'")
                     else
