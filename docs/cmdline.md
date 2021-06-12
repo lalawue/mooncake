@@ -83,7 +83,7 @@ $ moocscript -a do.mooc
 }
 ```
 
-the output can use as a Lua table directly, there is little different between using from inside, for 'etype' string value, ignore '"', "'", '[[', but using '"', that is trivial.
+the output can use as a Lua table directly, there is little different between using from inside, for 'etype' string value, ignore ", ', [[, but using ", that is trivial.
 
 the AST shows details about source file
 
