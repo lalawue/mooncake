@@ -126,6 +126,7 @@ function Cmd.project(config)
 
     local lfs = assert(require("lfs"))
     local tmp_config = Utils.copy(config)
+    tmp_config.ftype = "mooc"
     
     -- generate Lua code recursive
     local function toLuaDir(config, in_dir, out_dir)
@@ -141,15 +142,18 @@ function Cmd.project(config)
                     if not toLuaDir(config, inpath, outpath) then
                         return false
                     end
-                elseif flen > 3 and fname:sub(flen - 2, flen) == ".mooc" then
+                elseif flen > 3 and fname:sub(flen - 4, flen) == ".mooc" then
                     tmp_config.fname = inpath
                     local code = Cmd.toCode(tmp_config)
-                    if not code then
-                        return false
+                    if code then
+                        local outname = outpath:sub(1, outpath:len() - 3) .. ".lua"
+                        Utils.writeFile(outname, code)
+                        Utils.debug("FILE '" .. outname .. "'")
+                    else
+                        Utils.debug(" ERR '" .. outpath .. "': ")
                     end
-                    local outname = outpath:sub(1, outpath:len() - 3) .. ".lua"
-                    Utils.writeFile(outname, code)
-                    Utils.debug("FILE '" .. outname .. "'")
+                else
+                    Utils.debug("Invalid fname " .. inpath)
                 end
             end
         end
