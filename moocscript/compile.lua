@@ -730,7 +730,7 @@ do
 				out:append("local " .. lt.value .. " = " .. t.tlib.value)
 			end
 			ctx:localInsert(lt.value)
-		else
+		elseif t.slib or t.tlib then
 			local lt = t[1]
 			local rt = t[2]
 			if #rt <= 0 then
@@ -738,24 +738,29 @@ do
 			end
 			out:append(Utils.seqReduce(lt, "local ", function(init, i, v)
 				ctx:localInsert(v.value)
-				return init .. (i > 1 and ", " or "") .. v.value
+				return init .. (i <= 1 and "" or ", ") .. v.value
 			end))
-			out:append("do")
-			out:incIndent()
 			if t.slib then
+				out:append("do")
+				out:incIndent()
 				out:append("local __lib__ = require(" .. t.slib.value .. ")")
+				out:append(Utils.seqReduce(lt, "", function(init, i, v)
+					return init .. (i <= 1 and "" or ", ") .. v.value
+				end))
+				out:append(" = " .. Utils.seqReduce(rt, "", function(init, i, v)
+					return init .. (i <= 1 and "__lib__." or ", __lib__.") .. v.value
+				end), true)
+				out:decIndent()
+				out:append("end")
 			else
 				ctx:checkName(t.tlib, true)
-				out:append("local __lib__ = " .. t.tlib.value)
+				local tfirst, tnext = t.tlib.value .. ".", ", " .. t.tlib.value .. "."
+				out:append(" = " .. Utils.seqReduce(rt, "", function(init, i, v)
+					return init .. (i <= 1 and tfirst or tnext) .. v.value
+				end), true)
 			end
-			out:append(Utils.seqReduce(lt, "", function(init, i, v)
-				return init .. (i > 1 and ", " or "") .. v.value
-			end))
-			out:append(" = " .. Utils.seqReduce(rt, "", function(init, i, v)
-				return init .. (i > 1 and ", __lib__." or "__lib__.") .. v.value
-			end), true)
-			out:decIndent()
-			out:append("end")
+		else
+			assert(nil, "Invalid import AST")
 		end
 	end
 	function __clstype__:trStExport(t)

@@ -10,15 +10,15 @@ import lp from lpeg
 
 -- local P, R, S
 -- do
---      local __obj__ = require("lpeg")
---      P, R, S = __obj__.P, __obj__.R, __obj__.S
+--      local __lib__ = require("lpeg")
+--      P, R, S = __lib__.P, __lib__.R, __lib__.S
 -- end
 import P, R, S from "lpeg" {}
 
 -- local p, r, s
 -- do
---      local __obj__ = require("lpeg")
---      p, r, s = __obj__.P, __obj__.R, __obj__.S
+--      local __lib__ = require("lpeg")
+--      p, r, s = __lib__.P, __lib__.R, __lib__.S
 -- end
 import p, r, s from "lpeg" { P, R, S }
 

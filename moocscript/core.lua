@@ -20,11 +20,7 @@ do
 	local __lib__ = require("moocscript.utils")
 	split, posLine, readFile = __lib__.split, __lib__.posLine, __lib__.readFile
 end
-local concat, insert, remove
-do
-	local __lib__ = table
-	concat, insert, remove = __lib__.concat, __lib__.insert, __lib__.remove
-end
+local concat, insert, remove = table.concat, table.insert, table.remove
 unpack = unpack or table.unpack
 -- source to AST
 local function toAST(config, text)

@@ -798,7 +798,7 @@ struct M {
                 out:append("local " .. lt.value .. " = " .. t.tlib.value)
             }
             ctx:localInsert(lt.value)
-        } else {
+        } elseif t.slib or t.tlib {
             lt = t[1]
             rt = t[2]
             if #rt <= 0 {
@@ -806,24 +806,29 @@ struct M {
             }
             out:append(Utils.seqReduce(lt, "local ", { init, i, v in
                 ctx:localInsert(v.value)
-                return init .. (i > 1 and ", " or "") .. v.value
+                return init .. (i <= 1 and "" or ", ") .. v.value
             }))
-            out:append("do")
-            out:incIndent()
             if t.slib {
+                out:append("do")
+                out:incIndent()
                 out:append("local __lib__ = require(" .. t.slib.value .. ")")
+                out:append(Utils.seqReduce(lt, "", { init, i, v in
+                    return init .. (i <= 1 and "" or ", ") .. v.value
+                }))
+                out:append(" = " .. Utils.seqReduce(rt, "", { init, i, v in
+                    return init .. (i <= 1 and "__lib__." or ", __lib__.") .. v.value
+                }), true)
+                out:decIndent()
+                out:append("end")
             } else {
                 ctx:checkName(t.tlib, true)
-                out:append("local __lib__ = " .. t.tlib.value)
+                tfirst, tnext = t.tlib.value .. ".", ", " .. t.tlib.value .. "."
+                out:append(" = " .. Utils.seqReduce(rt, "", { init, i, v in
+                    return init .. (i <= 1 and tfirst or tnext) .. v.value
+                }), true)
             }
-            out:append(Utils.seqReduce(lt, "", { init, i, v in
-                return init .. (i > 1 and ", " or "") .. v.value
-            }))
-            out:append(" = " .. Utils.seqReduce(rt, "", { init, i, v in
-                return init .. (i > 1 and ", __lib__." or "__lib__.") .. v.value
-            }), true)
-            out:decIndent()
-            out:append("end")
+        } else {
+            assert(nil, "Invalid import AST")
         }
     }
 

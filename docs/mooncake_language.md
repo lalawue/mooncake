@@ -33,7 +33,6 @@
     - [parse](#parse)
     - [compile](#compile)
 
-
 # MoonCake
 
 MoonCake was a bit Swift like language compiles to Lua, and compares to Lua, main difference are
@@ -45,6 +44,7 @@ MoonCake was a bit Swift like language compiles to Lua, and compares to Lua, mai
 - support 'continue' keyword, implemented by 'goto', available in Lua 5.2 and LuaJIT
 - support 'defer' keyword in function scope, including anonymous function
 - support 'class' and 'struct' for simpler Object Oriented programming
+- support 'extension' keyword for extend class/struct
 - support 'import' keyword for simpler 'require' a lot of sub modules
 - can declare anonymous function as '{ _ in }' form, a bit like in Swift
 
@@ -924,76 +924,9 @@ print(a:getName())
 -- print output: ClsA
 ```
 
-will expanded as
+the last 'extension' keyword will expand as
 
 ```lua
-local ClsA = {}
-do
-	local __stype__ = nil
-	local __clsname__ = "ClsA"
-	local __clstype__ = ClsA
-	__clstype__.typename = __clsname__
-	__clstype__.typekind = 'class'
-	__clstype__.classtype = __clstype__
-	__clstype__.supertype = __stype__
-	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
-	-- declare var and methods
-	__clstype__.name = ClsA.typename
-	-- declare end
-	local __ins_mt__ = {
-		__tostring = function() return "instance of " .. __clsname__ end,
-		__index = function(t, k)
-			local v = __clstype__[k]
-			if v ~= nil then rawset(t, k, v) end
-			return v
-		end,
-	}
-	setmetatable(__clstype__, {
-		__tostring = function() return "class " .. __clsname__ end,
-		__index = function(_, k)
-			local v = __stype__ and __stype__[k]
-			if v ~= nil then rawset(__clstype__, k, v) end
-			return v
-		end,
-		__call = function(_, ...)
-			local ins = setmetatable({}, __ins_mt__)
-			return ins
-		end,
-	})
-end
-
-local StructA = {}
-do
-	local __clsname__ = "StructA"
-	local __clstype__ = StructA
-	__clstype__.typename = __clsname__
-	__clstype__.typekind = 'struct'
-	__clstype__.classtype = __clstype__
-	-- declare var and methods
-	function __clstype__:getName()
-		return self.name or "none"
-	end
-	-- declare end
-	local __ins_mt__ = {
-		__tostring = function() return "one of " .. __clsname__ end,
-		__index = function(t, k)
-			local v = rawget(__clstype__, k)
-			if v ~= nil then rawset(t, k, v) end
-			return v
-		end,
-		__newindex = function(t, k, v) if rawget(__clstype__, k) ~= nil then rawset(t, k, v) end end,
-	}
-	StructA = setmetatable({}, {
-		__tostring = function() return "struct " .. __clsname__ end,
-		__index = function(_, k) return rawget(__clstype__, k) end,
-		__newindex = function(_, k, v) if v ~= nil and rawget(__clstype__, k) ~= nil then rawset(__clstype__, k, v) end end,
-		__call = function(_, ...)
-			local ins = setmetatable({}, __ins_mt__)
-			return ins
-		end,
-	})
-end
-
 do
 	local __extype__ = ClsA
 	local __clstype__ = StructA
@@ -1008,11 +941,52 @@ do
 	-- declare var and methods
 	-- declare end
 end
-local a = StructA()
-print(a:getName())
 ```
 
 ## Import
+
+'import' keyword provide a convenient way to require module and its sub modules
+
+```lua
+-- require("lpeg")
+import "lpeg"
+```
+
+or require to local variable
+
+```lua
+-- local lpeg = require("lpeg")
+import lpeg from "lpeg"
+```
+
+or only load sub modules
+
+```lua
+-- local P, R, S
+-- do
+--      local __lib__ = require("lpeg")
+--      P, R, S = __lib__.P, __lib__.R, __lib__.S
+-- end
+import P, R, S from "lpeg" {}
+```
+
+and you can load and rename sub modules
+
+```lua
+-- local p, r, s
+-- do
+--      local __lib__ = require("lpeg")
+--      p, r, s = __lib__.P, __lib__.R, __lib__.S
+-- end
+import p, r, s from "lpeg" { P, R, S }
+```
+
+you can perform these rules to a table
+
+```lua
+-- local insert, remove = table.insert, table.remove
+import insert, remove from table {}
+```
 
 ## Errors
 
