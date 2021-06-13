@@ -13,7 +13,7 @@ recommand install and running first, or get more straight expressions from 'exam
 
 before dig into detials about the language and usage
 
-- [MoonCake Language](docs/language.md)
+- [The Language](docs/language.md)
 - [CommandLine Usage](docs/cmdline.md)
 - [Library Interface](docs/library.md)
 
