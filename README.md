@@ -96,4 +96,4 @@ moocscript/utils.lua                                              119  12     90
 
 ## Editor Support
 
-search extension MoonCake in [VSCode](https://code.visualstudio.com/)
+support VSCode extension in release page mooncake-0.3.20210613.vsix.
