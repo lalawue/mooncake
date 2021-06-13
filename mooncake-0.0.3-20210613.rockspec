@@ -1,12 +1,12 @@
 package = "mooncake"
-version = "0.0.3-20210612"
+version = "0.0.3-20210613"
 source = {
-   url = "git+https://gitee.com/lalawue/mooncake"
+   url = "git+https://github.com/lalawue/mooncake"
 }
 description = {
    summary = "MoonCake is Swift like programming language compiles to Lua",
    detailed = "MoonCake is Swift like programming language compiles to Lua",
-   homepage = "https://gitee.com/lalawue/mooncake",
+   homepage = "https://github.com/lalawue/mooncake",
    license = "MIT/X11",
    maintainer = "lalawue <suchaaa@gmail.com>"
 }

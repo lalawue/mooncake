@@ -123,7 +123,7 @@ fn mcAppendLoader() {
 
 fn mcVersion() {
     ver = jit and jit.version or _VERSION
-    return "moocscript v0.3.20210612, " .. ver .. ", LPeg " .. LPeg.version()    
+    return "moocscript v0.3.20210613, " .. ver .. ", LPeg " .. LPeg.version()
 }
 
 fn mcLoaded() {

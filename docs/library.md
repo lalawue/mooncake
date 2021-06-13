@@ -36,9 +36,7 @@ lib.pr("Hello, world")
 
 ## dofile / loadfile / loadstring
 
-these interface likes in Lua, here shows details, use exp_lib.mooc created before
-
-then create test_core.lua, the content shows these interface usage
+these interface likes in Lua, use exp_lib.mooc created before, then create test_core.lua, the content shows these interface usage
 
 ```lua
 -- test_core.lua
