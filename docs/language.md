@@ -37,7 +37,7 @@
 
 # MoonCake
 
-MoonCake was a bit Swift like language compiles to Lua, and compares to Lua, main difference are
+MoonCake was a bit Swift like language that compiles to Lua, and compares to Lua, main difference are
 
 - always declare variable as 'local', unless using 'export' keyword
 - using '{' and '}' instead of keyword 'do', 'then', 'end' to seperate code block

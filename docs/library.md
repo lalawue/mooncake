@@ -50,8 +50,8 @@ print("loadfile", f, f(), f().pr == print)
 local d = MoocLib.dofile("exp_lib.mooc")
 print("dofile", d, d.pr == print)
 
-local l = MoocLib.loadstring("return print")
-print("loadstring", l, l() == print)
+local l = MoocLib.loadstring("return { pr : print }")
+print("loadstring", l, l().pr == print)
 -- loadfile        function: 0x00078ff8    table: 0x00078be8       true
 -- dofile          table: 0x0005a538       true
 -- loadstring      function: 0x0005b110    true
