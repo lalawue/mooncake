@@ -96,4 +96,9 @@ moocscript/utils.lua                                              119  12     90
 
 ## Editor Support
 
-support VSCode extension in release page mooncake-0.3.20210613.vsix.
+support VSCode extension in release page [mooncake-0.3.20210613.vsix](https://github.com/lalawue/mooncake/releases).
+
+## Projects using MoonCake
+
+- [rpc_framework](https://github.com/lalawue/rpc_framework)
+- [cincau](https://github.com/lalawue/cincau)
