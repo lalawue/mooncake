@@ -17,6 +17,20 @@ before dig into detials about the language and usage
 - [CommandLine Usage](docs/cmdline.md)
 - [Library Interface](docs/library.md)
 
+## Features
+
+with differences from Lua
+
+- variable default local scope
+- support guard keyword
+- support switch keyword
+- support continue keyword
+- support defer keyword in function scope
+- support create class / struct
+- support extension class / struct
+- support import keyword
+- support anonymous function form '{ in }' likes in Swift
+
 ## Install
 
 recommend install from [LuaRocks](https://luarocks.org/)
