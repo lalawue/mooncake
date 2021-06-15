@@ -109,7 +109,9 @@ moocscript/utils.lua                                              119  12     90
 
 ## Editor Support
 
-support VSCode extension in release page [mooncake-0.3.20210613.vsix](https://github.com/lalawue/mooncake/releases).
+VSCode extension support syntax highlight and outline, in release page [mooncake-0.3.20210613.vsix](https://github.com/lalawue/mooncake/releases).
+
+![vscode_extension](docs/vscode_extension.png)
 
 ## Projects using MoonCake
 
