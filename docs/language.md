@@ -129,7 +129,6 @@ these global names are pre-defined:
     "_VERSION",
     "_ENV",
     "assert",
-    "bit32",
     "collectgarbage",
     "coroutine",
     "debug",

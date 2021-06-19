@@ -82,7 +82,6 @@ local _global_names = Utils.set({
     "_VERSION",
     "_ENV",
     "assert",
-    "bit32",
     "collectgarbage",
     "coroutine",
     "debug",

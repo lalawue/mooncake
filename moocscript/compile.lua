@@ -95,7 +95,7 @@ do
 		end,
 	})
 end
-local _global_names = Utils.set({ "_G", "_VERSION", "_ENV", "assert", "bit32", "collectgarbage", "coroutine", "debug", "dofile", "error", "getfenv", "getmetatable", "io", "ipairs", "jit", "load", "loadfile", "loadstring", "math", "module", "next", "os", "package", "pairs", "pcall", "print", "rawequal", "rawget", "rawlen", "rawset", "require", "select", "setfenv", "setmetatable", "string", "table", "tonumber", "tostring", "type", "unpack", "xpcall", "nil", "true", "false" })
+local _global_names = Utils.set({ "_G", "_VERSION", "_ENV", "assert", "collectgarbage", "coroutine", "debug", "dofile", "error", "getfenv", "getmetatable", "io", "ipairs", "jit", "load", "loadfile", "loadstring", "math", "module", "next", "os", "package", "pairs", "pcall", "print", "rawequal", "rawget", "rawlen", "rawset", "require", "select", "setfenv", "setmetatable", "string", "table", "tonumber", "tostring", "type", "unpack", "xpcall", "nil", "true", "false" })
 local _scope_global = { otype = "gl", vars = _global_names }
 local _scope_proj = { otype = "pj", vars = {  } }
 local Ctx = {}
