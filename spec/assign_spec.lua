@@ -72,6 +72,33 @@ describe("test success #assign", function()
      end)
 end)
 
+describe("test success #assign", function()
+     local mnstr=[[
+          a = "11"
+          a ..= "22"
+          return a
+     ]]
+
+     local ret, ast = parser.parse(mnstr)
+     it("should get ast", function()
+          assert.is_true(ret)
+          assert.is_true(type(ast) == "table")
+     end)
+  
+     local ret, content = compile.compile({}, ast)
+     it("should get compiled lua", function()
+          assert.is_true(ret)
+          assert.is_true(type(content) == "string")
+     end)
+  
+     local f = load(content, "test", "t")
+     it("should get function", function()
+          assert(type(f) == "function")
+          local ret = f()
+          assert.is_equal(ret, "1122")
+     end)
+end)
+
 describe("test failed compile #assign", function()
      local mnstr=[[
           q = ((2 * 4) / 5

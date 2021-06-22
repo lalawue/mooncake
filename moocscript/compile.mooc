@@ -760,7 +760,8 @@ struct M {
     }
 
     fn trStTwoEqual(t) {
-        assert(t.stype:sub(2, 2) == "=", "Invalid stype two equal")
+        tlen = t.stype:len()
+        assert(t.stype:sub(tlen, tlen) == "=", "Invalid stype two equal")
         ctx = self.ctx
         out = self.out
         assert(#t == 2, "Invalid asign count")
@@ -769,7 +770,7 @@ struct M {
         self:trExpr(t[1])
         out:append(" = ")
         self:trExpr(t[1])
-        out:append(" " .. t.stype:sub(1, t.stype:len() - 1) .. " (")
+        out:append(" " .. t.stype:sub(1, tlen - 1) .. " (")
         for _, v in ipairs(t[2]) {
             self:trExpr(v)
         }

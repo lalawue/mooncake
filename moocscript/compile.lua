@@ -695,7 +695,8 @@ do
 		end
 	end
 	function __clstype__:trStTwoEqual(t)
-		assert(t.stype:sub(2, 2) == "=", "Invalid stype two equal")
+		local tlen = t.stype:len()
+		assert(t.stype:sub(tlen, tlen) == "=", "Invalid stype two equal")
 		local ctx = self.ctx
 		local out = self.out
 		assert(#t == 2, "Invalid asign count")
@@ -704,7 +705,7 @@ do
 		self:trExpr(t[1])
 		out:append(" = ")
 		self:trExpr(t[1])
-		out:append(" " .. t.stype:sub(1, t.stype:len() - 1) .. " (")
+		out:append(" " .. t.stype:sub(1, tlen - 1) .. " (")
 		for _, v in ipairs(t[2]) do
 			self:trExpr(v)
 		end
