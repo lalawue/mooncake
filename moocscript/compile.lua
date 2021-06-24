@@ -113,6 +113,7 @@ do
 	__clstype__.in_defer = false
 	__clstype__.in_clsvar = false
 	__clstype__.in_clsname = false
+	__clstype__.in_supname = false
 	__clstype__.err_info = false
 	__clstype__.last_pos = 0
 	-- MARK:
@@ -122,11 +123,6 @@ do
 		self.content = content
 		-- { otype : "gl|pj|fi|cl|fn|lo|if|do|gu", vars : {} }
 		self.scopes = { _scope_global, _scope_proj, { otype = "fi", vars = {  }, loidx = 0 } }
-		self.in_defer = false
-		self.in_clsvar = false
-		self.in_clsname = false
-		self.err_info = false
-		self.last_pos = 0
 	end
 	function __clstype__:pushScope(ot, exp)
 		local t = self.scopes
@@ -354,6 +350,8 @@ do
 				end
 				if ctx.in_clsname and t.value == "Self" then
 					out:append(ctx.in_clsname, true)
+				elseif ctx.in_supname and t.value == "Super" then
+					out:append(ctx.in_supname, true)
 				else
 					out:append(t.value, true)
 				end
@@ -365,6 +363,8 @@ do
 				ctx:checkName(t)
 				if ctx.in_clsname and t.value == "Self" then
 					out:append(ctx.in_clsname, true)
+				elseif ctx.in_supname and t.value == "Super" then
+					out:append(ctx.in_supname, true)
 				else
 					out:append(t.value, true)
 				end
@@ -865,6 +865,8 @@ do
 			ctx:checkName(t[1], true)
 			if ctx.in_clsname and t[1].value == "Self" then
 				out:append(ctx.in_clsname, true)
+			elseif ctx.in_supname and t[1].value == "Super" then
+				out:append(ctx.in_supname, true)
 			else
 				out:append(t[1].value, true)
 			end
@@ -1194,6 +1196,7 @@ do
 		local clsname = t.name.value
 		local supertype = t.super and t.super.value
 		ctx.in_clsname = clsname
+		ctx.in_supname = supertype or false
 		if t.attr == "export" then
 			ctx:globalInsert(clsname)
 		else
@@ -1223,6 +1226,9 @@ do
 		--
 		ctx:pushScope("cl")
 		ctx:localInsert("Self")
+		if ctx.in_supname then
+			ctx:localInsert("Super")
+		end
 		local cls_fns, ins_fns = {  }, {  }
 		local fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns)
 		--
@@ -1284,6 +1290,7 @@ do
 		out:append("end")
 		ctx:popScope()
 		ctx.in_clsname = false
+		ctx.in_supname = false
 	end
 	function __clstype__:trStStruct(t)
 		assert(t.stype == "struct", "Invalid stype struct")
@@ -1405,7 +1412,7 @@ do
 		out:decIndent()
 		out:append("end")
 		ctx:popScope()
-		ctx.in_clsname = nil
+		ctx.in_clsname = false
 	end
 	function __clstype__:hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns)
 		out:append("-- declare struct var and methods")

@@ -25,7 +25,7 @@
     - [break](#break)
     - [goto](#goto)
   - [Class](#class)
-    - [self / Self](#self--self)
+    - [self / Self / Super](#self--self--super)
     - [metamethod](#metamethod)
   - [Struct](#struct)
   - [Extension](#extension)
@@ -773,9 +773,11 @@ print(b - a)
 -- 2
 ```
 
-### self / Self
+### self / Self / Super
 
-you can use 'self' in instance method, likes in Lua, and use Self as class itself in class scope, including variable definition.
+- 'self' refers to class instance, you can use it in instance method, likes in Lua
+- 'Self' refers to class itself in class scope, including variable definition
+- 'Super' refers to super calss in class scope, including variable definition
 
 you can visit defined variable in sequence as what you write in the source.
 

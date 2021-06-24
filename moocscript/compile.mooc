@@ -136,6 +136,7 @@ struct Ctx {
     in_defer = false
     in_clsvar = false
     in_clsname = false
+    in_supname = false
 
     err_info = false
     last_pos = 0
@@ -152,11 +153,6 @@ struct Ctx {
             _scope_proj,
             { otype : "fi", vars : {}, loidx : 0 }
         }
-        self.in_defer = false
-        self.in_clsvar = false
-        self.in_clsname = false
-        self.err_info = false
-        self.last_pos = 0
     }
 
     fn pushScope(ot, exp) {
@@ -404,6 +400,8 @@ struct M {
                 }
                 if ctx.in_clsname and t.value == "Self" {
                     out:append(ctx.in_clsname, true)
+                } elseif ctx.in_supname and t.value == "Super" {
+                    out:append(ctx.in_supname, true)
                 } else {
                     out:append(t.value, true)
                 }
@@ -415,6 +413,8 @@ struct M {
                 ctx:checkName(t)
                 if ctx.in_clsname and t.value == "Self" {
                     out:append(ctx.in_clsname, true)
+                } elseif ctx.in_supname and t.value == "Super" {
+                    out:append(ctx.in_supname, true)
                 } else {
                     out:append(t.value, true)
                 }
@@ -935,6 +935,8 @@ struct M {
             ctx:checkName(t[1], true)
             if ctx.in_clsname and t[1].value == "Self" {
                 out:append(ctx.in_clsname, true)
+            } elseif ctx.in_supname and t[1].value == "Super" {
+                out:append(ctx.in_supname, true)
             } else {
                 out:append(t[1].value, true)
             }
@@ -1281,6 +1283,7 @@ struct M {
         clsname = t.name.value
         supertype = t.super and t.super.value
         ctx.in_clsname = clsname
+        ctx.in_supname = supertype or false
         if t.attr == "export" {
             ctx:globalInsert(clsname)
         } else {
@@ -1310,6 +1313,9 @@ struct M {
         --
         ctx:pushScope("cl")
         ctx:localInsert("Self")
+        if ctx.in_supname {
+            ctx:localInsert("Super")
+        }
         cls_fns, ins_fns = {}, {}
         fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns) 
         --
@@ -1371,6 +1377,7 @@ struct M {
         out:append("end")
         ctx:popScope()
         ctx.in_clsname = false
+        ctx.in_supname = false
     }
     
     fn trStStruct(t) {
@@ -1494,7 +1501,7 @@ struct M {
         out:decIndent()
         out:append("end")
         ctx:popScope()
-        ctx.in_clsname = nil
+        ctx.in_clsname = false
     }    
 
     fn hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns) {

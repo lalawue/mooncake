@@ -38,6 +38,9 @@ describe("test normal #class", function()
             static fn test() {
                 Self.takeTime(Self, 1, 2)
             }
+            static fn checksuper() {
+                return Super
+            }
         }
         ClsA.b = 100
         return ClsA, ClsB
@@ -65,6 +68,7 @@ describe("test normal #class", function()
         assert.is_equal(ClsB.b, 1206)
         assert.is_equal(ClsA.f, 110)
         assert.is_equal(ClsB.runAway(10), 1216)
+        assert.is_equal(ClsB.checksuper(), ClsA)
         local b = ClsB()
         assert.is_true(b:isKindOf(ClsA))
         assert.is_equal(b:takeTime(1, 2), 5)
