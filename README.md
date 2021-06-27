@@ -109,7 +109,7 @@ moocscript/utils.lua                                              119  12     90
 
 ## Editor Support
 
-VSCode extension support syntax highlight and outline, in release page [mooncake-0.3.20210613.vsix](https://github.com/lalawue/mooncake/releases).
+VSCode extension support syntax highlight and outline, in [moocscript-extension](https://github.com/lalawue/moocscript-extension/releases/), or in [gitee mirror](https://gitee.com/lalawue/moocscript-extension/releases).
 
 ![vscode_extension](docs/vscode_extension.png)
 
