@@ -1,5 +1,6 @@
 local parser = require("moocscript.parser")
 local compile = require("moocscript.compile")
+local class = require("moocscript.class")
 
 describe("test normal #class", function()
     local mnstr=[[
@@ -133,6 +134,66 @@ describe("test success #class", function()
         assert(type(f) == "function")
         local c = f(10)
         assert.is_equal(c, "c")
+    end)
+end)
+
+describe("test inherit from lua side #class", function()
+    local mnstr=[[
+        class A {
+            a = 10
+            fn name() {
+                return 'A'
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)        
+        assert.is_true(type(content) == "string")
+    end)
+ 
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        assert.is_equal(f().name(), "A")
+    end)
+
+    it("should create class B", function()
+        local B = class('B')
+        function B:init(a, b)
+            self.a = a
+            self.b = b
+        end
+        local b = B(1, 2)
+        assert.is_equal(tostring(b), "instance of B")
+        assert.is_equal(b.typename, "B")
+        assert.is_equal(b.a, 1)
+        assert.is_equal(b.b, 2)
+    end)
+
+    it("should inherit from class A", function()
+        local A = f()
+        local C = class('C', A)
+        function C:init(b)
+            self.b = b
+        end
+        function C:add()
+            return self.a + self.b
+        end
+        local c = C(20)
+        assert.is_equal(tostring(c), "instance of C")
+        assert.is_equal(c.supertype, A)
+        assert.is_equal(c.a, 10)
+        assert.is_equal(c.b, 20)
+        assert.is_equal(c:add(), 30)
     end)
 end)
 

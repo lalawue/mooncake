@@ -69,9 +69,81 @@ describe("test success #call", function()
     end)
 end)
 
-describe("test failed #call", function()
+describe("test no parentheses #call", function()
+    local mnstr=[[
+        fn f(a) {
+            return a
+        }
+        if not f . 'a' {
+            return f. { }
+        }
+        return f. 'a', f . "b", f .{ "c" }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+         assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+         assert.is_true(type(content) == "string")
+    end)
+ 
+    local f = load(content, "test", "t")
+    it("should get result", function()
+         assert(type(f) == "function")
+         local a, b, c = f()
+         assert.is_equal(a, "a")
+         assert.is_equal(b, "b")
+         assert.is_table(c)
+         assert.is_equal(c[1], "c")
+    end)
+end)
+
+describe("test call table config #call", function()
+    local mnstr=[[
+        return {
+            print. {
+                { a = "10", c : '9' },
+                "100"
+            },
+            {
+                print. "100",
+                print. { b = 99 }
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+         assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+         assert.is_true(type(content) == "string")
+    end)
+end)
+
+describe("test failed 1 #call", function()
     local mnstr=[[
         _G:c:print("Invalid Call")
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_false(ret)
+    end)
+end)
+
+describe("test failed 2 #call", function()
+    local mnstr=[[
+        print . 'a' "b"
     ]]
 
     local ret, ast = parser.parse(mnstr)

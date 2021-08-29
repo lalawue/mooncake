@@ -6,6 +6,8 @@ local c = 10
 export d = 20
 
 local fn read() {
+    export *
+    return undefined_outer_variable
 }
 
 export fn say() {

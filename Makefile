@@ -45,6 +45,7 @@ out:
 	$(CS) $(NAME)/core.$(SUFX) > $(ODIR)/core.lua
 	$(CS) $(NAME)/parser.$(SUFX) > $(ODIR)/parser.lua
 	$(CS) $(NAME)/utils.$(SUFX) > $(ODIR)/utils.lua
+	$(CS) $(NAME)/class.$(SUFX) > $(ODIR)/class.lua
 	$(OLIB) && busted
 
 MN_DIR=$(INSTALL_LUA_PATH)/$(NAME)/

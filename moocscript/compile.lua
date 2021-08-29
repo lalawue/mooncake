@@ -238,7 +238,7 @@ do
 		end
 		local t = self.scopes
 		for i = #t, 1, -1 do
-			if t[i].vars[n] then
+			if t[i].vars[n] or t[i].vars["*"] then
 				return true
 			end
 		end
@@ -790,23 +790,27 @@ do
 				end
 			end
 		elseif t.attr == "export" then
-			for i, v in ipairs(t[1]) do
-				ctx:globalInsert(v.value)
-			end
-			if t[2] then
+			if t.op == "*" then
+				ctx:localInsert("*")
+			else
 				for i, v in ipairs(t[1]) do
-					if i > 1 then
-						out:append(",")
-					end
-					self:trExpr(v)
+					ctx:globalInsert(v.value)
 				end
-				out:append(" = ")
-				for i, e in ipairs(t[2]) do
-					if i > 1 then
-						out:append(", ")
-					end
-					for _, v in ipairs(e) do
+				if t[2] then
+					for i, v in ipairs(t[1]) do
+						if i > 1 then
+							out:append(",")
+						end
 						self:trExpr(v)
+					end
+					out:append(" = ")
+					for i, e in ipairs(t[2]) do
+						if i > 1 then
+							out:append(", ")
+						end
+						for _, v in ipairs(e) do
+							self:trExpr(v)
+						end
 					end
 				end
 			end
@@ -963,8 +967,8 @@ do
 		local out = self.out
 		local body = t.body
 		local bt = body[#body]
-		if #body <= 0 or not (bt.stype == "return" or bt.stype == "goto" or bt.stype == "break") then
-			ctx:errorPos("guard statement need return/goto/break at last", "guard", t.pos - 1)
+		if #body <= 0 or not (bt.stype == "return" or bt.stype == "goto" or bt.stype == "break" or bt.stype == "continue") then
+			ctx:errorPos("guard statement need return/goto/break/continue at last", "guard", t.pos - 1)
 			return 
 		end
 		out:append("if not (")

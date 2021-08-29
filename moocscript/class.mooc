@@ -1,0 +1,60 @@
+--
+-- Copyright (c) 2021 lalawue
+--
+-- This library is free software; you can redistribute it and/or modify it
+-- under the terms of the MIT license. See LICENSE for details.
+--
+
+local fType = type
+local fAssert = assert
+local fRawSet = rawset
+
+fn dummy_init() {
+}
+
+-- create or inherit mooc_class from Lua side
+fn newMoocClass(cls_name, super_type) {
+    guard fType(cls_name) == "string" else {
+        return nil
+    }
+    guard super_type == nil or fType(super_type) == "table" else {
+        return nil
+    }
+    cls_type = {}
+    cls_type.typename = cls_name
+    cls_type.typekind = 'class'
+    cls_type.classtype = cls_type
+    cls_type.supertype = super_type
+    if not super_type {
+        cls_type.isKindOf = fn(cls, a) { return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false }
+    }
+    cls_type.init = dummy_init
+    ins_mt = {
+        __tostring = fn() { return "instance of " .. cls_name },
+        __index = fn(t, k) {
+            v = cls_type[k]
+            if v ~= nil { fRawSet(t, k, v) }
+            return v
+        }
+    }
+    setmetatable(cls_type, {
+        __tostring = fn() { return "class " .. cls_name },
+        __index = fn(_, k) {
+            v = super_type and super_type[k]
+            if v ~= nil { fRawSet(cls_type, k, v) }
+            return v
+        },
+        __call = fn(_, ...) {
+            ins = setmetatable({}, ins_mt)
+            if ins:init(...) == false { return nil }
+            return ins
+        }
+    })
+    return cls_type
+}
+
+return setmetatable({}, {
+    __call = fn(_, ...) {
+        return newMoocClass(...)
+    }
+})

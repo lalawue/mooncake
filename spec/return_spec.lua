@@ -8,7 +8,7 @@ describe("test success #return", function()
         }        
         if false {
             return (loadstring or load)("", "", unpack({}))
-        }        
+        }
         return 0 -- hello
     ]]
 

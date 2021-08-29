@@ -3,6 +3,7 @@
   - [require .mooc from Lua](#require-mooc-from-lua)
   - [dofile / loadfile / loadstring](#dofile--loadfile--loadstring)
   - [control compile step](#control-compile-step)
+  - [create / inherit mooc class](#create--inherit-mooc-class)
   - [other interface](#other-interface)
   
 # Library Interface
@@ -12,6 +13,7 @@ with library, you can
 - require .mooc module from Lua
 - dofile / loadfile / loadstring
 - control compile step
+- create / inherit mooc class
 
 ## require .mooc from Lua
 
@@ -92,7 +94,34 @@ else
 end
 ```
 
+## create / inherit mooc class
+
+you can create / inherit mooc class from Lua side, but has limitations,
+can not create class or instance metamethod after class defition.
+
+```lua
+local MoocClass = require("moocscript.class")
+local ClassA = require("MoocClassAForExample")
+
+-- create ClassB with no inherit
+local ClassB = MoocClass("B")
+
+-- will be called when create ClassB's instance with ClassB(...)
+function ClassB:init(...)
+end
+
+-- create ClassC inherit from ClassA
+local ClassC = MoocClass("C", ClassA)
+
+function ClassC:init(...)
+end
+```
+
+if `ClassA` was not a mooc class, ClassC is nil, and will cause runtime error.
+
 ## other interface
+
+these interfaces from `require("moocscript.core")`:
 
 - removeloader(): you can remove .mooc loader form VM
 - appendloader(): add .mooc loader to VM

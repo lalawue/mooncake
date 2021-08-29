@@ -5,6 +5,7 @@
   - [String](#string)
   - [Comment](#comment)
   - [Assigment & Scope](#assigment--scope)
+    - [export *](#export-)
     - [global names](#global-names)
     - [operators](#operators)
   - [Table](#table)
@@ -120,6 +121,22 @@ local b = 10
 
 and when using global variable defined in another library not export before, will cause undefined variable error.
 
+### export *
+
+you can `export *` all current scope variables, for case using with setfenv or debug.setupvalue(), redefined _ENV in runtime
+
+```lua
+--[[
+  function call() {
+    return outer_variable
+  }
+]]
+fn call() {
+  export *
+  return outer_variable
+}
+```
+
 ### global names
 
 these global names are pre-defined:
@@ -181,7 +198,7 @@ a += 100
 
 ## Table
 
-likes in Lua, but using ':' instead of '=' between key and value.
+likes in Lua, and you can use ':' or '=' between key and value.
 
 ```lua
 --[[
@@ -198,7 +215,7 @@ tbl = {
   1,
   "2",
   "3" : 4,
-  ["5"] : 6
+  ["5"] = 6
 }
 ```
 
@@ -223,14 +240,18 @@ if key and value with same literal name, you can define table as
 
 ```lua
 --[[
-local value = 10
+local value1 = 10
+local value2 = 11
 tbl = {
-  value = value
+  value1 = value1,
+  value2 = value2
 }
 ]]
-value = 10
+value1 = 10
+value2 = 11
 tbl = {
-  :value
+  :value1,
+  =value2
 }
 ```
 
@@ -243,10 +264,12 @@ so **keep space** before or after ':' to avoid this.
 
 function definition has shorten keyword 'fn', and holding codes with paired '{' and '}', the origin 'function', 'end' became forbidden words.
 
-and function call should always come with paired '(' and ')', like
+there are two types function call, likes
 
 ```lua
-print("function call should always come with paired '(' and ')'")
+print("1st type function call come with paired '(' and ')'", "and speperate with ,")
+print. "2nd type function call come after . and only accept 1 string or table"
+print .{ "2nd type function call table parameter" }
 ```
 
 beside this, function definition likes in Lua

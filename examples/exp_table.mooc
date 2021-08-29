@@ -1,15 +1,30 @@
 
 key = 10
 return {
-    1,
-    "array value",
-    "key" : "value",
-    table_key : {
-        0, 1, 2, 3
-    },
-    "fn" : fn() {
+    {
+        1,
+        "array value",
+        "key" : "value",
+        table_key : {
+            0, 1, 2, 3
+        },
+        "fn" : fn() {
 
+        },
+        [key] : 11,
+        :key,
     },
-    [key] : 11,
-    :key,
+    {
+        1,
+        "array value",
+        "key" = "value",
+        table_key = {
+            0, 1, 2, 3
+        },
+        "fn" = fn() {
+
+        },
+        [key] = 11,
+        =key,
+    }
 }

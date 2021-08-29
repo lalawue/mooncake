@@ -89,7 +89,7 @@ using [busted](https://olivinelabs.com/busted/), running from project dir
 $ luarocks install busted
 $ busted
 ●●●●●●●●●●●●●●●●●●...
-183 successes / 0 failures / 0 errors / 0 pending : 0.298494 seconds
+209 successes / 0 failures / 0 errors / 0 pending : 0.16972 seconds
 ```
 
 you can install [LuaCov](https://keplerproject.github.io/luacov/) to get code coverage report
@@ -100,10 +100,11 @@ $ busted -c
 $ luacov
 $ cat luacov.report.out | grep 'moocscript/'
 ...
-moocscript/compile.lua                                            1157 12     98.97%
-moocscript/core.lua                                               76   1      98.70%
-moocscript/parser.lua                                             119  0      100.00%
-moocscript/utils.lua                                              119  12     90.84%
+moocscript/class.lua                                              30   2      93.75%
+moocscript/compile.lua                                            1109 14     98.75%
+moocscript/core.lua                                               86   2      97.73%
+moocscript/parser.lua                                             241  3      98.77%
+moocscript/utils.lua                                              110  4      96.49%
 ...
 ```
 
