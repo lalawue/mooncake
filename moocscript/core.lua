@@ -124,7 +124,7 @@ end
 local function mcVersion()
 	local lver = jit and jit.version or _VERSION
 	local pver = type(LPeg.version) == "function" and ("LPeg " .. LPeg.version()) or LPeg.version
-	return "moocscript v0.3.20210627, " .. lver .. ", " .. pver
+	return "moocscript v0.4.20210829, " .. lver .. ", " .. pver
 end
 local function mcLoaded()
 	return package.mooc_loaded ~= nil
