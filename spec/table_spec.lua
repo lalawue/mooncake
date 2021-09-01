@@ -11,6 +11,7 @@ describe("test success 1 #table", function()
              fn(){} : 4,
              {fn(){}} : fn(){}, --[=[ 90123d ]=]
              false : tonumber("10"),
+             class : 12,
              c : 1 + ...,
              :b,
              d : b,
@@ -53,6 +54,7 @@ describe("test success 2 #table", function()
              fn(){} = 4,
              {fn(){}} = fn(){}, --[=[ 90123d ]=]
              false = tonumber("10"),
+             class = 12,
              c = 1 + ...,
              =b,
              d = b,

@@ -70,6 +70,9 @@ pVarRight = Cmt(pAlphaNum, fNoKWR)
 pVarArg = Cmt(pAlphaNum, fNoKWL)
 pVArgList = Cmt("...", fMarkEtype("varg"))
 pVarColon = Cmt(pAlphaNum * (P(".") * pAlphaNum) ^ 0 * P(":") * pAlphaNum, fNoKWR)
+local pTbVKey = Cmt(pAlphaNum, fn(s, p, c) {
+    return true, {etype : "lvar", value : c, pos : p}
+})
 
 pNumber = Cmt(P("0x") * R("09", "af", "AF") ^ 1 * (S("uU") ^ -1 * S("lL") ^ 2) ^ -1 + R("09") ^ 1 * (S("uU") ^ -1 * S("lL") ^ 2) +
  (R("09") ^ 1 * (P(".") * R("09") ^ 1) ^ -1 + P(".") * R("09") ^ 1) * (S("eE") * P("-") ^ -1 * R("09") ^ 1) ^ -1, fn(s, p, c) {
@@ -322,7 +325,7 @@ gG = {
     vTbDef : Ct(Cg(pBLeft / fTrim, "etype") * (vTbKV * pBlanks * (pComma * pBlanks * vTbKV * pBlanks) ^ 0 * (pComma + vCmSMT) ^ -1) ^ -1 * pBRight ),
     vTbKV : vCmSMT ^ -1 * Ct(vTbNk + vTbVk * vTbVal + vTbBk * vTbVal + vTbVal),
     vTbNk : pBlanks * (pColon + pEqual) * pBlanks * Cg(pVarArg, "nkey"),
-    vTbVk : pBlanks * Cg(pVarArg, "vkey") * pBlanks * (pColon + pEqual),
+    vTbVk : pBlanks * Cg(pTbVKey, "vkey") * pBlanks * (pColon + pEqual),
     vTbBk : (pSLeft * Cg(vExpr, "bkey") * pSRight + Cg(vExpr, "bkey")) * (pColon + pEqual),
     vTbVal : pBlanks * Cg(Ct(vExpr), "value"),
     --

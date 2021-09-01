@@ -87,7 +87,7 @@ local function mcLoadString(text, cname, mode, env)
 		return emsg
 	end
 	local f = (loadstring or load)
-	return f(res, cname, unpack({ mode = mode, env = env }))
+	return f(res, cname, unpack({ ["mode"] = mode, ["env"] = env }))
 end
 local function mcLoadFile(fname, ...)
 	local text, err = readFile(fname)
@@ -124,11 +124,11 @@ end
 local function mcVersion()
 	local lver = jit and jit.version or _VERSION
 	local pver = type(LPeg.version) == "function" and ("LPeg " .. LPeg.version()) or LPeg.version
-	return "moocscript v0.4.20210829, " .. lver .. ", " .. pver
+	return "moocscript v0.4.20210901, " .. lver .. ", " .. pver
 end
 local function mcLoaded()
 	return package.mooc_loaded ~= nil
 end
 -- append loader
 mcAppendLoader()
-return { loadstring = mcLoadString, loadfile = mcLoadFile, dofile = mcDoFile, removeloader = mcRemoveLoader, appendloader = mcAppendLoader, toAST = toAST, toLua = toLua, clearProj = clearproj, version = mcVersion, loaded = mcLoaded }
+return { ["loadstring"] = mcLoadString, ["loadfile"] = mcLoadFile, ["dofile"] = mcDoFile, ["removeloader"] = mcRemoveLoader, ["appendloader"] = mcAppendLoader, ["toAST"] = toAST, ["toLua"] = toLua, ["clearProj"] = clearproj, ["version"] = mcVersion, ["loaded"] = mcLoaded }

@@ -163,7 +163,7 @@ do
 			end
 			num = num - 1
 		end
-		return { line = ln_num, message = ln_content }
+		return { ["line"] = ln_num, ["message"] = ln_content }
 	end
 	-- declare end
 	local __ins_mt__ = {

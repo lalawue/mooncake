@@ -11,6 +11,7 @@ return {
         "fn" : fn() {
 
         },
+        false : 10,
         [key] : 11,
         :key,
     },
@@ -24,6 +25,7 @@ return {
         "fn" = fn() {
 
         },
+        false = 10,
         [key] = 11,
         =key,
     }

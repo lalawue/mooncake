@@ -28,24 +28,24 @@ local function newMoocClass(cls_name, super_type)
 		end
 	end
 	cls_type.init = dummy_init
-	local ins_mt = { __tostring = function()
+	local ins_mt = { ["__tostring"] = function()
 		return "instance of " .. cls_name
-	end, __index = function(t, k)
+	end, ["__index"] = function(t, k)
 		local v = cls_type[k]
 		if v ~= nil then
 			fRawSet(t, k, v)
 		end
 		return v
 	end }
-	setmetatable(cls_type, { __tostring = function()
+	setmetatable(cls_type, { ["__tostring"] = function()
 		return "class " .. cls_name
-	end, __index = function(_, k)
+	end, ["__index"] = function(_, k)
 		local v = super_type and super_type[k]
 		if v ~= nil then
 			fRawSet(cls_type, k, v)
 		end
 		return v
-	end, __call = function(_, ...)
+	end, ["__call"] = function(_, ...)
 		local ins = setmetatable({  }, ins_mt)
 		if ins:init(...) == false then
 			return nil
@@ -54,6 +54,6 @@ local function newMoocClass(cls_name, super_type)
 	end })
 	return cls_type
 end
-return setmetatable({  }, { __call = function(_, ...)
+return setmetatable({  }, { ["__call"] = function(_, ...)
 	return newMoocClass(...)
 end })

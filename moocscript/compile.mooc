@@ -628,7 +628,7 @@ struct M {
                 } else {
                     if e.vkey ~= nil {
                         vk = e.vkey
-                        out:append(vk.value, true)
+                        out:append('["' .. vk.value .. '"]', true)
                         out:append(" = ", true)
                     } elseif e.bkey ~= nil {
                         bk = e.bkey

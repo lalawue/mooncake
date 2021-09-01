@@ -96,8 +96,8 @@ do
 	})
 end
 local _global_names = Utils.set({ "_G", "_VERSION", "_ENV", "assert", "collectgarbage", "coroutine", "debug", "dofile", "error", "getfenv", "getmetatable", "io", "ipairs", "jit", "load", "loadfile", "loadstring", "math", "module", "next", "os", "package", "pairs", "pcall", "print", "rawequal", "rawget", "rawlen", "rawset", "require", "select", "setfenv", "setmetatable", "string", "table", "tonumber", "tostring", "type", "unpack", "xpcall", "nil", "true", "false" })
-local _scope_global = { otype = "gl", vars = _global_names }
-local _scope_proj = { otype = "pj", vars = {  } }
+local _scope_global = { ["otype"] = "gl", ["vars"] = _global_names }
+local _scope_proj = { ["otype"] = "pj", ["vars"] = {  } }
 local Ctx = {}
 do
 	local __clsname__ = "Ctx"
@@ -122,11 +122,11 @@ do
 		self.ast = ast
 		self.content = content
 		-- { otype : "gl|pj|fi|cl|fn|lo|if|do|gu", vars : {} }
-		self.scopes = { _scope_global, _scope_proj, { otype = "fi", vars = {  }, loidx = 0 } }
+		self.scopes = { _scope_global, _scope_proj, { ["otype"] = "fi", ["vars"] = {  }, ["loidx"] = 0 } }
 	end
 	function __clstype__:pushScope(ot, exp)
 		local t = self.scopes
-		local scope = { otype = ot, vars = {  }, exp = exp }
+		local scope = { ["otype"] = ot, ["vars"] = {  }, ["exp"] = exp }
 		t[#t + 1] = scope
 		if ot == "lo" then
 			t[3].loidx = t[3].loidx + (1)
@@ -570,7 +570,7 @@ do
 				else
 					if e.vkey ~= nil then
 						local vk = e.vkey
-						out:append(vk.value, true)
+						out:append('["' .. vk.value .. '"]', true)
 						out:append(" = ", true)
 					elseif e.bkey ~= nil then
 						local bk = e.bkey
@@ -1110,7 +1110,7 @@ do
 			if v.stype == "return" or v.stype == "break" then
 				ctx:errorPos("try do { " .. v.stype .. " } for continue will insert label after", v.stype, v.pos - 1)
 			elseif #le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue" then
-				le[#le + 1] = { stype = "raw", sub = "continue", "::" .. label .. "::" }
+				le[#le + 1] = { ["stype"] = "raw", ["sub"] = "continue", "::" .. label .. "::" }
 			end
 		end
 	end
