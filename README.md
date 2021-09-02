@@ -30,6 +30,35 @@ with differences from Lua
 - support import keyword
 - support anonymous function form '{ in }' likes in Swift
 
+## examples
+
+```lua
+class Animal {
+
+    foot = 4
+
+    wing = 0
+
+    fn init() {
+    }
+
+    fn canFly() {
+        return self.wing > 0
+    }
+}
+
+class Bird : Animal {
+    
+    fn init(wing) {
+        self.foot = 2
+        self.wing = wing or 2
+    }
+}
+
+a = Bird()
+print(a:canFly()) -- true
+```
+
 ## Install
 
 recommend install from [LuaRocks](https://luarocks.org/)
