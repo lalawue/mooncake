@@ -128,12 +128,12 @@ you can `export *` all current scope variables, for case using with setfenv or d
 ```lua
 --[[
   function call() {
-    return outer_variable
+    return variable_not_in_current_file
   }
 ]]
 fn call() {
   export *
-  return outer_variable
+  return variable_not_in_curernt_file
 }
 ```
 
