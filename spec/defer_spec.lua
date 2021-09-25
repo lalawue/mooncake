@@ -24,7 +24,23 @@ describe("test success #defer", function()
             }
         }
         test_defer()()
-        return a, last_return(), b
+        c = 0
+        d = 0
+        class C {
+            static fn testStatic() {
+                defer {
+                    c *= 100
+                }
+                c += 2
+            }
+            fn testInstance() {
+                defer {
+                    d *= 100
+                }
+                d += 2
+            }
+        }
+        return a, last_return(), b, C.testStatic(), C:testInstance(), c, d
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -42,9 +58,11 @@ describe("test success #defer", function()
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
-        local a, _, b = f()
+        local a, _, b, _, _, c, d = f()
         assert.is_equal(a, 60)
         assert.is_equal(b, 20)
+        assert.is_equal(c, 200)
+        assert.is_equal(d, 200)
     end)
 end)
 

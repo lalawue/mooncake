@@ -606,7 +606,7 @@ do
 			out:changeLine()
 			self:trStatement(body)
 			if ctx:hasDefers() and body[#body].stype ~= "return" then
-				out:append((#t > 0 and ", " or "") .. "__df_run__()")
+				out:append("__df_run__()")
 				out:changeLine()
 			end
 		end
@@ -851,7 +851,7 @@ do
 			out:changeLine()
 			self:trStatement(body)
 			if ctx:hasDefers() and body[#body].stype ~= "return" then
-				out:append((#t > 0 and ", " or "") .. "__df_run__()")
+				out:append("__df_run__()")
 			end
 		end
 		out:decIndent()
@@ -1486,6 +1486,9 @@ do
 		out:changeLine()
 		ctx:pushOutInfo(out:getInfo())
 		self:trStatement(e.body)
+		if ctx:hasDefers() and e.body[#e.body].stype ~= "return" then
+			out:append("__df_run__()")
+		end
 		out:decIndent()
 		out:append("end" .. (comma_end and "," or ""))
 		out:changeLine()

@@ -665,7 +665,7 @@ struct M {
             out:changeLine()
             self:trStatement(body)
             if ctx:hasDefers() and body[#body].stype ~= "return" {
-                out:append((#t > 0 and ", " or "") .. "__df_run__()")
+                out:append("__df_run__()")
                 out:changeLine()
             }
         }
@@ -920,7 +920,7 @@ struct M {
             out:changeLine()
             self:trStatement(body)
             if ctx:hasDefers() and body[#body].stype ~= "return" {
-                out:append((#t > 0 and ", " or "") .. "__df_run__()")
+                out:append("__df_run__()")
             }
         }
         out:decIndent()
@@ -1577,6 +1577,9 @@ struct M {
         out:changeLine()
         ctx:pushOutInfo(out:getInfo())
         self:trStatement(e.body)
+        if ctx:hasDefers() and e.body[#e.body].stype ~= "return" {
+            out:append("__df_run__()")
+        }
         out:decIndent()
         out:append("end" .. (comma_end and "," or ""))
         out:changeLine()
