@@ -21,7 +21,10 @@ do
 	split, posLine, readFile = __lib__.split, __lib__.posLine, __lib__.readFile
 end
 local concat, insert, remove = table.concat, table.insert, table.remove
-unpack = unpack or table.unpack
+unpack, assert = unpack or table.unpack, assert
+type, error, load, loadstring = type, error, load, loadstring
+jit = jit
+local sfmt = string.format
 -- source to AST
 local function toAST(config, text)
 	local t = type(text)
@@ -32,7 +35,7 @@ local function toAST(config, text)
 	local ret, tbl = parse(text)
 	if not ret then
 		local err = posLine(tbl.content, tbl.lpos, tbl.cpos)
-		local msg = string.format("parse error %s:%d: %s", config.fname, err.line, err.message)
+		local msg = sfmt("parse error %s:%d: %s", config.fname, err.line, err.message)
 		return nil, msg
 	end
 	return tbl

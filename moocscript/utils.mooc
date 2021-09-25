@@ -5,13 +5,14 @@
 -- under the terms of the MIT license. See LICENSE for details.
 --
 
-local fType = type
-local fNext = next
-local fString = tostring
-local fAssert = assert
-local fOpen = io.open
+local type = type
+local next = next
+local tostring = tostring
+local assert = assert
+local ioopen = io.open
 local pairs = pairs
 local ipairs = ipairs
+local srep = string.rep
 
 class Utils {
 
@@ -24,9 +25,9 @@ class Utils {
         }
     }
 
-    static fn serializeTable(t, p, c, s) {
+    static fn serializeTable(t, p, c) {
         n = 0
-        for i, v in fNext, t {
+        for i, v in next, t {
             n = n + 1
         }
         ti = 1
@@ -36,27 +37,26 @@ class Utils {
 
         c = c or {}
         p = p or 1
-        s = s or string.rep
 
         local fn _format(v, is_table) {
-            return is_table and (c[v][2] >= p) and _table(v, p + 1, c, s) or (fType(v) == "string" and Self.stringValue(v) or fString(v))
+            return is_table and (c[v][2] >= p) and _table(v, p + 1, c) or (type(v) == "string" and Self.stringValue(v) or tostring(v))
         }
 
         c[t] = {t, 0}
 
-        for i, v in fNext, t {
-            typ_i, typ_v = fType(i) == 'table', fType(v) == 'table'
+        for i, v in next, t {
+            typ_i, typ_v = type(i) == 'table', type(v) == 'table'
             c[i], c[v] = (not c[i] and typ_i) and {i, p} or c[i], (not c[v] and typ_v) and {v, p} or c[v]
-            str = str .. s('  ', p) .. '[' .. _format(i, typ_i) .. '] = '  .. _format(v, typ_v) .. (ti < n and ',' or '') .. '\n'
+            str = str .. srep('  ', p) .. '[' .. _format(i, typ_i) .. '] = '  .. _format(v, typ_v) .. (ti < n and ',' or '') .. '\n'
             ti = ti + 1
         }
 
-        return ('{' .. (e and '\n' or '')) .. str .. (e and s('  ', p - 1) or '') .. '}'
+        return ('{' .. (e and '\n' or '')) .. str .. (e and srep('  ', p - 1) or '') .. '}'
     }
 
     static fn split(self, sep, max, regex) {
-        fAssert(sep ~= "")
-        fAssert(max == nil or max >= 1)
+        assert(sep ~= "")
+        assert(max == nil or max >= 1)
         record = {}
         if self:len() > 0 {
             plain = not regex
@@ -86,7 +86,7 @@ class Utils {
     }
 
     -- declare after set()
-    blank_set = Utils.set({ " ", "\t", "\n", "\r" })    
+    blank_set = Utils.set({ " ", "\t", "\n", "\r" })
 
     static fn trim(self) {
         i = 1
@@ -114,7 +114,7 @@ class Utils {
     read_option = _VERSION == "Lua 5.1" and "*a" or "a"
 
     static fn readFile(file_path) {
-        f, err = fOpen(file_path, "rb")
+        f, err = ioopen(file_path, "rb")
         if not f {
             return nil, err
         }
@@ -124,7 +124,7 @@ class Utils {
     }
 
     static fn writeFile(file_path, content) {
-        f = fOpen(file_path, "wb")
+        f = ioopen(file_path, "wb")
         if not f {
             return
         }
@@ -160,8 +160,8 @@ class Utils {
 
     -- position line in content
     static fn posLine(content, lpos, cpos) {
-        fAssert(fType(content) == "string", "Invalid content")
-        fAssert(fType(lpos) == "number", "Invalid pos")    
+        assert(type(content) == "string", "Invalid content")
+        assert(type(lpos) == "number", "Invalid pos")
         ln_num = 1
         for _ in content:sub(1, lpos):gmatch("\n") {
             ln_num = ln_num + 1

@@ -11,7 +11,10 @@ import compile, clearproj from "moocscript.compile" {}
 import split, posLine, readFile from "moocscript.utils" {}
 import concat, insert, remove from table {}
 
-unpack = unpack or table.unpack
+unpack, assert = unpack or table.unpack, assert
+type, error, load, loadstring = type, error, load, loadstring
+jit = jit
+sfmt = string.format
 
 -- source to AST
 fn toAST(config, text) {
@@ -23,7 +26,7 @@ fn toAST(config, text) {
     ret, tbl = parse(text)
     if not ret {
         err = posLine(tbl.content, tbl.lpos, tbl.cpos)
-        msg = string.format("parse error %s:%d: %s", config.fname, err.line, err.message)
+        msg = sfmt("parse error %s:%d: %s", config.fname, err.line, err.message)
         return nil, msg
     }
     return tbl

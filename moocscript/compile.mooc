@@ -48,7 +48,7 @@ struct Out {
     }
 
     fn append(str, same_line) {
-        assert(type(str) == "string", "Invalid input")        
+        assert(type(str) == "string", "Invalid input")
         t = self._output
         same_line = same_line or (self._inline > 0)
         if same_line and not self._changeLine {
@@ -132,7 +132,7 @@ struct Ctx {
     ast = false
     content = false
 
-    scopes = false    
+    scopes = false
     in_defer = false
     in_clsvar = false
     in_clsname = false
@@ -235,7 +235,7 @@ struct Ctx {
         for i = #t, 3, -1 {
             v = t[i]
             if v.otype == otype {
-                return v.info                
+                return v.info
             }
         }
     }
@@ -409,7 +409,7 @@ struct M {
         case "rvar":
             func = { self, t in
                 local ctx = self.ctx
-                local out = self.out            
+                local out = self.out
                 ctx:checkName(t)
                 if ctx.in_clsname and t.value == "Self" {
                     out:append(ctx.in_clsname, true)
@@ -645,7 +645,7 @@ struct M {
                 }
             }
         }
-        out:append(" }")    
+        out:append(" }")
     }
 
     fn trEtFnOnly(t) {
@@ -790,7 +790,7 @@ struct M {
         if #t <= 0 {
             out:append("require(" .. t.slib.value .. ")")
         } elseif t[2] == nil {
-            lt = t[1][1]        
+            lt = t[1][1]
             if t.slib {
                 out:append("local " .. lt.value .. " = require(" .. t.slib.value .. ")")
             } else {
@@ -933,7 +933,7 @@ struct M {
         ctx = self.ctx
         out = self.out
         n = 0
-        out:pushInline()        
+        out:pushInline()
         if t[1].etype == "lvar" {
             n = 1
             ctx:checkName(t[1], true)
@@ -976,7 +976,7 @@ struct M {
             out:decIndent()
         } elseif t.stype == "else" {
             ctx:pushScope("if", t)
-            out:append("else")        
+            out:append("else")
             out:changeLine()
             out:incIndent()
             self:trStatement(t.body)
@@ -1065,7 +1065,7 @@ struct M {
         list = t.list
         staments = t.body
         ctx = self.ctx
-        out = self.out    
+        out = self.out
         ctx:pushScope("lo", t)
         out:pushInline()
         out:append("for ")
@@ -1126,13 +1126,13 @@ struct M {
         ctx = self.ctx
         out = self.out
         ctx:pushScope("lo", t)
-        out:append("while ")    
+        out:append("while ")
         out:pushInline()
         for _, v in ipairs(t.cond) {
             self:trExpr(v)
         }
         out:append(" do")
-        out:popInline()        
+        out:popInline()
         out:changeLine()
         out:incIndent()
         self:trStatement(t.body)
@@ -1321,7 +1321,7 @@ struct M {
             ctx:localInsert("Super")
         }
         cls_fns, ins_fns = {}, {}
-        fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns) 
+        fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns)
         --
         out:append("local __ins_mt__ = {")
         out:incIndent()
@@ -1383,7 +1383,7 @@ struct M {
         ctx.in_clsname = false
         ctx.in_supname = false
     }
-    
+
     fn trStStruct(t) {
         assert(t.stype == "struct", "Invalid stype struct")
         ctx = self.ctx
@@ -1501,12 +1501,12 @@ struct M {
         --
         ctx:pushScope("cl")
         ctx:localInsert("Self")
-        self:hlVarAndFns(t, "__clstype__", ctx, out, {}, {})    
+        self:hlVarAndFns(t, "__clstype__", ctx, out, {}, {})
         out:decIndent()
         out:append("end")
         ctx:popScope()
         ctx.in_clsname = false
-    }    
+    }
 
     fn hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns) {
         out:append("-- declare struct var and methods")
@@ -1516,7 +1516,7 @@ struct M {
         for _, e in ipairs(t) {
             stype = e.stype
             if stype == "=" {
-                ctx.in_clsvar = true         
+                ctx.in_clsvar = true
                 out:append(sname .. ".")
                 out:pushInline()
                 for i, v in ipairs(e) {
@@ -1535,7 +1535,7 @@ struct M {
                 } elseif fn_name == "deinit" {
                     fn_deinit = true
                 }
-                fn_ins = e.attr ~= "static"            
+                fn_ins = e.attr ~= "static"
                 if _cls_metafns[fn_name] {
                     if fn_ins {
                         ins_fns[#ins_fns + 1] = e
@@ -1588,7 +1588,7 @@ struct M {
 }
 
 --[[
-    config as { fname : "filename", shebang : false }    
+    config as { fname : "filename", shebang : false }
     data as { content : CONTENT, ast : AST_TREE }
 ]]
 fn compile(config, data) {

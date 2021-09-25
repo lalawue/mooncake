@@ -4,13 +4,14 @@
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the MIT license. See LICENSE for details.
 --
-local fType = type
-local fNext = next
-local fString = tostring
-local fAssert = assert
-local fOpen = io.open
+local type = type
+local next = next
+local tostring = tostring
+local assert = assert
+local ioopen = io.open
 local pairs = pairs
 local ipairs = ipairs
+local srep = string.rep
 local Utils = {}
 do
 	local __stype__ = nil
@@ -30,9 +31,9 @@ do
 			return '"' .. str .. '"'
 		end
 	end
-	function __clstype__.serializeTable(t, p, c, s)
+	function __clstype__.serializeTable(t, p, c)
 		local n = 0
-		for i, v in fNext, t do
+		for i, v in next, t do
 			n = n + 1
 		end
 		local ti = 1
@@ -41,22 +42,21 @@ do
 		local _table = Utils.serializeTable
 		c = c or {  }
 		p = p or 1
-		s = s or string.rep
 		local function _format(v, is_table)
-			return is_table and (c[v][2] >= p) and _table(v, p + 1, c, s) or (fType(v) == "string" and Utils.stringValue(v) or fString(v))
+			return is_table and (c[v][2] >= p) and _table(v, p + 1, c) or (type(v) == "string" and Utils.stringValue(v) or tostring(v))
 		end
 		c[t] = { t, 0 }
-		for i, v in fNext, t do
-			local typ_i, typ_v = fType(i) == 'table', fType(v) == 'table'
+		for i, v in next, t do
+			local typ_i, typ_v = type(i) == 'table', type(v) == 'table'
 			c[i], c[v] = (not c[i] and typ_i) and { i, p } or c[i], (not c[v] and typ_v) and { v, p } or c[v]
-			str = str .. s('  ', p) .. '[' .. _format(i, typ_i) .. '] = ' .. _format(v, typ_v) .. (ti < n and ',' or '') .. '\n'
+			str = str .. srep('  ', p) .. '[' .. _format(i, typ_i) .. '] = ' .. _format(v, typ_v) .. (ti < n and ',' or '') .. '\n'
 			ti = ti + 1
 		end
-		return ('{' .. (e and '\n' or '')) .. str .. (e and s('  ', p - 1) or '') .. '}'
+		return ('{' .. (e and '\n' or '')) .. str .. (e and srep('  ', p - 1) or '') .. '}'
 	end
 	function __clstype__.split(self, sep, max, regex)
-		fAssert(sep ~= "")
-		fAssert(max == nil or max >= 1)
+		assert(sep ~= "")
+		assert(max == nil or max >= 1)
 		local record = {  }
 		if self:len() > 0 then
 			local plain = not regex
@@ -108,7 +108,7 @@ do
 	end
 	__clstype__.read_option = _VERSION == "Lua 5.1" and "*a" or "a"
 	function __clstype__.readFile(file_path)
-		local f, err = fOpen(file_path, "rb")
+		local f, err = ioopen(file_path, "rb")
 		if not f then
 			return nil, err
 		end
@@ -117,7 +117,7 @@ do
 		return data
 	end
 	function __clstype__.writeFile(file_path, content)
-		local f = fOpen(file_path, "wb")
+		local f = ioopen(file_path, "wb")
 		if not f then
 			return 
 		end
@@ -148,8 +148,8 @@ do
 	end
 	-- position line in content
 	function __clstype__.posLine(content, lpos, cpos)
-		fAssert(fType(content) == "string", "Invalid content")
-		fAssert(fType(lpos) == "number", "Invalid pos")
+		assert(type(content) == "string", "Invalid content")
+		assert(type(lpos) == "number", "Invalid pos")
 		local ln_num = 1
 		for _ in content:sub(1, lpos):gmatch("\n") do
 			ln_num = ln_num + 1

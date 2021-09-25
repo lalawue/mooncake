@@ -1516,7 +1516,7 @@ do
 	})
 end
 --[[
-    config as { fname : "filename", shebang : false }    
+    config as { fname : "filename", shebang : false }
     data as { content : CONTENT, ast : AST_TREE }
 ]]
 local function compile(config, data)
