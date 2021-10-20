@@ -5,8 +5,11 @@ return {
         name : "proj first",
         proj_export : "exp_export.mooc",
         proj_dir : "examples",
-        proj_out : "out"
-        source_after : { path, code
+        proj_out : "out",
+        fn_filter: { in_path in
+            return true
+        },
+        fn_after : { out_path, lua_source_string in
             return code
         }
     },

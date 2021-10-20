@@ -132,34 +132,44 @@ function Cmd.project(config)
 
     -- generate Lua code recursive
     local separator = package.config:sub(1,1)
-    local function toLuaDir(config, in_dir, out_dir, src_after)
+    local function toLuaDir(config, in_dir, out_dir, proj)
         for fname in lfs.dir(in_dir) do
             local flen = fname:len()
             if flen > 0 and fname:sub(1, 1) ~= "." then
-                lfs.mkdir(out_dir)
                 local in_path = in_dir .. separator .. fname
-                local out_path = out_dir .. separator .. fname
-                local ft = lfs.attributes(in_path)
-                if ft.mode == "directory" then
-                    Utils.debug(" DIR '" .. out_path .. "'")
-                    toLuaDir(config, in_path, out_path, src_after)
-                elseif flen > 3 and fname:sub(flen - 4, flen) == ".mooc" then
-                    tmp_config.fname = in_path
-                    local code = Cmd.toCode(tmp_config)
-                    if code then
-                        local outname = out_path:sub(1, out_path:len() - 5) .. ".lua"
-                        Utils.writeFile(outname, src_after(outname, code))
-                        Utils.debug("FILE '" .. outname .. "'")
+                if proj.fn_filter(in_path) then
+                    lfs.mkdir(out_dir)
+                    local out_path = out_dir .. separator .. fname
+                    local ft = lfs.attributes(in_path)
+                    if ft.mode == "directory" then
+                        Utils.debug(" DIR '" .. out_path .. "'")
+                        toLuaDir(config, in_path, out_path, proj)
+                    elseif flen > 3 and fname:sub(flen - 4, flen) == ".mooc" then
+                        tmp_config.fname = in_path
+                        local code = Cmd.toCode(tmp_config)
+                        if code then
+                            local outname = out_path:sub(1, out_path:len() - 5) .. ".lua"
+                            Utils.writeFile(outname, proj.fn_after(outname, code))
+                            Utils.debug("FILE '" .. outname .. "'")
+                        else
+                            Utils.debug(" ERR '" .. out_path .. "': ")
+                        end
                     else
-                        Utils.debug(" ERR '" .. out_path .. "': ")
+                        local data = Utils.readFile(in_path)
+                        Utils.writeFile(out_path, proj.fn_after(out_path, data))
+                        Utils.debug("FILE '" .. out_path .. "'")
                     end
-                else
-                    local data = Utils.readFile(in_path)
-                    Utils.writeFile(out_path, src_after(out_path, data))
-                    Utils.debug("FILE '" .. out_path .. "'")
                 end
             end
         end
+    end
+
+    local fn_true = function()
+        return true
+    end
+
+    local fn_copy = function(data)
+        return data
     end
 
     -- check projects
@@ -169,17 +179,22 @@ function Cmd.project(config)
             Utils.debug("proj: [" .. proj.name .. ']')
             Utils.debug("from: [" .. proj.proj_dir .. ']')
             Utils.debug(" to : [" .. proj.proj_out .. ']')
-            if proj.source_after and type(proj.source_after) then
-                Utils.debug("after: support")
+            if proj.fn_filter and type(proj.fn_filter) == 'function' then
+                Utils.debug(" on : filter")
             else
-                proj.source_after = function() end
+                proj.fn_filter = fn_true
+            end
+            if proj.fn_after and type(proj.fn_after) == 'function' then
+                Utils.debug(" on : after")
+            else
+                proj.fn_after = fn_copy
             end
             Core.clearProj()
             if proj.proj_export then
                 tmp_config.fname = proj.proj_dir .. '/' .. proj.proj_export
                 Cmd.toCode(tmp_config)
             end
-            toLuaDir(config, proj.proj_dir, proj.proj_out, proj.source_after)
+            toLuaDir(config, proj.proj_dir, proj.proj_out, proj)
         else
             Utils.debug("[" .. (proj.name or "unknown") .. "] project !")
         end

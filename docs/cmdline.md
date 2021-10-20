@@ -118,7 +118,13 @@ return {
         name : "proj first",
         proj_export : "exp_export.mooc",
         proj_dir : "examples",
-        proj_out : "out"
+        proj_out : "out",
+        fn_filter: { in_path in
+            return true
+        },
+        fn_after : { out_path, lua_source_string in
+            return code
+        }
     },
     {
         name : "proj second",
@@ -132,12 +138,13 @@ return {
 here shows two project config, or two source directory.
 
 - 'name' entry no meanings for MoonCake
-- 'proj_export' for export variable declared forward
+- 'proj_export' for export variable declared forward as global variable
 - 'proj_dir' is the input directory
 - 'proj_out' is the output directory
+- 'fn_filter' will filter in path, return false if you do not want to copy or output Lua source
+- 'fn_after' will be called after Lua code generated and before write to out path
 
-in project mode, MoonCake will travel proj_dir recursively, translate all .mooc file to .lua into 'proj_out' directory, the travel order will not as it running, a required calling order,
-maybe it will meet many global variable before declared, and it will cause error.
+in project mode, MoonCake will travel proj_dir recursively, translate all .mooc file to .lua into 'proj_out' directory, the travel order will not as it running, a required calling order, maybe it will meet many global variable before declared, and it will cause error.
 
 you should declare these global names in 'proj_export' file before.
 
@@ -149,6 +156,8 @@ $ moocscript -p examples/proj/proj_config.mooc
 proj: [proj first]
 from: [examples]
  to : [out]
+ on : filter
+ on : after
  DIR 'out/error'
 examples/error/compile_error.mooc:1: defer { <not in function 'defer'>
  ERR 'out/error/compile_error.mooc':
