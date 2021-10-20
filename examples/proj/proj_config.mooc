@@ -6,6 +6,9 @@ return {
         proj_export : "exp_export.mooc",
         proj_dir : "examples",
         proj_out : "out"
+        source_after : { path, code
+            return code
+        }
     },
     {
         name : "proj second",

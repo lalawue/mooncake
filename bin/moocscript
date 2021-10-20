@@ -3,6 +3,8 @@
 local Utils = require("moocscript.utils")
 local Core = require("moocscript.core")
 
+local type = type
+
 local Cmd = {}
 
 function Cmd.help()
@@ -127,37 +129,37 @@ function Cmd.project(config)
     local lfs = assert(require("lfs"))
     local tmp_config = Utils.copy(config)
     tmp_config.ftype = "mooc"
-    
+
     -- generate Lua code recursive
-    local function toLuaDir(config, in_dir, out_dir)
+    local separator = package.config:sub(1,1)
+    local function toLuaDir(config, in_dir, out_dir, src_after)
         for fname in lfs.dir(in_dir) do
             local flen = fname:len()
             if flen > 0 and fname:sub(1, 1) ~= "." then
-                lfs.mkdir(out_dir)                    
-                local inpath = in_dir .. "/" .. fname
-                local outpath = out_dir .. "/" .. fname
-                local ft = lfs.attributes(inpath)
+                lfs.mkdir(out_dir)
+                local in_path = in_dir .. separator .. fname
+                local out_path = out_dir .. separator .. fname
+                local ft = lfs.attributes(in_path)
                 if ft.mode == "directory" then
-                    Utils.debug(" DIR '" .. outpath .. "'")
-                    if not toLuaDir(config, inpath, outpath) then
-                        return false
-                    end
+                    Utils.debug(" DIR '" .. out_path .. "'")
+                    toLuaDir(config, in_path, out_path, src_after)
                 elseif flen > 3 and fname:sub(flen - 4, flen) == ".mooc" then
-                    tmp_config.fname = inpath
+                    tmp_config.fname = in_path
                     local code = Cmd.toCode(tmp_config)
                     if code then
-                        local outname = outpath:sub(1, outpath:len() - 5) .. ".lua"
-                        Utils.writeFile(outname, code)
+                        local outname = out_path:sub(1, out_path:len() - 5) .. ".lua"
+                        Utils.writeFile(outname, src_after(outname, code))
                         Utils.debug("FILE '" .. outname .. "'")
                     else
-                        Utils.debug(" ERR '" .. outpath .. "': ")
+                        Utils.debug(" ERR '" .. out_path .. "': ")
                     end
                 else
-                    Utils.debug("Invalid fname " .. inpath)
+                    local data = Utils.readFile(in_path)
+                    Utils.writeFile(out_path, src_after(out_path, data))
+                    Utils.debug("FILE '" .. out_path .. "'")
                 end
             end
         end
-        return true
     end
 
     -- check projects
@@ -167,14 +169,17 @@ function Cmd.project(config)
             Utils.debug("proj: [" .. proj.name .. ']')
             Utils.debug("from: [" .. proj.proj_dir .. ']')
             Utils.debug(" to : [" .. proj.proj_out .. ']')
+            if proj.source_after and type(proj.source_after) then
+                Utils.debug("after: support")
+            else
+                proj.source_after = function() end
+            end
             Core.clearProj()
             if proj.proj_export then
                 tmp_config.fname = proj.proj_dir .. '/' .. proj.proj_export
                 Cmd.toCode(tmp_config)
             end
-            if not toLuaDir(config, proj.proj_dir, proj.proj_out) then
-                break
-            end
+            toLuaDir(config, proj.proj_dir, proj.proj_out, proj.source_after)
         else
             Utils.debug("[" .. (proj.name or "unknown") .. "] project !")
         end
