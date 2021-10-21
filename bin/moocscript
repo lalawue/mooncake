@@ -171,7 +171,7 @@ function Cmd.project(config)
         return true
     end
 
-    local fn_copy = function(data)
+    local fn_copy = function(_, data)
         return data
     end
 
