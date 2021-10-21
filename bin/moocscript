@@ -133,6 +133,10 @@ function Cmd.project(config)
     -- generate Lua code recursive
     local separator = package.config:sub(1,1)
     local function toLuaDir(config, in_dir, out_dir, proj)
+        local ft = lfs.attributes(out_dir)
+        if not ft then
+            os.execute("mkdir -p " .. out_dir)
+        end
         for fname in lfs.dir(in_dir) do
             local flen = fname:len()
             if flen > 0 and fname:sub(1, 1) ~= "." then
@@ -141,7 +145,6 @@ function Cmd.project(config)
                     local out_path = out_dir .. separator .. fname
                     local ft = lfs.attributes(in_path)
                     if ft.mode == "directory" then
-                        os.execute("mkdir -p " .. out_path)
                         Utils.debug(" DIR '" .. out_path .. "'")
                         toLuaDir(config, in_path, out_path, proj)
                     elseif flen > 3 and fname:sub(flen - 4, flen) == ".mooc" then
