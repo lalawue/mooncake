@@ -713,8 +713,10 @@ do
 		out:popInline()
 	end
 	function __clstype__:trStComment(t)
-		assert(t.stype == "cm", "Invalid stype cm")
-		self.out:append(t.value)
+		if self.ctx.config.comment then
+			assert(t.stype == "cm", "Invalid stype cm")
+			self.out:append(t.value)
+		end
 	end
 	function __clstype__:trStImport(t)
 		assert(t.stype == "import", "Invalid stype import")
@@ -1516,7 +1518,7 @@ do
 	})
 end
 --[[
-    config as { fname : "filename", shebang : false }
+    config as { fname : "filename", shebang : false, comment : true }
     data as { content : CONTENT, ast : AST_TREE }
 ]]
 local function compile(config, data)

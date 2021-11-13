@@ -779,8 +779,10 @@ struct M {
     }
 
     fn trStComment(t) {
-        assert(t.stype == "cm", "Invalid stype cm")
-        self.out:append(t.value)
+        if self.ctx.config.comment {
+            assert(t.stype == "cm", "Invalid stype cm")
+            self.out:append(t.value)
+        }
     }
 
     fn trStImport(t) {
@@ -1588,7 +1590,7 @@ struct M {
 }
 
 --[[
-    config as { fname : "filename", shebang : false }
+    config as { fname : "filename", shebang : false, comment : true }
     data as { content : CONTENT, ast : AST_TREE }
 ]]
 fn compile(config, data) {

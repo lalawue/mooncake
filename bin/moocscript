@@ -26,15 +26,20 @@ function Cmd.option(...)
     local config = {}
     a = (b and a) or (not b and a) or "-"
     if a == "-a" then
+        -- AST config
         config.option = "ast"
         config.opcount = 2
         config.fname = b
+        config.comment = true
     elseif a == "-s" then
+        -- source config
         config.option = "source"
         config.opcount = 2
         config.fname = b
         config.shebang = true
+        config.comment = true
     elseif a == "-p" then
+        -- project config
         config.option = "project"
         config.opcount = 2
         config.fname = b
@@ -43,6 +48,7 @@ function Cmd.option(...)
         Utils.debug(Core.version())
         return
     else
+        -- running config
         config.option = "run"
         config.opcount = 1
         config.fname = a
