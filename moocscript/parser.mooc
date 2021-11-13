@@ -322,8 +322,8 @@ gG = {
     vAsRight : pBlanks * Ct(Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr)) ^ 0) * pBlanks,
     vAswSMT : pBlanks * Ct(vEvalLeft * pBlanks * Cg(pTwoOp, "stype") * pBlanks * Ct(vExpr)) * pBlanks,
     --
-    vTbDef : Ct(Cg(pBLeft / fTrim, "etype") * (vTbKV * pBlanks * (pComma * pBlanks * vTbKV * pBlanks) ^ 0 * (pComma + vCmSMT) ^ -1) ^ -1 * pBRight ),
-    vTbKV : vCmSMT ^ -1 * Ct(vTbNk + vTbVk * vTbVal + vTbBk * vTbVal + vTbVal),
+    vTbDef : Ct(Cg(pBLeft / fTrim, "etype") * (vTbKV * (pComma * vTbKV + pComma * vCmSMT^0 + vCmSMT^1) ^ 0 + vCmSMT^0) ^ -1 * pBRight),
+    vTbKV : vCmSMT^0 * Ct(vTbNk + vTbVk * vTbVal + vTbBk * vTbVal + vTbVal) * pBlanks,
     vTbNk : pBlanks * (pColon + pEqual) * pBlanks * Cg(pVarArg, "nkey"),
     vTbVk : pBlanks * Cg(pTbVKey, "vkey") * pBlanks * (pColon + pEqual),
     vTbBk : (pSLeft * Cg(vExpr, "bkey") * pSRight + Cg(vExpr, "bkey")) * (pColon + pEqual),
