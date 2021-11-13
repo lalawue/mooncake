@@ -127,7 +127,7 @@ fn mcAppendLoader() {
 fn mcVersion() {
     lver = jit and jit.version or _VERSION
     pver = type(LPeg.version) == "function" and ("LPeg " .. LPeg.version()) or LPeg.version
-    return "moocscript v0.4.20210925, " .. lver .. ", " .. pver
+    return "moocscript v0.5.20211114, " .. lver .. ", " .. pver
 }
 
 fn mcLoaded() {
