@@ -357,7 +357,7 @@ b = {in} -- or { _ in }
 
 ### defer
 
-'defer' is a keyword to perform some work after function scope exist, not like Swift in all scope.
+'defer' is a keyword to perform some work before leaving function scope, not like Swift in all scope.
 
 and defer only take effect after its definition, with the latest defer block will perform first, just last in first out, like in stack.
 
@@ -1031,13 +1031,13 @@ there are two phase for generate Lua code, first it parse source to generate AST
 using source 'examples/error/parse_error.mooc' for example
 
 ```lua
-tbl = {
+tbl : {
   name = "table"
 }
--- parse error examples/error/parse_error.mooc:2:   name = "table"
+-- parse error template/examples/error/parse_error.mooc:1: tbl : {
 ```
 
-run the source will cause parse error, the right way is using ':' instead of '=' to seperate table key and value.
+run the source will cause parse error, the right way is using '=' instead of ':' after tbl.
 
 parse error only contains file name, line number and the source line, for it use farthest match position for indicating, sometimes it can not show the right place.
 
