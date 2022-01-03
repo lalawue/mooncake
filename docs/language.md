@@ -198,7 +198,7 @@ a += 100
 
 ## Table
 
-likes in Lua, and you can use ':' or '=' between key and value.
+likes in Lua, and you can use '=' between key and value.
 
 ```lua
 --[[
@@ -214,7 +214,7 @@ a = 3
 tbl = {
   1,
   "2",
-  "3" : 4,
+  "3" = 4,
   ["5"] = 6
 }
 ```
@@ -231,8 +231,8 @@ tbl = {
 ]]
 a = 10
 tbl = {
-  a : 10,  -- tbl.a = 10
-  [a] : 10 -- [10] = 10
+  a = 10,  -- tbl.a = 10
+  [a] = 10 -- [10] = 10
 }
 ```
 
@@ -250,15 +250,9 @@ tbl = {
 value1 = 10
 value2 = 11
 tbl = {
-  :value1,
-  =value2
+  =value1
 }
 ```
-
-when using ':' to seperate key and value, there will be some confuse between method call like 'A:call()' in table, it will cause it as array value.
-
-so **keep space** before or after ':' to avoid this.
-
 
 ## Function
 

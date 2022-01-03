@@ -85,7 +85,7 @@ fn mcLoadString(text, cname, mode, env) {
         return emsg
     }
     f = (loadstring or load)
-    return f(res, cname, unpack({ mode : mode, env : env }))
+    return f(res, cname, unpack({ mode = mode, env = env }))
 }
 
 fn mcLoadFile(fname, ...) {
@@ -138,14 +138,14 @@ fn mcLoaded() {
 mcAppendLoader()
 
 return {
-    loadstring : mcLoadString,
-    loadfile : mcLoadFile,
-    dofile : mcDoFile,
-    removeloader : mcRemoveLoader,
-    appendloader : mcAppendLoader,
-    toAST : toAST,
-    toLua : toLua,
-    clearProj : clearproj,
-    version : mcVersion,
-    loaded : mcLoaded
+    loadstring = mcLoadString,
+    loadfile = mcLoadFile,
+    dofile = mcDoFile,
+    removeloader = mcRemoveLoader,
+    appendloader = mcAppendLoader,
+    toAST = toAST,
+    toLua = toLua,
+    clearProj = clearproj,
+    version = mcVersion,
+    loaded = mcLoaded
 }

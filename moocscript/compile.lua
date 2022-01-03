@@ -121,7 +121,7 @@ do
 		self.config = config
 		self.ast = ast
 		self.content = content
-		-- { otype : "gl|pj|fi|cl|fn|lo|if|do|gu", vars : {} }
+		-- { otype = "gl|pj|fi|cl|fn|lo|if|do|gu", vars = {} }
 		self.scopes = { _scope_global, _scope_proj, { ["otype"] = "fi", ["vars"] = {  }, ["loidx"] = 0 } }
 	end
 	function __clstype__:pushScope(ot, exp)
@@ -529,7 +529,7 @@ do
 		out:append("." .. t[1].value, true)
 	end
 	function __clstype__:trOpColon(t)
-		assert(t.op == ":", "Invalid op :")
+		assert(t.op == ":", "Invalid op =")
 		local out = self.out
 		out:append(":", true)
 		for i, e in ipairs(t) do
@@ -1518,8 +1518,8 @@ do
 	})
 end
 --[[
-    config as { fname : "filename", shebang : false, comment : true }
-    data as { content : CONTENT, ast : AST_TREE }
+    config as { fname = "filename", shebang = false, comment = true }
+    data as { content = CONTENT, ast = AST_TREE }
 ]]
 local function compile(config, data)
 	if not (type(data) == "table" and data.ast and data.content) then

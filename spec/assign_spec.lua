@@ -48,7 +48,7 @@ end)
 
 describe("test success #assign", function()
      local mnstr=[[body = {1}
-     bt = { stype :"a" }
+     bt = { stype = "a" }
      if #body <= 0 or not (bt.stype == "return" or bt.stype == "goto" or bt.stype == "break") {
          print("hello")
          return

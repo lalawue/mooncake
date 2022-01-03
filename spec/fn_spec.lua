@@ -84,7 +84,7 @@ end)
 
 describe("test success 2 #function", function()
     local mnstr=[[
-        B = { C : {} }        
+        B = { C = {} }        
         fn B.C:echo() {
             self.d = 9
             return self.d

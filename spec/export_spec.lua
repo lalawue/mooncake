@@ -12,7 +12,7 @@ describe("test success 1 #export", function()
         
         export a
         export b, c
-        export d, e, f = "h", { c : "y", d : b }, _ENV
+        export d, e, f = "h", { c = "y", d = b }, _ENV
         export fn closeDoor(d, e) {
             return e
         }

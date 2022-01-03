@@ -12,7 +12,7 @@ describe("test success #call", function()
             return t
         }
         
-        d = { f : fn() { 
+        d = { f = fn() {
                 t = {}
                 t.__index = {}
                 t.c = fn () {
@@ -23,17 +23,17 @@ describe("test success #call", function()
         }
         
         f = fn () {
-            return { c : c }
+            return { c = c }
         }
-        
+
         c():f()[d.f()] = 1
-        
+
         c(d.f, 9, "9", f(), ...)
-        
+
         b = fn() { return { d } }
-        
+
         a = b()[1].f():c()
-        
+
         tbl = {}
         tbl.a = tbl
         tbl.b = fn() { return tbl }
@@ -107,7 +107,7 @@ describe("test call table config #call", function()
     local mnstr=[[
         return {
             print. {
-                { a = "10", c : '9' },
+                { a = "10", c = '9' },
                 "100"
             },
             {

@@ -7,15 +7,15 @@ describe("test success 1 #table", function()
         a =  {
             --- 111
              3,
-             4 : 3, --- 222
-             fn(){} : 4,
-             {fn(){}} : fn(){}, --[=[ 90123d ]=]
-             false : tonumber("10"),
-             class : 12,
-             c : 1 + ...,
-             :b,
-             d : b,
-             [b] : b
+             4 = 3, --- 222
+             fn(){} = 4,
+             {fn(){}} = fn(){}, --[=[ 90123d ]=]
+             false = tonumber("10"),
+             class = 12,
+             c = 1 + ...,
+             =b,
+             d = b,
+             [b] = b
              -- 999
         }
         a [ "d"] = 3
@@ -142,7 +142,7 @@ end)
 
 describe("test failed #table", function()
     local mnstr=[[
-        return { a : a }
+        return { a = a }
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -153,6 +153,6 @@ describe("test failed #table", function()
     it("has error", function()
         local ret, content = compile.compile({}, ast)
         assert.is_false(ret)
-        assert.is_equal(content, "_:1:         return { a : a } <undefined variable 'a'>")
+        assert.is_equal(content, "_:1:         return { a = a } <undefined variable 'a'>")
    end)
 end)

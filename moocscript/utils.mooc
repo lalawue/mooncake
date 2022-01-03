@@ -175,7 +175,7 @@ class Utils {
             }
             num = num - 1
         }
-        return {line : ln_num, message : ln_content}
+        return {line = ln_num, message = ln_content}
     }
 }
 
