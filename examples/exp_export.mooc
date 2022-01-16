@@ -1,6 +1,6 @@
 
 local a
-export b
+export b, k, f
 
 local c = 10
 export d = 20
@@ -18,5 +18,3 @@ local class ClsA {
 
 export class ClsB: ClsA {
 }
-
-local 2, 3, 4
