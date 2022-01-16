@@ -4,20 +4,6 @@ return {
     {
         1,
         "array value",
-        "key" : "value",
-        table_key : {
-            0, 1, 2, 3
-        },
-        "fn" : fn() {
-
-        },
-        false : 10,
-        [key] : 11,
-        :key,
-    },
-    {
-        1,
-        "array value",
         "key" = "value",
         table_key = {
             0, 1, 2, 3

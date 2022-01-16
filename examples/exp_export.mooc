@@ -18,3 +18,5 @@ local class ClsA {
 
 export class ClsB: ClsA {
 }
+
+local 2, 3, 4

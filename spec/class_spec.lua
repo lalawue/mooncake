@@ -1,6 +1,6 @@
 local parser = require("moocscript.parser")
 local compile = require("moocscript.compile")
-local class = require("moocscript.class")
+local clss = require("moocscript.class")
 
 describe("test normal #class", function()
     local mnstr=[[
@@ -167,7 +167,7 @@ describe("test inherit from lua side #class", function()
     end)
 
     it("should create class B", function()
-        local B = class('B')
+        local B = clss('B')
         function B:init(a, b)
             self.a = a
             self.b = b
@@ -181,7 +181,7 @@ describe("test inherit from lua side #class", function()
 
     it("should inherit from class A", function()
         local A = f()
-        local C = class('C', A)
+        local C = clss('C', A)
         function C:init(b)
             self.b = b
         end

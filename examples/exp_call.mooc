@@ -1,12 +1,4 @@
 
-print. 'a'
+
 print ."a"
 print . { "a" }
-
-fn call(a) {
-    return a
-}
-
-if call. 'a' and call ."a" and call . {"b"} {
-    return call. 'a', call ."a", call . {"b"}
-}
