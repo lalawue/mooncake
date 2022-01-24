@@ -162,6 +162,7 @@ function Cmd.project(config)
                             Utils.debug("FILE '" .. outname .. "'")
                         else
                             Utils.debug(" ERR '" .. out_path .. "': ")
+                            os.exit(-1)
                         end
                     else
                         local data = Utils.readFile(in_path)

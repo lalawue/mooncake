@@ -11,9 +11,9 @@ import compile, clearproj from "moocscript.compile" {}
 import split, posLine, readFile from "moocscript.utils" {}
 import concat, insert, remove from table {}
 
-unpack, assert = unpack or table.unpack, assert
-type, error, load, loadstring = type, error, load, loadstring
-jit = jit
+local unpack, assert = unpack or table.unpack, assert
+local type, error, load, loadstring = type, error, load, loadstring
+local jit = jit
 sfmt = string.format
 
 -- source to AST

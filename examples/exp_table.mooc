@@ -11,7 +11,7 @@ return {
         "fn" = fn() {
 
         },
-        false = 10,
+        'false' = 10,
         [key] = 11,
         =key,
     }

@@ -21,9 +21,9 @@ do
 	split, posLine, readFile = __lib__.split, __lib__.posLine, __lib__.readFile
 end
 local concat, insert, remove = table.concat, table.insert, table.remove
-unpack, assert = unpack or table.unpack, assert
-type, error, load, loadstring = type, error, load, loadstring
-jit = jit
+local unpack, assert = unpack or table.unpack, assert
+local type, error, load, loadstring = type, error, load, loadstring
+local jit = jit
 local sfmt = string.format
 -- source to AST
 local function toAST(config, text)
