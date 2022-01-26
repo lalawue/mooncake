@@ -139,9 +139,9 @@ moocscript/utils.lua                                              110  4      96
 
 ## Editor with LSP Support
 
-[MoocHelper](https://github.com/lalawue/LuaHelper) is a High-performance MoonCake/Lua plugin, Language Server Protocol for MoonCake/Lua, modified from [LuaHelper](https://github.com/Tencent/LuaHelper).
+[MoocHelper](https://github.com/lalawue/MoocHelper) is a High-performance MoonCake/Lua plugin, Language Server Protocol for MoonCake/Lua, modified from [LuaHelper](https://github.com/Tencent/LuaHelper).
 
-you can create your own .vsix package through `vsce package`, or you can download a pre-build one in [releases](https://github.com/lalawue/LuaHelper/releases/), or in [gitee mirror](https://gitee.com/lalawue/LuaHelper/releases/).
+you can create your own .vsix package through `vsce package`, or you can download a pre-build one in [releases](https://github.com/lalawue/MoocHelper/releases/), or in [gitee mirror](https://gitee.com/lalawue/LuaHelper/releases/).
 
 ![vscode_extension](docs/vscode_extension.png)
 
