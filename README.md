@@ -30,7 +30,9 @@ with differences from Lua
 - support import keyword
 - support anonymous function form '{ in }' likes in Swift
 
-## examples
+## Examples
+
+### class/extension
 
 ```lua
 class Animal {
@@ -48,15 +50,75 @@ class Animal {
 }
 
 class Bird : Animal {
-    
+
     fn init(wing) {
         self.foot = 2
         self.wing = wing or 2
     }
 }
 
-a = Bird()
-print(a:canFly()) -- true
+extension Bird {
+
+    fn canRun() {
+        return false
+    }
+}
+
+b = Bird()
+print(b:canFly()) -- true
+print(b:canRun()) -- false
+```
+
+### guard/continue/switch/defer
+
+```lua
+
+import CJson from "cjson" -- import CJson
+import sort, concat from table {} -- import table.sort, table.concat
+
+tbl = { "A", "B", "C" }
+
+-- guard, continue, switch
+do {
+    for i, v in ipairs(tbl) {
+        guard i > 1 else {
+            continue
+        }
+        switch v {
+            case 'B':
+                v = 'case ' .. v
+            default:
+                v = 'default ' .. v
+        }
+        print(v)
+    }
+}
+-- print 'case B'
+-- print 'default C'
+
+-- anonymous function
+do {
+    sort(tbl, { a, b in
+        return a > b
+    })
+    print(concat(tbl))
+}
+-- print 'CBA'
+
+-- defer keyword
+do {
+    fn aboutDeferKeyword() {
+        defer {
+            print("defer block")
+        }
+        print("fn block")
+        return "return value"
+    }
+    print(aboutDeferKeyword())
+}
+-- print 'fn block'
+-- print 'defer block'
+-- print 'return value'
 ```
 
 ## Install
