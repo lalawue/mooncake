@@ -428,6 +428,7 @@ do
 			local t = ast[index]
 			local stype = t.stype
 			local func = stfn[stype]
+			ctx:updatePos(t.pos)
 			if func then
 				func(self, t)
 			else
@@ -1129,6 +1130,10 @@ do
 		assert(t.stype == "return", "Invalid stpye return")
 		local ctx = self.ctx
 		local out = self.out
+		if ctx.in_defer then
+			ctx:errorPos("defer statement can not return value", t.stype)
+			return 
+		end
 		out:append("return ")
 		out:pushInline()
 		for i, e in ipairs(t) do

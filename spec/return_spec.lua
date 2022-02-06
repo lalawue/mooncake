@@ -32,7 +32,7 @@ describe("test success #return", function()
     end)
 end)
 
-describe("test failed #return", function()
+describe("test failed 1 #return", function()
     local mnstr=[[
         return 9
         do {
@@ -43,6 +43,27 @@ describe("test failed #return", function()
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
         assert.is_false(ret)
-        assert.is_true(type(ast) == "table")        
+        assert.is_true(type(ast) == "table")
     end)
+end)
+
+describe("test failed 2 #return", function()
+    local mnstr=[[
+        fn abc() {
+            defer {
+                return 9
+            }
+        }
+    ]]
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    it("has error", function()
+        local ret, code = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(code, "_:3:                 return 9 <defer statement can not return value 'return'>")
+   end)
 end)

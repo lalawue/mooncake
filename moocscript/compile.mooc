@@ -479,6 +479,7 @@ struct M {
             t = ast[index]
             stype = t.stype
             func = stfn[stype]
+            ctx:updatePos(t.pos)
             if func {
                 func(self, t)
             } else {
@@ -1209,6 +1210,10 @@ struct M {
         assert(t.stype == "return", "Invalid stpye return")
         ctx = self.ctx
         out = self.out
+        if ctx.in_defer {
+            ctx:errorPos("defer statement can not return value", t.stype)
+            return
+        }
         out:append("return ")
         out:pushInline()
         for i, e in ipairs(t) {
