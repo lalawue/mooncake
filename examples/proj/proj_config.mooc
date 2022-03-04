@@ -10,7 +10,7 @@ return {
             return true
         },
         fn_after = { out_path, lua_source_string in
-            return code
+            return lua_source_string
         }
     },
     {

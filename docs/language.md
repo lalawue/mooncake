@@ -1025,10 +1025,10 @@ there are two phase for generate Lua code, first it parse source to generate AST
 using source 'examples/error/parse_error.mooc' for example
 
 ```lua
-tbl : {
-  name = "table"
+tbl = {
+  name : "table"
 }
--- parse error template/examples/error/parse_error.mooc:1: tbl : {
+-- parse error examples/error/parse_error.mooc:2:   name : "table"
 ```
 
 run the source will cause parse error, the right way is using '=' instead of ':' after tbl.

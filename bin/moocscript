@@ -123,6 +123,7 @@ function Cmd.project(config)
     local f = lfile(config.fname)
     if type(f) ~= "function" then
         Utils.debug("Failed to load project config")
+        return
     end
 
     -- get config table

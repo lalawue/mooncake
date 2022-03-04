@@ -13,7 +13,7 @@ with library, you can
 - require .mooc module from Lua
 - dofile / loadfile / loadstring
 - control compile step
-- create / inherit mooc class
+- create / inherit mooc class from Lua
 
 ## require .mooc from Lua
 
@@ -23,7 +23,7 @@ create exp_lib.mooc for example
 
 ```lua
 -- exp_lib.mooc
-return { pr : print }
+return { pr = print }
 ```
 
 then create test_lib.lua to require('exp_lib'), and run as '$ lua test_lib.lua'
@@ -50,7 +50,7 @@ print("loadfile", f, f(), f().pr == print)
 local d = MoocLib.dofile("exp_lib.mooc")
 print("dofile", d, d.pr == print)
 
-local l = MoocLib.loadstring("return { pr : print }")
+local l = MoocLib.loadstring("return { pr = print }")
 print("loadstring", l, l().pr == print)
 -- loadfile        function: 0x00078ff8    table: 0x00078be8       true
 -- dofile          table: 0x0005a538       true

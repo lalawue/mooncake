@@ -115,24 +115,24 @@ you can take a look at 'examples/proj/proj_config.mooc' for example.
 ```
 return {
     {
-        name : "proj first",
-        proj_export : "exp_export.mooc",
-        proj_dir : "examples",
-        proj_out : "out",
-        fn_filter: { in_path in
+        name = "proj first",
+        proj_export = "exp_export.mooc",
+        proj_dir = "examples",
+        proj_out = "out",
+        fn_filter = { in_path in
             return true
         },
-        fn_after : { out_path, lua_source_string in
-            return code
+        fn_after = { out_path, lua_source_string in
+            return lua_source_string
         }
     },
     {
-        name : "proj second",
-        proj_export : "exp_export.mooc",
-        proj_dir : "examples",
-        proj_out : "out"
+        name = "proj second",
+        proj_export = "exp_export.mooc",
+        proj_dir = "examples",
+        proj_out = "out"
     },
-}%
+}
 ```
 
 here shows two project config, or two source directory.
@@ -161,13 +161,9 @@ from: [examples]
  DIR 'out/error'
 examples/error/compile_error.mooc:1: defer { <not in function 'defer'>
  ERR 'out/error/compile_error.mooc':
-parse error examples/error/parse_error.mooc:2:   name = "table"
- ERR 'out/error/parse_error.mooc':
-FILE 'out/exp_all.lua'
-FILE 'out/exp_cdef.lua'
-FILE 'out/exp_class.lua'
-...
 ```
 
 the output is quite straight forward, 'ERR' means compile error, before it shows error details.
+
+any error will cause project build to stop.
 
