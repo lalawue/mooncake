@@ -207,6 +207,8 @@ you can create your own .vsix package through `vsce package`, or you can downloa
 
 ![vscode_extension](docs/vscode_extension.png)
 
+![vscode_install_vsix](docs/vscode_install_vsix.png)
+
 ## Projects using MoonCake
 
 - [rpc_framework](https://github.com/lalawue/rpc_framework)
