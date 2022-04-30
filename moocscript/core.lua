@@ -1,31 +1,25 @@
---
--- Copyright (c) 2021 lalawue
---
--- This library is free software; you can redistribute it and/or modify it
--- under the terms of the MIT license. See LICENSE for details.
---
-local LPeg = require("lpeg")
+local Utils = require("moocscript.utils")
 local parse
 do
-	local __lib__ = require("moocscript.parser")
-	parse = __lib__.parse
+	local __l = require("moocscript.parser")
+	parse = __l.parse
 end
 local compile, clearproj
 do
-	local __lib__ = require("moocscript.compile")
-	compile, clearproj = __lib__.compile, __lib__.clearproj
+	local __l = require("moocscript.compile")
+	compile, clearproj = __l.compile, __l.clearproj
 end
-local split, posLine, readFile
+local split, readFile
 do
-	local __lib__ = require("moocscript.utils")
-	split, posLine, readFile = __lib__.split, __lib__.posLine, __lib__.readFile
+	local __l = require("moocscript.utils")
+	split, readFile = __l.split, __l.readFile
 end
 local concat, insert, remove = table.concat, table.insert, table.remove
 local unpack, assert = unpack or table.unpack, assert
 local type, error, load, loadstring = type, error, load, loadstring
 local jit = jit
 local sfmt = string.format
--- source to AST
+local srep = string.rep
 local function toAST(config, text)
 	local t = type(text)
 	if t ~= "string" then
@@ -34,24 +28,19 @@ local function toAST(config, text)
 	config = config or {  }
 	local ret, tbl = parse(text)
 	if not ret then
-		local err = posLine(tbl.content, tbl.lpos, tbl.cpos)
-		local msg = sfmt("parse error %s:%d: %s", config.fname, err.line, err.message)
-		return nil, msg
+		return nil, Utils.errorMessage(tbl.content, tbl.pos, tbl.err_msg, config.fname)
 	end
 	return tbl
 end
--- translate to Lua
 local function toLua(config, tbl)
 	local ret, code = compile(config, tbl)
 	if not ret then
-		return nil, code
+		return nil, Utils.errorMessage(tbl.content, code.pos, code.err_msg, config.fname)
 	end
 	return code
 end
--- directory separator
 local dir_spliter = package.config and package.config[1] or '/'
 local tmp_config = {  }
--- register loader
 local function mcLoader(name)
 	local name_path = name:gsub("%.", dir_spliter)
 	local text, file_path = nil, nil
@@ -90,7 +79,7 @@ local function mcLoadString(text, cname, mode, env)
 		return emsg
 	end
 	local f = (loadstring or load)
-	return f(res, cname, unpack({ ["mode"] = mode, ["env"] = env }))
+	return f(res, cname, unpack({ mode = mode, env = env }))
 end
 local function mcLoadFile(fname, ...)
 	local text, err = readFile(fname)
@@ -125,13 +114,10 @@ local function mcAppendLoader()
 	package.mooc_loaded = mcLoader
 end
 local function mcVersion()
-	local lver = jit and jit.version or _VERSION
-	local pver = type(LPeg.version) == "function" and ("LPeg " .. LPeg.version()) or LPeg.version
-	return "moocscript v0.6.20220116, " .. lver .. ", " .. pver
+	return "moocscript v0.7.20220501, " .. (jit and jit.version or _VERSION)
 end
 local function mcLoaded()
 	return package.mooc_loaded ~= nil
 end
--- append loader
 mcAppendLoader()
-return { ["loadstring"] = mcLoadString, ["loadfile"] = mcLoadFile, ["dofile"] = mcDoFile, ["removeloader"] = mcRemoveLoader, ["appendloader"] = mcAppendLoader, ["toAST"] = toAST, ["toLua"] = toLua, ["clearProj"] = clearproj, ["version"] = mcVersion, ["loaded"] = mcLoaded }
+return { loadstring = mcLoadString, loadfile = mcLoadFile, dofile = mcDoFile, removeloader = mcRemoveLoader, appendloader = mcAppendLoader, toAST = toAST, toLua = toLua, clearProj = clearproj, version = mcVersion, loaded = mcLoaded }

@@ -5,24 +5,26 @@
 -- under the terms of the MIT license. See LICENSE for details.
 --
 
-local type = type
-local next = next
-local tostring = tostring
-local assert = assert
-local ioopen = io.open
-local pairs = pairs
 local ipairs = ipairs
-local srep = string.rep
 
 class Utils {
 
-    static fn stringValue(str) {
-        first = str:sub(1, 1)
-        if first == '"' or first == "'" or first == '[' {
-            return str
+    static fn printValue(v) {
+        tv = type(v)
+        if tv == "string" {
+            first = v:sub(1, 1)
+            if first == '"' or first == "'" or first == '[' {
+                return v
+            } else {
+                return '"' .. v .. '"'
+            }
         } else {
-            return '"' .. str .. '"'
+            return tostring(v)
         }
+    }
+
+    static fn format(c, p, v, is_table) {
+        return is_table and (c[v][2] >= p) and Self.serializeTable(v, p + 1, c) or Self.printValue(v)
     }
 
     static fn serializeTable(t, p, c) {
@@ -34,24 +36,22 @@ class Utils {
         e = n > 0
         str = ""
         _table = Utils.serializeTable
+        _format = Utils.format
+        _srep = string.rep
 
         c = c or {}
         p = p or 1
-
-        local fn _format(v, is_table) {
-            return is_table and (c[v][2] >= p) and _table(v, p + 1, c) or (type(v) == "string" and Self.stringValue(v) or tostring(v))
-        }
 
         c[t] = {t, 0}
 
         for i, v in next, t {
             typ_i, typ_v = type(i) == 'table', type(v) == 'table'
             c[i], c[v] = (not c[i] and typ_i) and {i, p} or c[i], (not c[v] and typ_v) and {v, p} or c[v]
-            str = str .. srep('  ', p) .. '[' .. _format(i, typ_i) .. '] = '  .. _format(v, typ_v) .. (ti < n and ',' or '') .. '\n'
+            str = str .. _srep('  ', p) .. '[' .. _format(c, p, i, typ_i) .. '] = '  .. _format(c, p, v, typ_v) .. (ti < n and ',' or '') .. '\n'
             ti = ti + 1
         }
 
-        return ('{' .. (e and '\n' or '')) .. str .. (e and srep('  ', p - 1) or '') .. '}'
+        return ('{' .. (e and '\n' or '')) .. str .. (e and _srep('  ', p - 1) or '') .. '}'
     }
 
     static fn split(self, sep, max, regex) {
@@ -114,7 +114,7 @@ class Utils {
     read_option = _VERSION == "Lua 5.1" and "*a" or "a"
 
     static fn readFile(file_path) {
-        f, err = ioopen(file_path, "rb")
+        f, err = io.open(file_path, "rb")
         if not f {
             return nil, err
         }
@@ -124,7 +124,7 @@ class Utils {
     }
 
     static fn writeFile(file_path, content) {
-        f = ioopen(file_path, "wb")
+        f = io.open(file_path, "wb")
         if not f {
             return
         }
@@ -159,23 +159,33 @@ class Utils {
     }
 
     -- position line in content
-    static fn posLine(content, lpos, cpos) {
+    static fn posLine(content, lpos) {
         assert(type(content) == "string", "Invalid content")
         assert(type(lpos) == "number", "Invalid pos")
-        ln_num = 1
+        ln_lnum = 1
         for _ in content:sub(1, lpos):gmatch("\n") {
-            ln_num = ln_num + 1
+            ln_lnum += 1
         }
-        num = ln_num
+        lnum = ln_lnum
         ln_content = ""
-        for line in content:gmatch("([^\n]*)\n?") {
-            if num == 1 {
+        lcount = 0
+        for line in content:gmatch("([^\n]*\n?)") {
+            if lnum == 1 {
                 ln_content = line
                 break
             }
-            num = num - 1
+            lnum -= 1
+            lcount += line:len()
         }
-        return {line = ln_num, message = ln_content}
+        return {line = ln_lnum, column = lpos - lcount, message = ln_content:gsub('[\n\r]', '') }
+    }
+
+    -- return error message
+    static fn errorMessage(content, pos, msg, fname) {
+        ct = Utils.posLine(content, pos)
+        return string.format("Error: %s\nFile: %s\nLine: %d (Pos: %d)\nSource: %s\n%s",
+            msg, fname or '_', ct.line, pos, ct.message,
+            string.rep(' ',8) .. ct.message:gsub('[^%s]',' '):sub(1,math.max(0,ct.column)) .. '^')
     }
 }
 

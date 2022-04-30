@@ -26,8 +26,8 @@ describe("test success #ifelse", function()
         assert.is_true(type(content) == "string")
     end)
  
-    local f = load(content, "test", "t")
     it("should get function", function()
+        local f = load(content, "test", "t")
         assert(type(f) == "function")
         local a1 = f(3)
         assert.is_equal(a1, 5)
@@ -38,7 +38,7 @@ end)
 
 describe("test failed #ifelse", function()
     local mnstr=[[
-        if a == 2 {
+        if a ~= 2 {
             return 3
         }
         return 4
@@ -53,6 +53,7 @@ describe("test failed #ifelse", function()
     it("has error", function()
         local ret, content = compile.compile({}, ast)
         assert.is_false(ret)
-        assert.is_equal(content, "_:1:         if a == 2 { <undefined variable 'a'>")
+        assert.is_equal(content.err_msg, "undefined variable")
+        assert.is_equal(content.pos, 11)
    end)
 end)

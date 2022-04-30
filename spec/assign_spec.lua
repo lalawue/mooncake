@@ -111,17 +111,12 @@ end)
 
 describe("test invalid self #assign", function()
      local mnstr=[[
-          self = self + 8
+          self, b =
      ]]
      local ret, ast = parser.parse(mnstr)
      it("shoul get ast", function()
-          assert.is_true(ret)
-          assert.is_table(ast)
-     end)
-
-     it("has error", function()
-          local ret, code = compile.compile({}, ast)
           assert.is_false(ret)
-          assert.is_equal(code, "_:1:           self = self + 8 <undefined variable 'self'>")
+          assert.is_equal(ast.err_msg, "expect exp after assgin")
+          assert.is_equal(ast.pos, 24)
      end)
 end)

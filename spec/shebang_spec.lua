@@ -14,6 +14,7 @@ describe("test success #shebang", function()
     it("should get ast", function()
         assert.is_true(ret)
         assert.is_true(type(ast) == "table")
+        assert.is_true(ast.ast[1].value == "#!/usr/bin/env lua ./moocscript/core.lua")
     end)
 
     local ret, content = compile.compile({ shebang = true }, ast)
@@ -33,5 +34,17 @@ describe("test success #shebang", function()
         assert(type(f) == "function")
         local a = f()
         assert.is_equal(a, "hello, MoonCake !")
+    end)
+end)
+
+describe("test failed #shebang", function()
+    local mnstr=[[#!/usr/bin/env lua ./moocscript/core.lua
+    #!/usr/bin/env lua ./moocscript/core.lua
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_false(ret)
+        assert.is_equal(ast.err_msg, "unexpected symbol near '#'")
     end)
 end)

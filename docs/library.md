@@ -3,7 +3,9 @@
   - [require .mooc from Lua](#require-mooc-from-lua)
   - [dofile / loadfile / loadstring](#dofile--loadfile--loadstring)
   - [control compile step](#control-compile-step)
-  - [create / inherit mooc class](#create--inherit-mooc-class)
+  - [create / inherit mooc class from Lua](#create--inherit-mooc-class-from-lua)
+  - [create mooc struct from Lua](#create-mooc-struct-from-lua)
+  - [extent class / struct from Lua](#extent-class--struct-from-lua)
   - [other interface](#other-interface)
   
 # Library Interface
@@ -14,10 +16,15 @@ with library, you can
 - dofile / loadfile / loadstring
 - control compile step
 - create / inherit mooc class from Lua
+- create mooc struct from Lua
+- extent mooc class / struct from Lua
+- other interface
+
+you can get these examples code from `examples/library` direcotry.
 
 ## require .mooc from Lua
 
-just 'require("moocscript.core")' before you load any .mooc module
+just `require("moocscript.core")` before you load any .mooc module
 
 create exp_lib.mooc for example
 
@@ -38,19 +45,19 @@ lib.pr("Hello, world")
 
 ## dofile / loadfile / loadstring
 
-these interface likes in Lua, use exp_lib.mooc created before, then create test_core.lua, the content shows these interface usage
+these interface likes in Lua, use exp_lib.mooc created before, then create test_core.lua, content below shows usage
 
 ```lua
 -- test_core.lua
-local MoocLib = require("moocscript.core")
+local MoocCore = require("moocscript.core")
 
-local f = MoocLib.loadfile("exp_lib.mooc")
+local f = MoocCore.loadfile("exp_lib.mooc")
 print("loadfile", f, f(), f().pr == print)
 
-local d = MoocLib.dofile("exp_lib.mooc")
+local d = MoocCore.dofile("exp_lib.mooc")
 print("dofile", d, d.pr == print)
 
-local l = MoocLib.loadstring("return { pr = print }")
+local l = MoocCore.loadstring("return { pr = print }")
 print("loadstring", l, l().pr == print)
 -- loadfile        function: 0x00078ff8    table: 0x00078be8       true
 -- dofile          table: 0x0005a538       true
@@ -59,23 +66,30 @@ print("loadstring", l, l().pr == print)
 
 ## control compile step
 
-here shows how to get AST and generate Lua code, create test_step.lua, and run as `lua test_step.lua exp_lib.mooc'
+here shows how to get AST and generate Lua code, create test_step.lua, and run as `lua test_step.lua exp_lib.mooc`
 
 use exp_lib.mooc created before
 
 ```lua
 -- test_step.lua
 local Utils = require("moocscript.utils")
-local MoocLib = require("moocscript.core")
+local MoocCore = require("moocscript.core")
+
+-- get filename
+local fname = ...
+if fname == nil or fname:len() <=0 then
+        print("Usage: lua test_step.lua exp_lib.mooc")
+        os.exit(0)
+end
 
 -- first load file
-local text = Utils.readFile(...)
+local text = Utils.readFile(fname)
 
 -- setup config, for error indicating
-local config = { fname = ... }
+local config = { fname = fname }
 
 -- get ast
-local res, emsg = MoocLib.toAST(config, text)
+local res, emsg = MoocCore.toAST(config, text)
 if res then
         print("--- ast")
         Utils.dump(res.ast)
@@ -85,7 +99,7 @@ else
 end
 
 -- get Lua source
-local code, emsg = MoocLib.toLua(config, res)
+local code, emsg = MoocCore.toLua(config, res)
 if code then
         print("--- code")
         print(code)
@@ -94,30 +108,115 @@ else
 end
 ```
 
-## create / inherit mooc class
+## create / inherit mooc class from Lua
 
 you can create / inherit mooc class from Lua side, but has limitations,
-can not create class or instance metamethod after class defition.
+can not create class or instance metamethod outside class definition.
+
+you can create `init` function, but `deinit` function.
 
 ```lua
-local MoocClass = require("moocscript.class")
-local ClassA = require("MoocClassAForExample")
+-- test_class.lua
+local MoocLib = require("moocscript.class")
 
--- create ClassB with no inherit
-local ClassB = MoocClass("B")
+-- create ClassA with no inherit
+local ClassA = MoocLib.newMoocClass("A")
 
--- will be called when create ClassB's instance with ClassB(...)
-function ClassB:init(...)
+-- will be called when create ClassA's instance with ClassA(...)
+function ClassA:init(...)
+        print('init ' .. tostring(self))
+end
+
+function ClassA:getName()
+        return tostring(self)
 end
 
 -- create ClassC inherit from ClassA
-local ClassC = MoocClass("C", ClassA)
+local ClassC = MoocLib.newMoocClass("C", ClassA)
 
-function ClassC:init(...)
+-- getName inherit from ClassA
+function ClassC:sayHi()
+        print('hello ' .. self:getName())
 end
+
+local c = ClassC()
+c:sayHi()
+-- init <class C: 0x0004c440>
+-- hello <class C: 0x0004c440>
 ```
 
-if `ClassA` was not a mooc class, ClassC is nil, and will cause runtime error.
+if super type `ClassA` was not a mooc class, ClassC is nil, and will cause runtime error.
+
+## create mooc struct from Lua
+
+like create mooc class
+
+```lua
+-- test_struct.lua
+local MoocLib = require("moocscript.class")
+
+-- create StructA
+local StructA, RawStructA = MoocLib.newMoocStruct("A")
+
+-- using RawStructA to create your new function or variable
+function RawStructA:init(...)
+        print(tostring(self) .. ' init ' .. (... or ''))
+end
+
+local a = StructA('1')
+-- <struct A: 0x0004dac0> init 1
+
+StructA.try_newindex = 1
+print(StructA.try_newindex)
+-- nil
+
+a.try_newindex = 1
+print(a.try_newindexs)
+-- nil
+```
+
+## extent class / struct from Lua
+
+you can extent class / struct by raw table
+
+```lua
+-- test_extension.lua
+local MoocLib = require("moocscript.class")
+
+-- create ClassA with no inherit
+local ClassA = MoocLib.newMoocClass("A")
+
+function ClassA:getName()
+        return tostring(self)
+end
+
+-- create StructB
+local StructB, RawStructB = MoocLib.newMoocStruct('B')
+
+function RawStructB:sayHi()
+        return 'Say Hi from StructB'
+end
+
+local b1 = StructB()
+print(b1:sayHi())
+
+local ExtStructB = MoocLib.extentMoocClassStruct(StructB, ClassA)
+
+function ExtStructB:sayHi()
+        return 'Say Hi from Ext ' .. self:getName()
+end
+
+function ExtStructB:goodBye()
+        return 'Goodby'
+end
+
+local b2 = StructB()
+print(b2:sayHi())
+print(b2:goodBye())
+-- Say Hi from StructB
+-- Say Hi from Ext <struct B: 0x0004de50>
+-- Goodby
+```
 
 ## other interface
 

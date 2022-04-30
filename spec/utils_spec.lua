@@ -1,23 +1,22 @@
 local parser = require("moocscript.parser")
 
-
 describe("test success #utils", function()
     local mnstr=[[
         c = ... and 1
 
         fn_end = "9"
-        
+
         _and = 10
         and_ = 11
         and10 = 12
         or_and = ( 8 )
-        
+
         a = 2 ^ 9
-        
+
         c =  { ... and ... }
-        
+
         d = not c.f
-        
+
         f = #c
         return fn_end, a, or_and, and_
     ]]
@@ -59,5 +58,27 @@ describe("test success #utils", function()
         assert.is_equal(utils.suffix("aaa.lua"), "lua")
         assert.is_equal(utils.suffix("aaa.mooc"), "mooc")
         assert.is_equal(utils.suffix("abcdef"), "")
+    end)
+
+    it("should split", function()
+        local mnstr=[[123 456]]
+        local arr = utils.split(mnstr, ' ')
+        assert.is_equal(arr[1], "123")
+        assert.is_equal(arr[2], "456")
+    end)
+
+    it("should strim", function()
+        local mnstr=[[ 123  ]]
+        local ret = utils.trim(mnstr)
+        assert.is_equal(ret, '123')
+    end)
+
+    local mnstr=[[defer {}]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_false(ret)
+        local errmsg = utils.errorMessage(mnstr, ast.pos, ast.err_msg, '--')
+        assert.is_equal(errmsg:find('Error: defer only support function scope'), 1)
     end)
 end)

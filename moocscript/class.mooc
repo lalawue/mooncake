@@ -8,29 +8,30 @@
 local fType = type
 local fAssert = assert
 local fRawSet = rawset
+local sfmt = string.format
 
-fn dummy_init() {
-}
-
--- create or inherit mooc_class from Lua side
+--- create or inherit mooc_class from Lua side
+--- @param string cls_name
+--- @param table super_type, can be nil
+--- @return table class base
 fn newMoocClass(cls_name, super_type) {
     guard fType(cls_name) == "string" else {
         return nil
     }
-    guard super_type == nil or fType(super_type) == "table" else {
+    guard super_type == nil or (fType(super_type) == "table" and super_type.__tk == 'class') else {
         return nil
     }
-    cls_type = {}
-    cls_type.typename = cls_name
-    cls_type.typekind = 'class'
-    cls_type.classtype = cls_type
-    cls_type.supertype = super_type
-    if not super_type {
-        cls_type.isKindOf = fn(cls, a) { return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false }
+    cls_type = {
+        __tn = cls_name,
+        __tk = 'class',
+        __st = super_type,
     }
-    cls_type.init = dummy_init
+    cls_type.__ct = cls_type
+    if not super_type {
+        cls_type.isKindOf = fn(c, a) { return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false }
+    }
     ins_mt = {
-        __tostring = fn() { return "instance of " .. cls_name },
+        __tostring = fn(t) { return sfmt("<class %s: %p>", cls_name, t) },
         __index = fn(t, k) {
             v = cls_type[k]
             if v ~= nil { fRawSet(t, k, v) }
@@ -38,7 +39,7 @@ fn newMoocClass(cls_name, super_type) {
         }
     }
     setmetatable(cls_type, {
-        __tostring = fn() { return "class " .. cls_name },
+        __tostring = fn() { return "<class " .. cls_name .. ">" },
         __index = fn(_, k) {
             v = super_type and super_type[k]
             if v ~= nil { fRawSet(cls_type, k, v) }
@@ -46,15 +47,63 @@ fn newMoocClass(cls_name, super_type) {
         },
         __call = fn(_, ...) {
             ins = setmetatable({}, ins_mt)
-            if ins:init(...) == false { return nil }
+            if type(ins.init) == 'function' and ins:init(...) == false { return nil }
             return ins
         }
     })
     return cls_type
 }
 
-return setmetatable({}, {
-    __call = fn(_, ...) {
-        return newMoocClass(...)
+--- create mooc_struct from Lua side
+--- @param string name, struct name
+--- @return table struct base with __newindex restrected
+--- @return table struct base with __newindex NOT restrected
+fn newMoocStruct(cls_name) {
+    guard fType(cls_name) == "string" else {
+        return nil
     }
-})
+    cls_type = {
+        __tn = cls_name,
+        __tk = 'struct',
+    }
+    cls_type.__ct = cls_type
+    ins_mt = {
+        __tostring = fn(t) { return sfmt("<struct %s: %p>", cls_name, t) },
+        __index = fn(t, k) {
+                v = rawget(cls_type, k)
+                if v ~= nil { rawset(t, k, v) }
+                return v
+        },
+        __newindex = fn(t, k, v) { if rawget(cls_type, k) ~= nil { rawset(t, k, v) } },
+    }
+    return setmetatable({}, {
+        __tostring = fn() { return "<struct " .. cls_name .. ">" },
+        __index = fn(_, k) { return rawget(cls_type, k) },
+        __newindex = fn(_, k, v) { if v ~= nil and rawget(cls_type, k) ~= nil { rawset(cls_type, k, v) } },
+        __call = fn(_, ...) {
+                ins = setmetatable({}, ins_mt)
+                if type(ins.init) == 'function' and ins:init(...) == false { return nil }
+                return ins
+        },
+    }), cls_type
+}
+
+--- extent mooc class or struct
+--- @param table, class / struct instance or base
+--- @return table, class / struct base with __newindex NOT restricted
+fn extentMoocClassStruct(cls, ext) {
+    if fType(cls) == "table" and (cls.__tk == 'class' or cls.__tk == 'struct') and cls.__ct {
+        ct = cls.__ct
+        if fType(ext) == "table" and (ext.__tk == 'class' or ext.__tk == 'struct') and ext.__ct {
+            et = ext.__ct
+            for k, v in pairs(et) {
+                if ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "__st" and k ~= "isKindOf")) {
+                    ct[k] = v
+                }
+            }
+        }
+        return ct
+    }
+}
+
+return { =newMoocClass, =newMoocStruct, =extentMoocClassStruct }

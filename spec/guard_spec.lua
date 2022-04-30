@@ -75,14 +75,7 @@ describe("test failed 1 #guard", function()
     ]]
 
     local ret, ast = parser.parse(mnstr)
-    it("should get ast", function()
-        assert.is_true(ret)
-        assert.is_true(type(ast) == "table")
-    end)
-
-    local ret, content = compile.compile({}, ast)
-    it("should get compiled lua", function()
+    it("failed to get ast", function()
         assert.is_false(ret)
-        assert.is_equal(content, "_:1:         guard true else { <guard statement need return/goto/break/continue at last 'guard'>")
     end)
 end)

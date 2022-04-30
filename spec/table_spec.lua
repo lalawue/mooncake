@@ -7,11 +7,11 @@ describe("test success 1 #table", function()
         a =  {
             --- 111
              3,
-             4 = 3, --- 222
-             fn(){} = 4,
-             {fn(){}} = fn(){}, --[=[ 90123d ]=]
-             false = tonumber("10"),
-             class = 12,
+             [4] = 3, --- 222
+             [fn(){}] = 4,
+             [{fn(){}}] = fn(){}, --[=[ 90123d ]=]
+             [false] = tonumber("10"),
+             ['class'] = 12,
              c = 1 + ...,
              =b,
              d = b,
@@ -50,11 +50,11 @@ describe("test success 2 #table", function()
         a =  {
             --- 111
              3,
-             4 = 3, --- 222
-             fn(){} = 4,
-             {fn(){}} = fn(){}, --[=[ 90123d ]=]
-             false = tonumber("10"),
-             class = 12,
+             [4] = 3, --- 222
+             [fn(){}] = 4,
+             [{fn(){}}] = fn(){}, --[=[ 90123d ]=]
+             [false] = tonumber("10"),
+             ['class'] = 12,
              c = 1 + ...,
              =b,
              d = b,
@@ -94,13 +94,13 @@ describe("test comment #table", function()
             --- 111
             --- 222
              3,
-             4 = 3, --- 222
+             [4] = 3, --- 222
              --[=[ 1231232 ]=]
              --[=[ 212312 ]=]
-             fn(){} = 4,
-             {fn(){}} = fn(){}, --[=[ 90123d ]=]
-             false = tonumber("10"),
-             class = 12,
+             [fn(){}] = 4,
+             [{fn(){}}] = fn(){}, --[=[ 90123d ]=]
+             [false] = tonumber("10"),
+             ['class'] = 12,
              c = 1 + ...,
              =b,
              d = b,
@@ -153,6 +153,7 @@ describe("test failed #table", function()
     it("has error", function()
         local ret, content = compile.compile({}, ast)
         assert.is_false(ret)
-        assert.is_equal(content, "_:1:         return { a = a } <undefined variable 'a'>")
+        assert.is_equal(content.err_msg, "undefined variable")
+        assert.is_equal(content.pos, 21)
    end)
 end)

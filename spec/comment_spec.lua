@@ -14,9 +14,6 @@ describe("test success #comment", function()
     it("should get ast", function()
         assert.is_true(ret)
         assert.is_true(type(ast) == "table")
-        for i, v in ipairs(ast.ast) do
-            assert.is_equal(v.stype, "cm")
-        end
     end)
 
     local ret, content = compile.compile({}, ast)

@@ -1,37 +1,32 @@
---
--- Copyright (c) 2021 lalawue
---
--- This library is free software; you can redistribute it and/or modify it
--- under the terms of the MIT license. See LICENSE for details.
---
-local type = type
-local next = next
-local tostring = tostring
-local assert = assert
-local ioopen = io.open
-local pairs = pairs
 local ipairs = ipairs
-local srep = string.rep
 local Utils = {}
 do
-	local __stype__ = nil
-	local __clsname__ = "Utils"
-	local __clstype__ = Utils
-	__clstype__.typename = __clsname__
-	__clstype__.typekind = 'class'
-	__clstype__.classtype = __clstype__
-	__clstype__.supertype = __stype__
-	__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
-	-- declare var and methods
-	function __clstype__.stringValue(str)
-		local first = str:sub(1, 1)
-		if first == '"' or first == "'" or first == '[' then
-			return str
-		else
-			return '"' .. str .. '"'
+	local __st = nil
+	local __cn = "Utils"
+	local __ct = Utils
+	__ct.__tn = __cn
+	__ct.__tk = 'class'
+	__ct.__ct = __ct
+	__ct.__st = __st
+	__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end
+	-- declare struct var and methods
+	function __ct.printValue(v)
+		local tv = type(v)
+		if tv == "string" then
+			local first = v:sub(1, 1)
+			if first == '"' or first == "'" or first == '[' then
+				return v
+			else 
+				return '"' .. v .. '"'
+			end
+		else 
+			return tostring(v)
 		end
 	end
-	function __clstype__.serializeTable(t, p, c)
+	function __ct.format(c, p, v, is_table)
+		return is_table and (c[v][2] >= p) and Utils.serializeTable(v, p + 1, c) or Utils.printValue(v)
+	end
+	function __ct.serializeTable(t, p, c)
 		local n = 0
 		for i, v in next, t do
 			n = n + 1
@@ -40,21 +35,20 @@ do
 		local e = n > 0
 		local str = ""
 		local _table = Utils.serializeTable
+		local _format = Utils.format
+		local _srep = string.rep
 		c = c or {  }
 		p = p or 1
-		local function _format(v, is_table)
-			return is_table and (c[v][2] >= p) and _table(v, p + 1, c) or (type(v) == "string" and Utils.stringValue(v) or tostring(v))
-		end
 		c[t] = { t, 0 }
 		for i, v in next, t do
 			local typ_i, typ_v = type(i) == 'table', type(v) == 'table'
 			c[i], c[v] = (not c[i] and typ_i) and { i, p } or c[i], (not c[v] and typ_v) and { v, p } or c[v]
-			str = str .. srep('  ', p) .. '[' .. _format(i, typ_i) .. '] = ' .. _format(v, typ_v) .. (ti < n and ',' or '') .. '\n'
+			str = str .. _srep('  ', p) .. '[' .. _format(c, p, i, typ_i) .. '] = ' .. _format(c, p, v, typ_v) .. (ti < n and ',' or '') .. '\n'
 			ti = ti + 1
 		end
-		return ('{' .. (e and '\n' or '')) .. str .. (e and srep('  ', p - 1) or '') .. '}'
+		return ('{' .. (e and '\n' or '')) .. str .. (e and _srep('  ', p - 1) or '') .. '}'
 	end
-	function __clstype__.split(self, sep, max, regex)
+	function __ct.split(self, sep, max, regex)
 		assert(sep ~= "")
 		assert(max == nil or max >= 1)
 		local record = {  }
@@ -71,21 +65,20 @@ do
 				max = max - 1
 			end
 			record[field] = self:sub(start)
-		else
+		else 
 			record[1] = ""
 		end
 		return record
 	end
-	function __clstype__.set(tbl)
+	function __ct.set(tbl)
 		local s = {  }
 		for _, v in ipairs(tbl) do
 			s[v] = true
 		end
 		return s
 	end
-	-- declare after set()
-	__clstype__.blank_set = Utils.set({ " ", "\t", "\n", "\r" })
-	function __clstype__.trim(self)
+	__ct.blank_set = Utils.set({ " ", "\t", "\n", "\r" })
+	function __ct.trim(self)
 		local i = 1
 		local j = self:len()
 		local blank_set = Utils.blank_set
@@ -94,21 +87,21 @@ do
 				i = i + 1
 			elseif blank_set[self:sub(j, j)] then
 				j = j - 1
-			else
+			else 
 				return self:sub(i, j)
 			end
 		end
 		return self
 	end
-	function __clstype__.seqReduce(tbl, init, func)
+	function __ct.seqReduce(tbl, init, func)
 		for i, v in ipairs(tbl) do
 			init = func(init, i, v)
 		end
 		return init
 	end
-	__clstype__.read_option = _VERSION == "Lua 5.1" and "*a" or "a"
-	function __clstype__.readFile(file_path)
-		local f, err = ioopen(file_path, "rb")
+	__ct.read_option = _VERSION == "Lua 5.1" and "*a" or "a"
+	function __ct.readFile(file_path)
+		local f, err = io.open(file_path, "rb")
 		if not f then
 			return nil, err
 		end
@@ -116,8 +109,8 @@ do
 		f:close()
 		return data
 	end
-	function __clstype__.writeFile(file_path, content)
-		local f = ioopen(file_path, "wb")
+	function __ct.writeFile(file_path, content)
+		local f = io.open(file_path, "wb")
 		if not f then
 			return 
 		end
@@ -125,14 +118,14 @@ do
 		f:close()
 		return true
 	end
-	function __clstype__.copy(it)
+	function __ct.copy(it)
 		local ot = {  }
 		for k, v in pairs(it) do
 			ot[k] = v
 		end
 		return ot
 	end
-	function __clstype__.suffix(str)
+	function __ct.suffix(str)
 		for i = str:len(), 1, -1 do
 			if str:sub(i, i) == '.' then
 				return str:sub(i + 1, str:len())
@@ -140,49 +133,55 @@ do
 		end
 		return ""
 	end
-	function __clstype__.debug(str)
+	function __ct.debug(str)
 		io.write(str .. "\n")
 	end
-	function __clstype__.dump(t)
+	function __ct.dump(t)
 		Utils.debug(Utils.serializeTable(t))
 	end
-	-- position line in content
-	function __clstype__.posLine(content, lpos, cpos)
+	function __ct.posLine(content, lpos)
 		assert(type(content) == "string", "Invalid content")
 		assert(type(lpos) == "number", "Invalid pos")
-		local ln_num = 1
+		local ln_lnum = 1
 		for _ in content:sub(1, lpos):gmatch("\n") do
-			ln_num = ln_num + 1
+			ln_lnum = ln_lnum + 1
 		end
-		local num = ln_num
+		local lnum = ln_lnum
 		local ln_content = ""
-		for line in content:gmatch("([^\n]*)\n?") do
-			if num == 1 then
+		local lcount = 0
+		for line in content:gmatch("([^\n]*\n?)") do
+			if lnum == 1 then
 				ln_content = line
 				break
 			end
-			num = num - 1
+			lnum = lnum - 1
+			lcount = lcount + line:len()
 		end
-		return { ["line"] = ln_num, ["message"] = ln_content }
+		return { line = ln_lnum, column = lpos - lcount, message = ln_content:gsub('[\n\r]', '') }
+	end
+	function __ct.errorMessage(content, pos, msg, fname)
+		local ct = Utils.posLine(content, pos)
+		return string.format("Error: %s\nFile: %s\nLine: %d (Pos: %d)\nSource: %s\n%s", msg, fname or '_', ct.line, pos, ct.message, string.rep(' ', 8) .. ct.message:gsub('[^%s]', ' '):sub(1, math.max(0, ct.column)) .. '^')
 	end
 	-- declare end
-	local __ins_mt__ = {
-		__tostring = function() return "instance of " .. __clsname__ end,
+	local __imt = {
+		__tostring = function(t) return string.format("<class %s: %p>", __cn, t) end,
 		__index = function(t, k)
-			local v = __clstype__[k]
+			local v = __ct[k]
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
 	}
-	setmetatable(__clstype__, {
-		__tostring = function() return "class " .. __clsname__ end,
+	setmetatable(__ct, {
+		__tostring = function() return "<class " .. __cn .. ">" end,
 		__index = function(_, k)
-			local v = __stype__ and __stype__[k]
-			if v ~= nil then rawset(__clstype__, k, v) end
+			local v = __st and __st[k]
+			if v ~= nil then rawset(__ct, k, v) end
 			return v
 		end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __ins_mt__)
+			local ins = setmetatable({}, __imt)
+			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
 			return ins
 		end,
 	})

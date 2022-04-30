@@ -1,417 +1,1879 @@
 --
--- Copyright (c) 2021 lalawue
+-- Copyright (c) 2022 lalawue
 --
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the MIT license. See LICENSE for details.
 --
 
-import P, R, S, V, C, Cb, Cf, Cg, Cp, Ct, Cmt from "lpeg" {}
-import fType, fSetmaxstack from "lpeg" { type, setmaxstack }
-import fSet, fSplit, fTrim from "moocscript.utils" { set, split, trim }
-local ipairs = ipairs
+import Utils from "moocscript.utils"
 
-fSetmaxstack(10240)
+local srep = string.rep
+local math_huge = math.huge
+local unpack = unpack or table.unpack
+local tostring = tostring
 
--- remove keyword pattern
-kwTableR = fSet({ "and", "break", "case", "class", "continue", "default", "defer", "do", "else", "elseif", "end",
-"export", "extension", "fn", "for", "from", "function", "goto", "guard", "if", "import", "in", "local", "not", "or",
-"repeat", "return", "static", "switch", "then", "until", "while", "...", ".."})
-kwTableL = fSet({"false", "nil", "true"})
+Token = {
+    Illegal = "illegal",
+    Eof = "eof",
+    --
+    Identifier = "identifier",
+    Number = "number",
+    String = "string",
+    StringExpr = "string+", -- "string\(expr)"
+    Comment = "comment",
+    SheBang = "shebang",
+    --
+    Vararg = "...",
+    SepSemi = ";",
+    SepComma = ",",
+    SepDot = ".",
+    SepColon = ":",
+    SepLabel = "::",
+    SepLparen = "(",
+    SepRparen = ")",
+    SepLbreak = "[",
+    SepRbreak = "]",
+    SepLcurly = "{",
+    SepRcurly = "}",
+    OpAssign = "=",
+    OpMinus = "-", -- sub or unm
+    OpWav = "~", -- bnot or bxor
+    OpAdd = "+",
+    OpMul = "*",
+    OpDiv = "/",
+    OpIdiv = "//",
+    OpPow = "^",
+    OpMod = "%",
+    OpBand = "&",
+    OpBor = "|",
+    OpShr = ">>",
+    OpShl = "<<",
+    OpConcat = "..",
+    OpLt = "<",
+    OpLe = "<=",
+    OpGt = ">",
+    OpGe = ">=",
+    OpEq = "==",
+    OpNe = "~=",
+    OpNb = "!=",
+    OpNen = "#",
+    OpAnd = "and",
+    OpOr = "or",
+    OpNot = "not",
+    KwBreak = "break",
+    KwCase = "case",
+    KwClass = "class",
+    KwContinue = "continue",
+    KwDefault = "default",
+    KwDefer = "defer",
+    KwDo = "do",
+    KwElse = "else",
+    KwElseIf = "elseif",
+    KwExport = "export",
+    KwExtension = "extension",
+    KwFalse = "false",
+    KwFn = "fn",
+    KwFor = "for",
+    KwFrom = "from",
+    KwGoto = "goto",
+    KwGuard = "guard",
+    KwIf = "if",
+    KwImport = "import",
+    KwIn = "in",
+    KwLocal = "local",
+    KwNil = "nil",
+    KwPublic = "public",
+    KwRepeat = "repeat",
+    KwReturn = "return",
+    KwStatic = "static",
+    KwStruct = "struct",
+    KwSwitch = "switch",
+    KwTrue = "true",
+    KwUntil = "until",
+    KwWhile = "while",
+}
 
-fn fNoKWL(s, p, c) {
-    list = fSplit(c, "[%.]", nil, true)
-    for _, v in ipairs(list) {
-        if kwTableL[v] or kwTableR[v] {
-            return false
+ReservedWord = {
+    [Token.OpAnd] = Token.OpAnd,
+    [Token.OpOr] = Token.OpOr,
+    [Token.OpNot] = Token.OpNot,
+    [Token.KwBreak] = Token.KwBreak,
+    [Token.KwCase] = Token.KwCase,
+    [Token.KwClass] = Token.KwClass,
+    [Token.KwContinue] = Token.KwContinue,
+    [Token.KwDefault] = Token.KwDefault,
+    [Token.KwDefer] = Token.KwDefer,
+    [Token.KwDo] = Token.KwDo,
+    [Token.KwElse] = Token.KwElse,
+    [Token.KwElseIf] = Token.KwElseIf,
+    [Token.KwExport] = Token.KwExport,
+    [Token.KwExtension] = Token.KwExtension,
+    [Token.KwFalse] = Token.KwFalse,
+    [Token.KwFn] = Token.KwFn,
+    [Token.KwFor] = Token.KwFor,
+    [Token.KwFrom] = Token.KwFrom,
+    [Token.KwGoto] = Token.KwGoto,
+    [Token.KwGuard] = Token.KwGuard,
+    [Token.KwIf] = Token.KwIf,
+    [Token.KwImport] = Token.KwImport,
+    [Token.KwIn] = Token.KwIn,
+    [Token.KwLocal] = Token.KwLocal,
+    [Token.KwNil] = Token.KwNil,
+    [Token.KwPublic] = Token.KwPublic,
+    [Token.KwRepeat] = Token.KwRepeat,
+    [Token.KwReturn] = Token.KwReturn,
+    [Token.KwStatic] = Token.KwStatic,
+    [Token.KwStruct] = Token.KwStruct,
+    [Token.KwSwitch] = Token.KwSwitch,
+    [Token.KwTrue] = Token.KwTrue,
+    [Token.KwUntil] = Token.KwUntil,
+    [Token.KwWhile] = Token.KwWhile,
+}
+
+CharSymbol = {
+    [Token.SepSemi] = true,
+    [Token.SepComma] = true,
+    [Token.SepLparen] = true,
+    [Token.SepRparen] = true,
+    [Token.SepRbreak] = true,
+    [Token.SepLcurly] = true,
+    [Token.SepRcurly] = true,
+    [Token.OpAdd] = true,
+    [Token.OpMul] = true,
+    [Token.OpPow] = true,
+    [Token.OpMod] = true,
+    [Token.OpBand] = true,
+}
+
+ArithmeticOp = {
+    [Token.OpAdd] = true,
+    [Token.OpMinus] = true,
+    [Token.OpMul] = true,
+    [Token.OpDiv] = true,
+    [Token.OpIdiv] = true,
+    [Token.OpPow] = true,
+    [Token.OpMod] = true,
+}
+
+BitwiseOp = {
+    [Token.OpBand] = true,
+    [Token.OpBor] = true,
+    [Token.OpWav] = true,
+    [Token.OpShr] = true,
+    [Token.OpShl] = true,
+}
+
+RelationalOp = {
+    [Token.OpEq] = true,
+    [Token.OpNe] = true,
+    [Token.OpNb] = true,
+    [Token.OpLt] = true,
+    [Token.OpLe] = true,
+    [Token.OpGt] = true,
+    [Token.OpGe] = true,
+}
+
+LogicalOp = {
+    [Token.OpAnd] = true,
+    [Token.OpOr] = true,
+}
+
+CharBlank = {
+    [' '] = true,
+    ['\t'] = true,
+    ['\n'] = true,
+    ['\r'] = true,
+    ['\v'] = true,
+    ['\f'] = true
+}
+
+fn unp(a) {
+    if a {
+        return unpack(a)
+    }
+}
+
+fn isBinOp(t) {
+    return (t == Token.OpConcat) or ArithmeticOp[t] or BitwiseOp[t] or RelationalOp[t] or LogicalOp[t]
+}
+
+fn isDigit(ch) {
+    return ch>='0' and ch<='9'
+}
+
+fn isLetter(ch) {
+    return (ch>='a' and ch<='z') or (ch>='A' and ch<='Z')
+}
+
+fn isHex(ch) {
+    return (ch>='0' and ch<='9') or (ch>='a' and ch<='f') or (ch>='A' and ch<='F')
+}
+
+_schar = string.char
+fn schar(byte) {
+    -- treat control character as space
+    if (byte >= 0 and byte <= 31) or byte == 127 {
+        return ' '
+    }
+    return _schar(byte)
+}
+
+-- quick stack, always keep data in array
+struct QuickStack {
+    _array = {}
+    _index = 0
+
+    fn reset() {
+        self._index = 0
+    }
+
+    fn dataOp() {
+        return self._array, self._index
+    }
+
+    fn incTop() {
+        self._index += 1
+        t = self._array[self._index] or {}
+        self._array[self._index] = t
+        return t
+    }
+
+    fn decTop() {
+        guard self._index > 0 else {
+            return
+        }
+        t = self._array[self._index]
+        self._index -= 1
+        return t
+    }
+}
+
+-- map group data
+struct GroupMap {
+    _gcount = 1 -- group count when set/get, <=4
+    _imap = {} -- key to array index
+    _atop = 0 -- array index top
+    _array = {0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,}
+    _ret = {0,0,0,0}
+
+    -- init group count
+    fn init(gcount) {
+        self._gcount = gcount
+    }
+
+    fn reset() {
+        self._atop = 0
+        self._imap = {}
+    }
+
+    -- associate key with group data, data CAN NOT be nil
+    fn set(key, ...) {
+        guard key and select('#', ...) == self._gcount else {
+            return
+        }
+        ret = self._ret
+        ret[1], ret[2], ret[3], ret[4] = ...
+        base = self._atop
+        for i = 1, self._gcount {
+            self._array[base + i] = ret[i]
+        }
+        self._imap[key] = self._atop
+        self._atop += self._gcount
+    }
+
+    -- get group data form key
+    fn get(key) {
+        base = self._imap[key or self._array]
+        guard key and base else {
+            return
+        }
+        ret = self._ret
+        for i = 1, self._gcount {
+            ret[i] = self._array[base + i]
+        }
+        return ret[1], ret[2], ret[3], ret[4]
+    }
+}
+
+-- generate token sequence
+struct Lexer {
+    _chunk = ""
+    _pos = 0
+    _pmap = GroupMap(4)  -- [current_pos] = { token, token_content, token_pos, next_pos }
+    _pstack = {} -- pos stack
+    _ptop = 0 -- stack top
+    _err_msg = false
+
+    --- reset chunk with name
+    fn reset(chunk) {
+        self._chunk = chunk
+        self._pos = 0
+        self._pmap:reset()
+        self._ptop = 0
+        self._err_msg = false
+    }
+
+    fn savePos() {
+        self._ptop += 1
+        self._pstack[self._ptop] = self._pos
+    }
+
+    fn restorePos() {
+        if self._ptop > 0 {
+            self._pos = self._pstack[self._ptop]
+            self._ptop -= 1
         }
     }
-    return true, {etype = "lvar", value = c, pos = p, list = (#list > 1 and list or nil)}
-}
 
-fn fNoKWR(s, p, c) {
-    list = fSplit(c, "[%.:]", nil, true)
-    for _, v in ipairs(list) {
-        if kwTableR[v] {
-            return false
+    fn clearPos() {
+        if self._ptop > 0 {
+            self._ptop -= 1
         }
     }
-    return true, {etype = "rvar", value = c, pos = p, list = (#list > 1 and list or nil)}
-}
 
-fn fMarkStype(stype) {
-    return fn(s, p, c) {
-        return p, {pos = p, value = c, stype = stype}
+    --- peek token kind
+    ---@param advance boolean
+    fn peekToken(advance) {
+        guard self._pos < self._chunk:len() else {
+            return Token.Eof
+        }
+        opos = self._pos
+        token, tcontent, tpos, npos = self._pmap:get(self._pos)
+        if token {
+            if advance {
+                self._pos = npos
+            }
+            return token, tcontent, tpos, opos
+        } else {
+            self:skipSpacesComments()
+            npos = self._pos
+        }
+        --
+        token, tcontent, tpos = Token.Illegal, nil, self._pos + 1
+        ch = self:nextChar()
+        switch ch {
+        case '#':
+            if '!' == self:peekChar() and self._pos == 1 {
+                token = Token.SheBang
+                tcontent = "#" .. self:oneLine()
+            } else {
+                token = Token.OpNen
+                tcontent = Token.OpNen
+            }
+        case '-':
+            token = Token.OpMinus
+            tcontent = Token.OpMinus
+        case '.':
+            if '.' == self:peekChar() {
+                self._pos += 1
+                if '.' == self:peekChar() {
+                    self._pos += 1
+                    token = Token.Vararg
+                    tcontent = Token.Vararg
+                } else {
+                    token = Token.OpConcat
+                    tcontent = Token.OpConcat
+                }
+            } elseif isDigit(self:peekChar()) {
+                token = Token.Number
+                tcontent = self:oneNumber(ch)
+            } else {
+                token = Token.SepDot
+                tcontent = Token.SepDot
+            }
+        case '"', "'":
+            token, tcontent = self:shortString(ch)
+        case '[':
+            nch = self:peekChar()
+            if nch == '[' or nch == '=' {
+                token = Token.String
+                tcontent = self:longString()
+            } else {
+                token = Token.SepLbreak
+                tcontent = Token.SepLbreak
+            }
+        case '/':
+            if '/' == self:peekChar() {
+                self._pos += 1
+                token = Token.OpIdiv
+                tcontent = Token.OpIdiv
+            } else {
+                token = Token.OpDiv
+                tcontent = Token.OpDiv
+            }
+        case '>':
+            nch = self:peekChar()
+            if nch == '>' {
+                self._pos += 1
+                token = Token.OpShr
+                tcontent = Token.OpShr
+            } elseif nch == '=' {
+                self._pos += 1
+                token = Token.OpGe
+                tcontent = Token.OpGe
+            } else {
+                token = Token.OpGt
+                tcontent = Token.OpGt
+            }
+        case '<':
+            nch = self:peekChar()
+            if nch == '<' {
+                self._pos += 1
+                token = Token.OpShl
+                tcontent = Token.OpShl
+            } elseif nch == '=' {
+                self._pos += 1
+                token = Token.OpLe
+                tcontent = Token.OpLe
+            } else {
+                token = Token.OpLt
+                tcontent = Token.OpLt
+            }
+        case '=':
+            if '=' == self:peekChar() {
+                self._pos += 1
+                token = Token.OpEq
+                tcontent = Token.OpEq
+            } else {
+                token = Token.OpAssign
+                tcontent = Token.OpAssign
+            }
+        case '~':
+            if '=' == self:peekChar() {
+                self._pos += 1
+                token = Token.OpNe
+                tcontent = Token.OpNe
+            } else {
+                token = Token.OpWav
+                tcontent = Token.OpWav
+            }
+        case '!':
+            if '=' == self:peekChar() {
+                self._pos += 1
+                token = Token.OpNb
+                tcontent = Token.OpNb
+            }
+        case ':':
+            if ':' == self:peekChar() {
+                self._pos += 1
+                token = Token.SepLabel
+                tcontent = Token.SepLabel
+            } else {
+                token = Token.SepColon
+                tcontent = Token.SepColon
+            }
+        default:
+            if CharSymbol[ch] {
+                token = ch
+                tcontent = ch
+            } elseif isDigit(ch) {
+                token = Token.Number
+                tcontent = self:oneNumber(ch)
+            } elseif ch == '_' or isLetter(ch) {
+                tcontent = self:oneIdentifier()
+                if tcontent:len() > 0 {
+                    token = ReservedWord[tcontent]
+                    if not token {
+                        token = Token.Identifier
+                    }
+                }
+            } elseif self._pos >= self._chunk:len() {
+                token = Token.Eof
+                tcontent = ""
+                self._pos = npos
+            }
+        }
+        -- store token content and pos
+        self._pmap:set(npos, token, tcontent, tpos, self._pos)
+        if not advance {
+            self._pos = npos
+        }
+        return token, tcontent, tpos, opos
+    }
+
+    -- insure next token is kind, advance pos
+    fn nextTokenKind(kind) {
+        t, c, p, pp = self:peekToken(true)
+        if t ~= kind {
+            self._pos = pp
+            self._err_msg = string.format("invalid token '%s'%s, when expected '%s'",
+                                            t, (t == Token.Identifier) and (' ' .. c) or '', kind)
+            error("")
+        }
+        return t, c, p
+    }
+
+    fn nextPos() {
+        _, _, p = self:peekToken(true)
+        return p
+    }
+
+    -- comment token, return content
+    fn oneComment() {
+        s, e = self._chunk:find('%[=*%[', self._pos + 1)
+        if s == self._pos + 1 {
+            count = e - s - 1
+            s, e = self._chunk:find(']' .. srep('=', count) .. ']', e + 1, true)
+            if not e {
+                self._err_msg = "unfinished long comment near '<eof>'"
+                error("")
+            }
+        } else {
+            s, e = self._chunk:find('\n', self._pos + 1)
+            e = (e and e - 1) or self._chunk:len()
+        }
+        if e > self._pos {
+
+            self._pos = e
+        }
+    }
+
+    -- parse short string and string expr (direct)
+    fn shortString(sep) {
+        pos = self._pos
+        while true {
+            ch = self:nextChar()
+            if ch:len() <= 0 or (CharBlank[ch] and ch != ' ') {
+                self._err_msg = "unfinished string"
+                error("")
+            } elseif ch == '\\' and self:peekChar():len() > 0 {
+                if sep == '"' and self:peekChar() == '(' {
+                    -- "1\(2)3\(4)5", "\(2)\(4)"
+                    s, e, prefix = pos, self._pos - 1, ''
+                    if self:charAt(pos) ~= sep {
+                        s = pos + 1
+                        prefix = sep
+                    }
+                    return Token.StringExpr, (s > e) and '' or (prefix .. self._chunk:sub(s, e) .. sep), s
+                }
+                self._pos += 1
+            } elseif ch == sep {
+                s, e = pos, self._pos
+                if self:charAt(pos) == sep {
+                    -- for normal short string
+                    return Token.String, self._chunk:sub(s, e), pos
+                } else {
+                    s += 1
+                    return Token.String, (s >= e) and '' or (sep .. self._chunk:sub(s, e)), pos + 1
+                }
+            }
+        }
+    }
+
+    -- parse long string
+    fn longString() {
+        pos = self._pos
+        ecount = 0
+        while self:peekChar() == '=' {
+            self._pos += 1
+            ecount += 1
+        }
+        if self:peekChar() ~= '[' {
+            self._err_msg = "invalid long string delimiter"
+            error("")
+        }
+        s, e = self._chunk:find(']'.. srep('=', ecount) .. ']', self._pos + 1, true)
+        if not e {
+            self._err_msg = "unfinished long string near '<eof>'"
+            error("")
+        }
+        self._pos = e
+        return self._chunk:sub(pos, e)
+    }
+
+    -- parse number token
+    fn oneNumber(pre_char) {
+        pos = self._pos
+        ntype = 1 -- 0:hex, 1:integer, 2:float, 3:exp
+        ch = self:peekChar()
+        if pre_char == '0' and (ch == 'x' or ch == 'X') {
+            self._pos += 1
+            ntype = 0
+        } elseif pre_char == '.' {
+            ntype = 2
+        }
+        while true {
+            ch = self:peekChar()
+            if ch:len() <= 0 {
+                if ntype == 0 and self._pos - pos > 1 {
+                    return self._chunk:sub(pos, self._pos)
+                } elseif ntype == 2 and self._pos > pos {
+                    return self._chunk:sub(pos, self._pos)
+                } elseif ntype == 1 or ntype == 3 {
+                    return self._chunk:sub(pos, self._pos)
+                } else {
+                    break
+                }
+            } elseif ch == '_' {
+                break
+            } elseif ntype == 0 {
+                if isHex(ch) {
+                    self._pos += 1
+                } elseif not isLetter(ch) {
+                    return self._chunk:sub(pos, self._pos)
+                } else {
+                    break
+                }
+            } elseif ntype == 1 {
+                if isDigit(ch) {
+                    self._pos += 1
+                } elseif ch == '.' {
+                    self._pos += 1
+                    ntype = 2
+                } elseif ch == 'e' or ch == 'E' {
+                    self._pos += 1
+                    ntype = 3
+                    nch = self:nextChar()
+                    guard isDigit(nch) or (nch == '-' and isDigit(self:nextChar())) else {
+                        break
+                    }
+                } elseif not isLetter(ch) {
+                    return self._chunk:sub(pos, self._pos)
+                } else {
+                    break
+                }
+            } elseif ntype == 2 {
+                if isDigit(ch) {
+                    self._pos += 1
+                } elseif (ch == 'e' or ch == 'E') {
+                    self._pos += 1
+                    ntype = 3
+                    nch = self:nextChar()
+                    guard isDigit(nch) or (nch == '-' and isDigit(self:nextChar())) else {
+                        break
+                    }
+                } elseif not isLetter(ch) and ch != '.' {
+                    return self._chunk:sub(pos, self._pos)
+                } else {
+                    break
+                }
+            } else {
+                if isDigit(ch) {
+                    self._pos += 1
+                } elseif not isLetter(ch) {
+                    return self._chunk:sub(pos, self._pos)
+                } else {
+                    break
+                }
+            }
+        }
+        self._err_msg = "malformed number"
+        error("")
+    }
+
+    --- get identifier content
+    fn oneIdentifier() {
+        pos = self._pos
+        while true {
+            ch = self:peekChar()
+            if ch == '_' or isDigit(ch) or isLetter(ch) {
+                self._pos += 1
+            } else {
+                return self._chunk:sub(pos, self._pos)
+            }
+        }
+    }
+
+    --- get one line content
+    fn oneLine() {
+        _, e = self._chunk:find('\n', self._pos + 1, true)
+        e = (e and e - 1) or self._chunk:len()
+        content = self._chunk:sub(self._pos + 1, e)
+        self._pos = e
+        return content
+    }
+
+    -- ignore any white spaces and comments
+    fn skipSpacesComments() {
+        while true {
+            ch = self:nextChar()
+            if CharBlank[ch] {
+                -- do nothing
+            } elseif ch == '-' and self:peekChar() == '-' {
+                self._pos += 1
+                self:oneComment()
+            } else {
+                self._pos -= 1
+                break
+            }
+        }
+    }
+
+    --- peek char at i, pos WILL NOT change
+    --- @return char at i
+    --- @return "" when meet chunk end
+    fn charAt(i) {
+        guard i < self._chunk:len() else {
+            return ""
+        }
+        return schar(self._chunk:byte(i))
+    }
+
+    --- peek next char, pos WILL NOT change
+    --- @return next char
+    --- @return "" when meet chunk end
+    fn peekChar() {
+        guard self._pos < self._chunk:len() else {
+            return ""
+        }
+        return schar(self._chunk:byte(self._pos + 1))
+    }
+
+    --- return next char, pos + 1
+    --- @return next char
+    --- @return "" when chunk end
+    fn nextChar() {
+        guard self._pos < self._chunk:len() else {
+            return ""
+        }
+        self._pos += 1
+        return schar(self._chunk:byte(self._pos))
+    }
+
+    fn getLastError() {
+        return self._err_msg, self._pos
     }
 }
 
-fn fMarkEtype(etype) {
-    return fn(s, p, c) {
-        return p, {pos = p, value = c, etype = etype}
+-- generate AST tree
+struct Parser {
+    _sub_mode = false -- sub mode for class block or other edge case
+    _scopes = QuickStack() -- 'cl', 'fn', 'lo', 'gu'
+    _lo_count = 0 -- loop count in file scope
+    _df_in = false -- in defer block
+    _err_msg = false -- error message
+    _pos = false     -- parser error pos
+    _blevel = 0       -- block level
+
+    _fn_list = {}    -- list all statement function
+    _fn_map = {}     -- quick reference with prefix token
+    _fn_wrap = false -- set before use
+
+    fn fReset(chunk) {
+        self._sub_mode = false
+        self._scopes:reset()
+        self._lo_count = 0
+        self._df_in = false
+        self._err_msg = false
+        self._pos = false
+        self._blevel = 0
+        Lexer:reset(chunk)
+        -- statement function test sequence
+        local t = self._fn_list
+        if #t <= 0 {
+            t[#t + 1] = self.stExport
+            t[#t + 1] = self.stAssign
+            t[#t + 1] = self.stFnCall
+            t[#t + 1] = self.stIfElse
+            t[#t + 1] = self.stGuard
+            t[#t + 1] = self.stClassDef
+            t[#t + 1] = self.stDo
+            t[#t + 1] = self.stSwitch
+            t[#t + 1] = self.stFor
+            t[#t + 1] = self.stWhile
+            t[#t + 1] = self.stRepeat
+            t[#t + 1] = self.stImport
+            t[#t + 1] = self.stFnDef
+            t[#t + 1] = self.stLabel
+            t[#t + 1] = self.stDefer
+            t[#t + 1] = self.stLoopEnd
+            t[#t + 1] = self.stBlockEnd
+            t[#t + 1] = self.stShebang
+            -- key -> multi statement function
+            self._fn_map[Token.Identifier] = { self in
+                return self:stAssign() or self:stFnCall()
+            }
+            self._fn_map[Token.KwExport] = { self in
+                return self:stExport() or self:stAssign() or self:stFnDef() or self:stClassDef()
+            }
+            self._fn_map[Token.KwLocal] = { self in
+                return self:stExport() or self:stAssign() or self:stFnDef() or self:stClassDef()
+            }
+            self._fn_map[Token.SepLparen] = { self in
+                return self:stAssign() or self:stFnCall()
+            }
+        }
+    }
+
+    fn fAsset(exp, err_msg, pos) {
+        if not exp {
+            self._err_msg = err_msg
+            if type(pos) == 'number' {
+                self._pos = pos
+            } elseif type(pos) == 'boolean' {
+                self._pos = Lexer:nextPos()
+            } else {
+                self._pos = false
+            }
+            error("")
+        }
+    }
+
+    fn getLastError() {
+        err_msg, pos = Lexer:getLastError()
+        pos = math.max(0, self._pos or pos)
+        return err_msg or self._err_msg, pos
+    }
+
+    -- MARK: helper
+
+    fn fnBodyStart() {
+        t = self._scopes:incTop()
+        t.scope = 'fn'
+        t.df = nil
+    }
+
+    fn fnBodyEnd() {
+        t = self._scopes:decTop()
+        return t and t.df or nil
+    }
+
+    fn loBodyStart() {
+        self._lo_count += 1
+        t = self._scopes:incTop()
+        t.scope = 'lo'
+        t.index = self._lo_count
+    }
+
+    fn loBodyEnd(body) {
+        t = self._scopes:decTop()
+        if t.co {
+            ot = body[#body]
+            if ot.stype == 'return' or ot.stype == 'break' {
+                body[#body] = { stype = 'do', body = { ot } }
+            }
+            body[#body + 1] = { stype = '::', { etype = "const", value = "__c" .. tostring(t.index), pos = 0 }}
+        }
+    }
+
+    -- for class/struct/extension
+    fn clBodyStart() {
+        t = self._scopes:incTop()
+        t.scope = 'cl'
+        t.cname = nil
+        t.sname = nil
+        return t
+    }
+
+    fn clBodyEnd() {
+        self._scopes:decTop()
+    }
+
+    fn guBodyStart() {
+        t = self._scopes:incTop()
+        t.scope = 'gu'
+        t.term = nil
+    }
+
+    fn guBodyEnd() {
+        return self._scopes:decTop()
+    }
+
+    fn isInFn() {
+        array, count = self._scopes:dataOp()
+        guard count > 0 else {
+            return
+        }
+        for i = count, 1, -1 {
+            t = array[i]
+            if t.scope == 'fn' {
+                return t
+            }
+        }
+    }
+
+    fn isInLoop() {
+        array, count = self._scopes:dataOp()
+        guard count > 0 else {
+            return
+        }
+        for i = count, 1, -1 {
+            t = array[i]
+            if t.scope == 'cl' or t.scope == 'fn' {
+                return
+            } elseif t.scope == 'lo' {
+                return t
+            }
+        }
+    }
+
+    -- 'class', 'struct', 'extension'
+    fn isInCls() {
+        array, count = self._scopes:dataOp()
+        guard count > 0 else {
+            return
+        }
+        for i = count, 1, -1 {
+            t = array[i]
+            if t.scope == 'cl' {
+                return t
+            }
+        }
+    }
+
+    -- update term if current scope is 'gu' scope
+    fn termInGuard() {
+        array, count = self._scopes:dataOp()
+        if count > 0 and array[count].scope == 'gu' {
+            array[count].term = true
+        }
+    }
+
+    fn fnWrap() {
+        return self._fn_wrap
+    }
+
+    fn fnMapList(t) {
+        for i, f in ipairs(self._fn_list) {
+            st = f(self)
+            if st {
+                self._fn_map[t] = f
+                self._fn_wrap = st
+                return self.fnWrap
+            }
+        }
+        self._fn_wrap = false
+        return self.fnWrap
+    }
+
+    -- block
+    fn fParseBlock() {
+        self._blevel += 1
+        ast = {}
+        repeat {
+            t, c, p = Lexer:peekToken()
+            st = (self._fn_map[t] or self:fnMapList(t))(self)
+            if st {
+                ast[#ast + 1] = st
+                if st.stype == "return" {
+                    self:stSemi(ast, 1)
+                    t, c, p = Lexer:peekToken()
+                    if self._blevel == 1 {
+                        self:fAsset(t == Token.Eof, "'eof' expected after 'return'", p)
+                    } else {
+                        self:fAsset(t == Token.SepRcurly or t == Token.KwCase or t == Token.KwDefault, "'}', 'case', 'default' expected after 'return'", p)
+                    }
+                    break
+                }
+            }
+            st = self:stSemi(ast, math_huge) or st
+        } until not st or Token.Eof == Lexer:peekToken()
+        self._blevel -= 1
+        if self._blevel == 0 {
+            t, c, p = Lexer:peekToken()
+            self:fAsset(Token.Eof == t, "unexpected symbol near '" .. t .. "'", p)
+        } elseif not self._df_in and #ast > 0 and ast[#ast].stype != 'return' {
+            ft = self:isInFn()
+            if ft and ft.df {
+                ast[#ast + 1] = { stype = 'raw', value = '__dr()' }
+            }
+        }
+        return ast
+    }
+
+    -- MARK: statement
+
+    --[[
+        ';'
+    ]]
+    fn stSemi(ast, count) {
+        i = 0
+        while i < count and Token.SepSemi == Lexer:peekToken() {
+            Lexer:nextTokenKind(Token.SepSemi)
+            i += 1
+        }
+        if i > 0 {
+            ast[#ast + 1] = { stype = ';' }
+        }
+        return i > 0
+    }
+
+    --[[
+        '#!'
+    ]]
+    fn stShebang() {
+        t, c, p = Lexer:peekToken()
+        if t == Token.SheBang {
+            Lexer:nextTokenKind(t)
+            return { stype = "#!", value = c, pos = p }
+        }
+    }
+
+    --[[
+        export *
+        export varlist
+        local varlist
+    ]]
+    fn stExport() {
+        t, c, p = Lexer:peekToken()
+        guard t == Token.KwExport or t == Token.KwLocal else {
+            return
+        }
+        Lexer:savePos()
+        Lexer:nextTokenKind(t)
+        if t == Token.KwExport and Token.OpMul == Lexer:peekToken() {
+            t, c, p = Lexer:nextTokenKind(Token.OpMul)
+            Lexer:clearPos()
+            return { stype = "ex", attr = t, { etype = '*', value = c, pos = p } }
+        }
+        -- check namelist
+        guard Token.Identifier == Lexer:peekToken() else {
+            Lexer:restorePos()
+            return
+        }
+        nlist = self:etNameList()
+        guard #nlist > 0 and Token.OpAssign != Lexer:peekToken() else {
+            Lexer:restorePos()
+            return
+        }
+        Lexer:clearPos()
+        return { stype = "ex", attr = t, unp(nlist) }
+    }
+
+    --[[
+        [local | export] varlist := explist
+    ]]
+    fn stAssign() {
+        Lexer:savePos()
+        attr = nil
+        -- check ex statement
+        t, c, p = Lexer:peekToken()
+        if t == Token.KwExport or t == Token.KwLocal {
+            Lexer:nextTokenKind(t)
+            attr = t
+        }
+        -- check varlist
+        t, c, p = Lexer:peekToken()
+        guard t == Token.Identifier or t == Token.SepLparen else {
+            Lexer:restorePos()
+            return
+        }
+        vlist = self:etVarList()
+        sub = nil
+        t, c, p = Lexer:peekToken(true)
+        if t == Token.OpAssign {
+            -- do nothing
+        } elseif isBinOp(t) and not RelationalOp[t] and Token.OpAssign == Lexer:peekToken(true) {
+            sub = t
+            self:fAsset(Lexer:charAt(p+t:len()) == Token.OpAssign, "can not keep space between " .. t .. Token.OpAssign, p)
+            self:fAsset(#vlist<=1 or vlist[#vlist].etype == Token.SepDot, "tow much var on equal left")
+        } else {
+            Lexer:restorePos()
+            return
+        }
+        Lexer:clearPos()
+        elist = self:etExprList("expect exp after assgin")
+        return { stype = '=', =attr, =sub, vlist, elist }
+    }
+
+    --[[
+        do { block }
+    ]]
+    fn stDo() {
+        guard Token.KwDo == Lexer:peekToken() else {
+            return
+        }
+        Lexer:nextTokenKind(Token.KwDo)
+        Lexer:nextTokenKind(Token.SepLcurly)
+        body = self:fParseBlock()
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return { stype = "do", =body }
+    }
+
+    --[[
+        if exp `{´ block {`}´ elseif exp `{´ block } [`}´ else `{´ block] `}´
+    ]]
+    fn stIfElse() {
+        t, c, p = Lexer:peekToken()
+        guard t == Token.KwIf else {
+            return
+        }
+        out = {}
+        repeat {
+            st = { sub = t }
+            Lexer:nextTokenKind(t)
+            st.cond = (t != Token.KwElse) and self:etExpr({}, "expect condition after " .. t) or nil
+            Lexer:nextTokenKind(Token.SepLcurly)
+            st.body = self:fParseBlock()
+            Lexer:nextTokenKind(Token.SepRcurly)
+            out[#out + 1] = st
+            t, c, p = Lexer:peekToken()
+        } until t != Token.KwElseIf and t != Token.KwElse
+        return { stype = 'if', unp(out) }
+    }
+
+    --[[
+        guard expr else `{´ block laststat `}´
+    ]]
+    fn stGuard() {
+        guard Token.KwGuard == Lexer:peekToken() else {
+            return
+        }
+        Lexer:nextTokenKind(Token.KwGuard)
+        cond = self:etExpr({}, "expect condition after guard")
+        Lexer:nextTokenKind(Token.KwElse)
+        _, _, p = Lexer:nextTokenKind(Token.SepLcurly)
+        self:guBodyStart()
+        body = self:fParseBlock()
+        self:fAsset(self:guBodyEnd().term, "'guard' body require return/goto/break/continue to transfer control")
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return { stype = 'guard', =cond, =body }
+    }
+
+    --[[
+        switch expr `{´
+        case explist `:´
+            block
+        default `:´
+            block
+        `}´
+    ]]
+    fn stSwitch() {
+        guard Token.KwSwitch == Lexer:peekToken() else {
+            return
+        }
+        Lexer:nextTokenKind(Token.KwSwitch)
+        sw_ret = { stype = "switch", cond = self:etExpr({}, "expect condition after switch") }
+        Lexer:nextTokenKind(Token.SepLcurly)
+        df_count = 0
+        while true {
+            t, c, p = Lexer:peekToken()
+            if t == Token.KwCase {
+                Lexer:nextTokenKind(t)
+                self._sub_mode = 'case'
+                cond = self:etExprList("expect condition after case")
+                self._sub_mode = false
+                Lexer:nextTokenKind(Token.SepColon)
+                body = self:fParseBlock()
+                sw_ret[#sw_ret + 1] = { =cond, =body }
+            } elseif t == Token.KwDefault {
+                if df_count <= 0 {
+                    df_count += 1
+                    Lexer:nextTokenKind(t)
+                    Lexer:nextTokenKind(Token.SepColon)
+                    body = self:fParseBlock()
+                    sw_ret[#sw_ret + 1] = { =body }
+                } else {
+                    self:fAsset(false, "too much default case in switch statement")
+                }
+            } else {
+                break
+            }
+        }
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return sw_ret
+    }
+
+    --[[
+        defer { block }
+    ]]
+    fn stDefer() {
+        guard Token.KwDefer == Lexer:peekToken() else {
+            return
+        }
+        ft = self:isInFn()
+        self:fAsset(ft, "defer only support function scope")
+        self:fAsset(not self._df_in, "defer can not inside another defer")
+        ft.df = "local __df={};local __dr=function() local __t=__df; for __i=#__t, 1, -1 do __t[__i]() end;end;"
+        Lexer:nextTokenKind(Token.KwDefer)
+        Lexer:nextTokenKind(Token.SepLcurly)
+        self._df_in = true
+        body = self:fParseBlock()
+        self._df_in = false
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return { stype = 'defer', =body }
+    }
+
+    --[[
+        for Name `=´ exp `,´ exp [`,´ exp] { block } |
+        for namelist in explist { block }
+    ]]
+    fn stFor() {
+        guard Token.KwFor == Lexer:peekToken() else {
+            return
+        }
+        Lexer:nextTokenKind(Token.KwFor)
+        name = self:etNameList()
+        self:fAsset(name[#name].value != Token.Vararg, "invalid name list after for")
+        sub = nil
+        if #name == 1 {
+            t, _, p = Lexer:peekToken(true)
+            self:fAsset(t == Token.OpAssign or t == Token.KwIn, "invalid token '" .. t .. "', expected '=' or 'in'", p)
+            sub = t
+        } else {
+            sub = Lexer:nextTokenKind(Token.KwIn)
+        }
+        step = self:etExprList()
+        Lexer:nextTokenKind(Token.SepLcurly)
+        self:loBodyStart()
+        body = self:fParseBlock()
+        self:loBodyEnd(body)
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return { stype = 'for', =sub, =name, =step, =body }
+    }
+
+    --[[
+        while exp { block }
+    ]]
+    fn stWhile() {
+        guard Token.KwWhile == Lexer:peekToken() else {
+            return
+        }
+        Lexer:nextTokenKind(Token.KwWhile)
+        cond = self:etExpr({}, "expect condition after while")
+        Lexer:nextTokenKind(Token.SepLcurly)
+        self:loBodyStart()
+        body = self:fParseBlock()
+        self:loBodyEnd(body)
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return { stype = 'while', =cond, =body }
+    }
+
+    --[[
+        repeat { block } until exp
+    ]]
+    fn stRepeat() {
+        guard Token.KwRepeat == Lexer:peekToken() else {
+            return
+        }
+        Lexer:nextTokenKind(Token.KwRepeat)
+        Lexer:nextTokenKind(Token.SepLcurly)
+        self:loBodyStart()
+        body = self:fParseBlock()
+        self:loBodyEnd(body)
+        Lexer:nextTokenKind(Token.SepRcurly)
+        Lexer:nextTokenKind(Token.KwUntil)
+        cond = self:etExpr({}, "expect condition after until")
+        return { stype = "repeat", =cond, =body }
+    }
+
+    --[[
+        prefixexp args | prefixexp `:´ Name args
+    ]]
+    fn stFnCall() {
+        t, c, p = Lexer:peekToken()
+        guard t == Token.Identifier or t == Token.SepLparen else {
+            return
+        }
+        Lexer:savePos()
+        expr = self:etExpr({})
+        guard expr and #expr > 0 and expr[#expr].etype == '(' else {
+            Lexer:restorePos()
+            return
+        }
+        Lexer:clearPos()
+        return { stype = '(', expr }
+    }
+
+    --[[
+        import namelist from String | Name { prefixexp_list }
+    ]]
+    fn stImport() {
+        guard Token.KwImport == Lexer:peekToken() else {
+            return
+        }
+        Lexer:nextTokenKind(Token.KwImport)
+        if Token.String == Lexer:peekToken() {
+            t, c, p = Lexer:nextTokenKind(Token.String)
+            return { stype = 'import', lib = { etype = 'const', value = c, pos = p }}
+        }
+        vlist = self:etNameList()
+        self:fAsset(#vlist > 0 and (vlist[#vlist].value != Token.Vararg), "please provide valid var name after import")
+        Lexer:nextTokenKind(Token.KwFrom)
+        t, c, p = Lexer:peekToken(true)
+        self:fAsset(t == Token.String or t == Token.Identifier, "expect lib type string or variable")
+        out = {
+            stype = "import",
+            lib = { etype = (t == Token.String and 'const' or 'var'), value = c, pos = p },
+            vlist
+        }
+        guard Token.SepLcurly == Lexer:peekToken() else {
+            self:fAsset(#vlist == 1, "import too much var", p)
+            return out
+        }
+        Lexer:nextTokenKind(Token.SepLcurly)
+        plist = {}
+        while Token.Identifier == Lexer:peekToken() {
+            plist[#plist + 1] = self:etExpr({}, "expect sub lib name after from")
+            if Token.SepComma == Lexer:peekToken() {
+                Lexer:nextTokenKind(Token.SepComma)
+                self:fAsset(#vlist > #plist, "from too much sub lib")
+            } else {
+                self:fAsset(#vlist == #plist, "from too few sub lib")
+                break
+            }
+        }
+        if #plist > 0 {
+            self:fAsset(#vlist == #plist, "import too much/few sub lib")
+        }
+        out[#out + 1] = plist
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return out
+    }
+
+    --[[
+        [local | export] fn var ‘(’ [parlist] ‘)’ ‘{’ block ‘}’
+    ]]
+    fn stFnDef(only_name) {
+        Lexer:savePos()
+        attr = nil
+        t, c, p = Lexer:peekToken()
+        if t == Token.KwLocal or t == Token.KwExport {
+            attr = t == Token.KwExport and t or nil
+            Lexer:nextTokenKind(t)
+        }
+        guard Token.KwFn == Lexer:peekToken() else {
+            Lexer:restorePos()
+            return
+        }
+        Lexer:clearPos()
+        Lexer:nextTokenKind(Token.KwFn)
+        name = self:etFnName(only_name)
+        Lexer:nextTokenKind(Token.SepLparen)
+        args = self:etNameList()
+        Lexer:nextTokenKind(Token.SepRparen)
+        Lexer:nextTokenKind(Token.SepLcurly)
+        self:fnBodyStart()
+        body = self:fParseBlock()
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return { stype = "fn", =attr, =name, =args, =body, df = self:fnBodyEnd() }
+    }
+
+    --[[
+        ‘::’ Name ‘::’
+    ]]
+    fn stLabel() {
+        guard Token.SepLabel == Lexer:peekToken() else {
+            return
+        }
+        Lexer:nextTokenKind(Token.SepLabel)
+        t, c, p = Lexer:nextTokenKind(Token.Identifier)
+        Lexer:nextTokenKind(Token.SepLabel)
+        return { stype = '::', { etype = "const", value = c, pos = p }}
+    }
+
+    --[[
+        break | continue
+    ]]
+    fn stLoopEnd() {
+        t, c, p = Lexer:peekToken()
+        guard t == Token.KwBreak or t == Token.KwContinue else {
+            return
+        }
+        lt = self:isInLoop()
+        self:fAsset(lt, t .. " not in loop")
+        self:termInGuard()
+        Lexer:nextTokenKind(t)
+        if t == Token.KwBreak {
+            return { stype = 'break' }
+        } else {
+            lt.co = true
+            return { stype = 'goto', { etype = "const", value = "__c" .. tostring(self._lo_count), pos = p }}
+        }
+    }
+
+    --[[
+        return explist | goto Name
+    ]]
+    fn stBlockEnd() {
+        t, c, p = Lexer:peekToken()
+        guard t == Token.KwReturn or t == Token.KwGoto else {
+            return
+        }
+        self:termInGuard()
+        if t == Token.KwReturn {
+            Lexer:nextTokenKind(t)
+            ft = self:isInFn()
+            list = self:etExprList(false, ft and ft.df and { etype = 'const', value = '__dr()', pos = p } or nil)
+            if self._df_in {
+                self:fAsset(list == nil, "defer block can not return value", p)
+            }
+            return { stype = 'return', unp(list) }
+        } else {
+            Lexer:nextTokenKind(t)
+            t, c, p = Lexer:nextTokenKind(Token.Identifier)
+            return { stype = 'goto', { etype = "const", value = c, pos = p }}
+        }
+    }
+
+    --[[
+        [local | export] class | struct | extension Name [‘:‘ Name] ‘{’ class_block ‘}’
+    ]]
+    fn stClassDef() {
+        Lexer:savePos()
+        -- [ local | export ]
+        attr = nil
+        t, c, p = Lexer:peekToken()
+        if t == Token.KwLocal or t == Token.KwExport {
+            Lexer:nextTokenKind(t)
+            attr = (t == Token.KwExport) and t or nil
+        }
+        -- class | struct | extension
+        st, sc, sp = Lexer:peekToken()
+        guard st == Token.KwClass or st == Token.KwStruct or st == Token.KwExtension else {
+            Lexer:restorePos()
+            return
+        }
+        Lexer:clearPos()
+        Lexer:nextTokenKind(st)
+        t, c, p = Lexer:nextTokenKind(Token.Identifier)
+        out = {
+            stype = st,
+            =attr,
+            name = { etype = st == Token.KwExtension and 'var' or 'const', value = c, pos = p }
+        }
+        scope = self:clBodyStart()
+        scope.cname = c
+        if Token.SepColon == Lexer:peekToken() {
+            self:fAsset(st != Token.KwStruct, "struct can not inherit from super", true)
+            Lexer:nextTokenKind(Token.SepColon)
+            t, c, p = Lexer:nextTokenKind(Token.Identifier)
+            out.super = { etype = 'var', value = c, pos = p }
+            scope.sname = c
+        }
+        Lexer:nextTokenKind(Token.SepLcurly)
+        while true {
+            t, c, p = Lexer:peekToken()
+            switch t {
+            case Token.KwStatic:
+                Lexer:nextTokenKind(t)
+                self:fAsset(Token.KwFn == Lexer:peekToken(), "expect function definition after " .. t)
+                expr = self:stFnDef(true)
+                expr.attr = t
+                out[#out + 1] = expr
+            case Token.KwFn:
+                out[#out + 1] = self:stFnDef(true)
+            case Token.Identifier:
+                Lexer:nextTokenKind(t)
+                Lexer:nextTokenKind(Token.OpAssign)
+                self._sub_mode = 'class'
+                out[#out + 1] = {
+                    stype = '=',
+                    { etype = 'const', value = c, pos = p },
+                    self:etExpr({}, "expect expr in variable definition")
+                }
+                self._sub_mode = false
+            case Token.SepRcurly:
+                break
+            default:
+                self:fAsset(false, "invalid token " .. t .. " in " .. st .. " definition")
+            }
+        }
+        self:clBodyEnd()
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return out
+    }
+
+    -- MARK: Expression
+
+    --[[
+        nil |
+        false |
+        true |
+        Number |
+        String |
+        `...´ |
+        fn exp |
+        table constructor |
+        unop exp |
+        prefixexp |
+        exp binop exp
+    ]]
+    fn etExpr(out, force_errmsg) {
+        out.etype = 'exp'
+        repeat {
+            t, c, p = Lexer:peekToken()
+            switch t {
+            case Token.KwNil, Token.KwFalse, Token.KwTrue, Token.Vararg, Token.Number, Token.String:
+                Lexer:nextTokenKind(t)
+                out[#out + 1] = { etype = "const", value = c, pos = p }
+            case Token.StringExpr:
+                Lexer:nextTokenKind(t)
+                while true {
+                    -- [ StringExpr ] String
+                    if c:len() > 0 {
+                        out[#out + 1] = { etype = "const", value = c, pos = p }
+                        out[#out + 1] = { etype = "binop", value = '..', pos = p }
+                    }
+                    out[#out + 1] = { etype = "const", value = "tostring", pos = p }
+                    self:etPrefixExpr(out)
+                    t, c, p = Lexer:shortString('"')
+                    if t == Token.String {
+                        if c:len() > 0 {
+                            out[#out + 1] = { etype = "binop", value = '..', pos = p }
+                            out[#out + 1] = { etype = "const", value = c, pos = p }
+                        }
+                        break
+                    } else {
+                        out[#out + 1] = { etype = "binop", value = '..', pos = p }
+                    }
+                }
+            case Token.SepLcurly:
+                out[#out + 1] = self:etFnAnonymous() or self:etTableConstructor()
+            case Token.KwFn:
+                out[#out + 1] = self:etFnNoName()
+            case Token.OpNot, Token.OpNen, Token.OpWav: -- unop exp
+                Lexer:nextTokenKind(t)
+                i = #out
+                if t == Token.OpWav and i > 0 and (out[i].etype == 'const' or out[i].etype == 'var') {
+                    out[i + 1] = { etype = "binop", value = c, pos = p }
+                } else {
+                    out[i + 1] = { etype = "unop", value = c, pos = p }
+                }
+                self:etExpr(out, "expect exp after " .. t)
+            default:
+                if t == Token.OpMinus and (#out<=0 or out[#out].etype == 'binop') {
+                    Lexer:nextTokenKind(t)
+                    out[#out + 1] = { etype = "unop", value = c, pos = p }
+                    self:etExpr(out, "expect exp after " .. t)
+                } elseif isBinOp(t) {
+                    self:fAsset(#out > 0, "invalid expr begin with " .. t)
+                    Lexer:nextTokenKind(t)
+                    out[#out + 1] = { etype = "binop", value = c, pos = p }
+                    -- for quick check op prioritry <= '=='
+                    out.rlop = out.rlop or RelationalOp[t] or LogicalOp[t] or nil
+                    self:etExpr(out, "expect exp after " .. t)
+                } else {
+                    ncount = #out
+                    self:etPrefixExpr(out)
+                    self:etPrefixExprFinish(out)
+                    if #out <= ncount {
+                        break
+                    }
+                }
+            }
+        } until not isBinOp(Lexer:peekToken())
+        if #out > 0 {
+            return #out == 1 and out[1] or out
+        } elseif force_errmsg {
+            self:fAsset(false, force_errmsg)
+        }
+    }
+
+    --[[ -- begin prefix_expr
+        Name |
+        `(´ exp `)´
+    ]]
+    fn etPrefixExpr(out) {
+        o_out = #out
+        t, c, p = Lexer:peekToken()
+        switch t {
+        case Token.Identifier:
+            Lexer:nextTokenKind(t)
+            if #out == o_out and (c == 'Self' or c == 'Super') {
+                cls = self:isInCls()
+                if cls {
+                    -- class/struct/extension scope, [Self | Super].???
+                    if c == 'Self' {
+                        out[#out + 1] = { etype = "const", value = cls.cname, pos = p }
+                    } else {
+                        if cls.sname {
+                            out[#out + 1] = { etype = "const", value = cls.sname, pos = p }
+                        } else {
+                            -- .__st refers to compile process
+                            out[#out + 1] = { etype = "const", value = cls.cname, pos = p }
+                            out[#out + 1] = { etype = '.', { etype = 'const', value = '__st', pos = p }}
+                        }
+                    }
+                    return
+                }
+            }
+            etype = (#out == 0 or out[#out].etype == 'binop') and 'var' or 'const'
+            out[#out + 1] = { =etype, value = c, pos = p }
+        case Token.SepLparen:
+            Lexer:nextTokenKind(t)
+            expr = self:etExpr({}, "expect exp after " .. t)
+            Lexer:nextTokenKind(Token.SepRparen)
+            out[#out + 1] = { etype = '(', expr }
+        }
+    }
+
+    --[[ -- after every prefix_expr
+        prefix_expr `[´ exp `]´ |
+        prefix_expr `.´ Name |
+        prefix_expr `(´ args `)´ |
+        prefix_expr `:´ Name `(´ args `)´
+    ]]
+    fn etPrefixExprFinish(out) {
+        while true {
+            t, c, p = Lexer:peekToken()
+            switch t {
+            case Token.SepLbreak:
+                self:fAsset(#out > 0, "expect prefix expr before " .. t)
+                Lexer:nextTokenKind(t)
+                expr = self:etExpr({}, "expect exp after " .. t)
+                Lexer:nextTokenKind(Token.SepRbreak)
+                out[#out + 1] = { etype = '[', expr }
+            case Token.SepDot:
+                self:fAsset(#out > 0, "expect prefix expr before " .. t)
+                Lexer:nextTokenKind(t)
+                t, c, p = Lexer:peekToken()
+                switch t {
+                case Token.Identifier:
+                    Lexer:nextTokenKind(t)
+                    out[#out + 1] = { etype = '.', { etype = 'const', value = c, pos = p }}
+                case Token.String:
+                    Lexer:nextTokenKind(t)
+                    out[#out + 1] = { etype = '(', { etype = 'const', value = c, pos = p }}
+                case Token.SepLcurly:
+                    expr = self:etTableConstructor()
+                    out[#out + 1] = { etype = '(', expr }
+                default:
+                    self:fAsset(false, 'expect identifier or [string | table] after ' .. t)
+                }
+            case Token.SepColon:
+                self:fAsset(#out > 0, "expect prefix expr before " .. t)
+                if self._sub_mode == 'case' and CharBlank[Lexer:charAt(p+1)] {
+                    -- in case exprlist ':' BLANK will treat ':' as case finish token
+                    return
+                } else {
+                    Lexer:nextTokenKind(t)
+                    t, c, p = Lexer:nextTokenKind(Token.Identifier)
+                    out[#out + 1] = { etype = ':', { etype = 'const', value = c, pos = p }}
+                    out[#out + 1] = { etype = '(', self:etArgs() }
+                }
+            case Token.SepLparen:
+                self:fAsset(#out > 0, "expect prefix expr before " .. t)
+                out[#out + 1] = { etype = '(', self:etArgs() }
+            default:
+                break
+            }
+        }
+    }
+
+    --[[
+        `(´ [explist] `)´
+    ]]
+    fn etArgs() {
+        t, c, p = Lexer:peekToken()
+        self:fAsset(t == Token.SepLparen, "expect args begin with " .. Token.SepLparen)
+        Lexer:nextTokenKind(t)
+        list = (Token.SepRparen != Lexer:peekToken()) and self:etExprList()
+        Lexer:nextTokenKind(Token.SepRparen)
+        return unp(list)
+    }
+
+    --[[
+        fn ( [parlist] ) { block }
+    ]]
+    fn etFnNoName() {
+        self:fAsset(self._sub_mode != 'class', "can not define function in class/struct/extension variable definition")
+        Lexer:nextTokenKind(Token.KwFn)
+        Lexer:nextTokenKind(Token.SepLparen)
+        args = self:etNameList()
+        Lexer:nextTokenKind(Token.SepRparen)
+        Lexer:nextTokenKind(Token.SepLcurly)
+        self:fnBodyStart()
+        body = self:fParseBlock()
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return { etype = 'fn', =args, =body, df = self:fnBodyEnd() }
+    }
+
+    --[[
+        { [parlist] in block }
+    ]]
+    fn etFnAnonymous() {
+        Lexer:savePos()
+        Lexer:nextTokenKind(Token.SepLcurly)
+        args = self:etNameList()
+        guard Token.KwIn == Lexer:peekToken() else {
+            Lexer:restorePos()
+            return
+        }
+        self:fAsset(self._sub_mode != 'class', "can not define function in class/struct/extension variable definition")
+        Lexer:clearPos()
+        Lexer:nextTokenKind(Token.KwIn)
+        self:fnBodyStart()
+        body = self:fParseBlock()
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return { etype = 'fn', =args, =body, df = self:fnBodyEnd() }
+    }
+
+    --[[
+        { field {fieldsep field} [fieldsep] }
+    ]]
+    fn etTableConstructor() {
+        Lexer:nextTokenKind(Token.SepLcurly)
+        expr = { etype = "{" }
+        while Token.SepRcurly != Lexer:peekToken() {
+            expr[#expr + 1] = self:etField()
+            t, c, p = Lexer:peekToken()
+            if t == Token.SepComma or t == Token.SepSemi {
+                Lexer:nextTokenKind(t)
+            } else {
+                break
+            }
+        }
+        Lexer:nextTokenKind(Token.SepRcurly)
+        return expr
+    }
+
+    --[[
+        `[´ exp `]´ `=´ exp |
+        Name `=´ exp |
+        `=´ Name |
+        exp
+    ]]
+    fn etField() {
+        t, c, p = Lexer:peekToken()
+        switch t {
+        case Token.SepLbreak:
+            Lexer:nextTokenKind(t)
+            expr = { bkey = self:etExpr({}, "expect exp after " .. t) }
+            Lexer:nextTokenKind(Token.SepRbreak)
+            Lexer:nextTokenKind(Token.OpAssign)
+            expr.value = self:etExpr({}, "expect exp after " .. Token.OpAssign)
+            return expr
+        case Token.OpAssign:
+            Lexer:nextTokenKind(t)
+            t, c, p = Lexer:nextTokenKind(Token.Identifier)
+            return {
+                nkey = { etype = 'var', value = c, pos = p }
+            }
+        case Token.Identifier, Token.Number, Token.String:
+            Lexer:savePos()
+            Lexer:nextTokenKind(t)
+            if Token.OpAssign == Lexer:peekToken() {
+                Lexer:clearPos()
+                Lexer:nextTokenKind(Token.OpAssign)
+                expr = { value = self:etExpr({}, "expect exp after " .. Token.OpAssign) }
+                if t == Token.Identifier {
+                    expr.vkey = { etype = 'const', value = c, pos = p }
+                } else {
+                    expr.bkey = { etype = 'const', value = c, pos = p }
+                }
+                return expr
+            } else {
+                Lexer:restorePos()
+            }
+        }
+        return { value = self:etExpr({}, "expect exp in table field") }
+    }
+
+    --[[
+        namelist [`,´ `...´] |
+        `...´ |
+        ''
+    ]]
+    fn etNameList() {
+        out = {}
+        while true {
+            t, c, p = Lexer:peekToken()
+            switch t {
+            case Token.Identifier:
+                Lexer:nextTokenKind(t)
+                out[#out + 1] = { etype = "const", value = c, pos = p }
+            case Token.Vararg:
+                Lexer:nextTokenKind(t)
+                out[#out + 1] = { etype = "const", value = c, pos = p }
+                break
+            default:
+                return out
+            }
+            if Token.SepComma == Lexer:peekToken() {
+                Lexer:nextTokenKind(Token.SepComma)
+            } else {
+                break
+            }
+        }
+        return out
+    }
+
+    --[[
+        {exp `,´} exp
+    ]]
+    fn etExprList(force_msg, extra) {
+        out = {}
+        while true {
+            expr = self:etExpr({})
+            out[#out + 1] = expr
+            if expr and Token.SepComma == Lexer:peekToken() {
+                Lexer:nextTokenKind(Token.SepComma)
+            } else {
+                break
+            }
+        }
+        if extra {
+            out[#out + 1] = extra
+        }
+        if #out > 0 {
+            return out
+        } elseif force_msg {
+            self:fAsset(false, force_msg)
+        }
+    }
+
+    --[[
+        var {`,´ var}
+    ]]
+    fn etVarList() {
+        Lexer:savePos()
+        out = {}
+        while true {
+            t, c, p = Lexer:peekToken()
+            guard t == Token.Identifier else {
+                break
+            }
+            expr = { etype = "exp" }
+            self:etPrefixExpr(expr)
+            self:etPrefixExprFinish(expr)
+            etype = expr[#expr].etype
+            guard etype == 'var' or etype == "[" or etype == "." else {
+                break
+            }
+            out[#out + 1] = #expr == 1 and expr[1] or expr
+            guard Token.SepComma == Lexer:peekToken() else {
+                break
+            }
+            Lexer:nextTokenKind(Token.SepComma)
+        }
+        if #out > 0 {
+            Lexer:clearPos()
+            return out
+        } else {
+            Lexer:restorePos()
+        }
+    }
+
+    --[[
+        Name {‘.’ Name} [‘:’ Name]
+    ]]
+    fn etFnName(only_name) {
+        t, c, p = Lexer:nextTokenKind(Token.Identifier)
+        out = { etype = "exp", { etype = "const", value = c, pos = p }}
+        if not only_name {
+            while Token.SepDot == Lexer:peekToken() {
+                Lexer:nextTokenKind(Token.SepDot)
+                t, c, p = Lexer:nextTokenKind(Token.Identifier)
+                out[#out + 1] = { etype = '.', { etype = 'const', value = c, pos = p }}
+            }
+            if Token.SepColon == Lexer:peekToken() {
+                Lexer:nextTokenKind(Token.SepColon)
+                t, c, p = Lexer:nextTokenKind(Token.Identifier)
+                out[#out + 1] = { etype = ':', { etype = 'const', value = c, pos = p }}
+            }
+        }
+        if #out == 1 {
+            return out[1]
+        } else {
+            out[1].etype = 'var'
+            return out
+        }
     }
 }
 
--- MARK: pattern
-
-last_pos = 0
-cur_pos = 0
-pBlank = Cmt(S(" \t\r\n"), fn(s, p, c) {
-    if p > last_pos {
-        last_pos = p
-    }
-    cur_pos = p
-    return true
-})
-pBlanks = pBlank ^ 0
-
-pAlphaNum = R("az", "AZ", "__") * R("az", "AZ", "09", "__") ^ 0
-pVarLDot = Cmt(pAlphaNum * (P(".") ^ -1 * pAlphaNum) ^ 0, fNoKWL)
-pVarRDot = Cmt(pAlphaNum * (P(".") ^ -1 * pAlphaNum) ^ 0, fNoKWR)
-pVarRight = Cmt(pAlphaNum, fNoKWR)
-pVarArg = Cmt(pAlphaNum, fNoKWL)
-pVArgList = Cmt("...", fMarkEtype("varg"))
-pVarColon = Cmt(pAlphaNum * (P(".") * pAlphaNum) ^ 0 * P(":") * pAlphaNum, fNoKWR)
-local pTbVKey = Cmt(pAlphaNum, fn(s, p, c) {
-    return true, {etype = "lvar", value = c, pos = p}
-})
-
-pNumber = Cmt(P("0x") * R("09", "af", "AF") ^ 1 * (S("uU") ^ -1 * S("lL") ^ 2) ^ -1 + R("09") ^ 1 * (S("uU") ^ -1 * S("lL") ^ 2) +
- (R("09") ^ 1 * (P(".") * R("09") ^ 1) ^ -1 + P(".") * R("09") ^ 1) * (S("eE") * P("-") ^ -1 * R("09") ^ 1) ^ -1, fn(s, p, c) {
-    return p, {etype = "number", pos = p, value = c}
- })
-
-pComma = pBlanks * P(",") * pBlanks
-pEqual = P("=")
-pColon = P(":")
-pSemi = P(';')
-
-pPLeft = pBlanks * P("(") * pBlanks
-pPRight = pBlanks * P(")") * pBlanks
-
-pBLeft = pBlanks * P("{") * pBlanks
-pBRight = pBlanks * P("}") * pBlanks
-
-pSLeft = pBlanks * P("[") * pBlanks
-pSRight = pBlanks * P("]") * pBlanks
-
-pCPLeft = pBlanks * Cmt("(",fn(s, p, c) {
-    return p, {etype = "op", pos = p, value = c}
-}) * pBlanks
-
-pCPRight = pBlanks * Cmt(")", fn(s, p, c) {
-    return p, {etype = "op", pos = p, value = c}
-}) * pBlanks
-
-fn fSymPatt(prefix, pa, pb) {
-    name = "name" .. pa
-    sopen = nil
-    if prefix {
-        sopen = (prefix .. pa) * Cg(pEqual ^ 0, name) * pa
-    } else {
-        sopen = pa * Cg(pEqual ^ 0, name) * pa
-    }
-    sclose = pb * C(pEqual ^ 0) * pb
-    scloseeq = Cmt(sclose * Cb(name), fn(s, i, a, b) {
-        return a == b
-    })
-    return C(sopen * (P(1) - scloseeq) ^ 0 * sclose) / 1
-}
-
-fn fStrPatt(str) {
-    m1 = S(str)
-    return Cg(m1 * (P("\\\\") + P("\\" .. str) + (1 - m1 - P("\n"))) ^ 0 * m1)
-}
-
-pCmShort = P("--") * (P(1) - S("\r\n")) ^ 0
-pCmLong = fSymPatt("--", "[", "]")
-
-pStrDot = fStrPatt("'")
-pStrQuote = fStrPatt('"')
-pStr = Cmt(pStrDot + pStrQuote + fSymPatt(nil, "[", "]"), fn(s, p, c) {
-    return p, {etype = "string", pos = p, value = c}
-})
-
-pStrRaw = Cmt((P("\\\\") + P("\\" .. '"') + (1 - P('"') - P("\n") - #P("\\("))) ^ 0, fn(s, p, c) {
-    return p, {etype = "strraw", pos = p, value = c}
-})
-
-fn fNotCm(s, p, c) {
-    ret = s:sub(p, p + 1) == "--" or s:sub(p - 1, p) == "--"
-    return not ret, c
-}
-
-fn fConj(p, j) {
-    return p * #j
-}
-
-pSingleOp = Cmt(fConj(P("not"), pBlank) + Cmt("-", fNotCm) + P("#") + P("~"), fn(s, p, c) {
-    return p, {etype = "op", pos = p, value = c}
-})
-pTwoOp = P("*=") + P("/=") + P("%=") + P("+=") + P("-=") + P("..=") + P("or=") + P("and=") + P("^=")
-
-pOperator = Cmt(P("//") + S("*/%") + P("+") + Cmt("-", fNotCm) + P("^") + P("..") + P(">>") + P("<<") + P("<=") +
- P(">=") + P("~=") + P("==") + S("><") + fConj(P("and"), pBlank) + fConj(P("or"), pBlank) + P("!="), fn(s, p, c) {
-    return p, {etype = "op", pos = p, value = c, sub = "p"}
- })
-
-fn fName(n) {
-    return C("") / fn() { return n }
-}
-
--- MARK: grammar
-
-local vFile,
-    vShebang,
-    vFnSMT,
-    vClsDef,
-    vClsBody,
-    vClsAsSMT,
-    vClsFnDef,
-    vStructDef,
-    vExtension,
-    vTbDef,
-    vTbKV,
-    vTbNk,
-    vTbVk,
-    vTbBk,
-    vTbVal,
-    vFnDefKW,
-    vFnDefArg,
-    vFnDefVArg,
-    vFnDefArgs,
-    vFnDefBody,
-    vFnDefName,
-    vFnDefOnly,
-    vFnClosure,
-    vFnCall,
-    vImSMT,
-    vImLib,
-    vImRight,
-    vExSMT,
-    vExLeft,
-    vExScope,
-    vAsSMT,
-    vAsLeft,
-    vAsRight,
-    vAswSMT,
-    vIfSMT,
-    vElseIfSMT,
-    vElseSMT,
-    vSwSMT,
-    vSwCaSMT,
-    vSwDeSMT,
-    vGuardSMT,
-    vForSMT,
-    vForVar,
-    vForNext,
-    vForList,
-    vRptSMT,
-    vWhileSMT,
-    vBrkSMT,
-    vCntSMT,
-    vGoSMT,
-    vRetSMT,
-    vDeferSMT,
-    vBlkSMT,
-    vCmSMT,
-    vStrExpr,
-    vDotExpr,
-    vDOTExpr,
-    vParaExpr,
-    vSquareExpr,
-    vColonExpr,
-    vEvalExpr,
-    vEvalLeft,
-    vClsOpUnit,
-    vClsExpr,
-    vOpUnit,
-    vExpr =
-    V("vFile"),
-    V("vShebang"),
-    V("vFnSMT"),
-    V("vClsDef"),
-    V("vClsBody"),
-    V("vClsAsSMT"),
-    V("vClsFnDef"),
-    V("vStructDef"),
-    V("vExtension"),
-    V("vTbDef"),
-    V("vTbKV"),
-    V("vTbNk"),
-    V("vTbVk"),
-    V("vTbBk"),
-    V("vTbVal"),
-    V("vFnDefKW"),
-    V("vFnDefArg"),
-    V("vFnDefVArg"),
-    V("vFnDefArgs"),
-    V("vFnDefBody"),
-    V("vFnDefName"),
-    V("vFnDefOnly"),
-    V("vFnClosure"),
-    V("vFnCall"),
-    V("vImSMT"),
-    V("vImLib"),
-    V("vImRight"),
-    V("vExSMT"),
-    V("vExLeft"),
-    V("vExScope"),
-    V("vAsSMT"),
-    V("vAsLeft"),
-    V("vAsRight"),
-    V("vAswSMT"),
-    V("vIfSMT"),
-    V("vElseIfSMT"),
-    V("vElseSMT"),
-    V("vSwSMT"),
-    V("vSwCaSMT"),
-    V("vSwDeSMT"),
-    V("vGuardSMT"),
-    V("vForSMT"),
-    V("vForVar"),
-    V("vForNext"),
-    V("vForList"),
-    V("vRptSMT"),
-    V("vWhileSMT"),
-    V("vBrkSMT"),
-    V("vCntSMT"),
-    V("vGoSMT"),
-    V("vRetSMT"),
-    V("vDeferSMT"),
-    V("vBlkSMT"),
-    V("vCmSMT"),
-    V("vStrExpr"),
-    V("vDotExpr"),
-    V("vDOTExpr"),
-    V("vParaExpr"),
-    V("vSquareExpr"),
-    V("vColonExpr"),
-    V("vEvalExpr"),
-    V("vEvalLeft"),
-    V("vClsOpUnit"),
-    V("vClsExpr"),
-    V("vOpUnit"),
-    V("vExpr")
-
-gG = {
-    vFile,
-    vFile = vShebang ^ -1 * vFnSMT ^ 0,
-    vFnSMT = (vBrkSMT + vCntSMT + vCmSMT + vClsDef + vStructDef + vExtension + vFnDefName + vIfSMT + vSwSMT + vForSMT + vRptSMT + vWhileSMT + vRetSMT +
-             vGoSMT + vAsSMT + vFnCall + vAswSMT + vExSMT + vImSMT + vDeferSMT + vBlkSMT + vGuardSMT) * Cmt(pSemi * pBlanks / fTrim, fMarkStype(";")) ^ -1,
-    --
-    vShebang = Ct(Cg("#!", "stype") * C(P(1 - (P("\r") ^ -1 * P("\n"))) ^ 0)),
-    --
-    vClsDef = pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * pBlanks * Cg(P("class"), "stype") * pBlanks * Cg(pVarArg, "name") *
-              pBlanks * (pColon * pBlanks * Cg(pVarArg, "super")) ^ -1 * vClsBody),
-    vClsBody = pBlanks * pBLeft * (vCmSMT + vClsAsSMT + vClsFnDef) ^ 0 * pBRight * pBlanks,
-    vClsAsSMT = pBlanks * Ct(pVarArg * pBlanks * Cg(pEqual, "stype") * pBlanks * vClsExpr) * pBlanks,
-    vClsFnDef = Ct( Cg("static", "attr") ^ -1 * vFnDefKW * Cg(pVarArg, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ 0 * pPRight * Cg(vFnDefBody, "body")),
-    --
-    vStructDef = pBlanks * Ct(Cg(P("local") + P("export"), "attr") ^ -1 * pBlanks * Cg(P("struct"), "stype") * pBlanks * Cg(pVarArg, "name") * vClsBody),
-    vExtension = pBlanks * Ct(Cg(P("extension"), "stype") * pBlanks * Cg(pVarArg, "name") * pBlanks * (pColon * pBlanks * Cg(pVarArg, "extend")) ^ -1 * vClsBody),
-    --
-    vExSMT = pBlanks * Ct(Cg(fName("ex"), "stype") * Cg(P("local") + P("export"), "attr") * vExLeft * (Cg(pEqual, "op") * vAsRight) ^ 0) * pBlanks + vExScope,
-    vExLeft = pBlanks * Ct(pVarArg * pBlanks * (pComma * pBlanks * pVarArg) ^ 0) * pBlanks,
-    vExScope = pBlanks * Ct(Cg(fName("ex"), "stype") * Cg(P("export"), "attr") * pBlanks * Cg(P("*"), "op")) * pBlanks,
-    --
-    vImSMT = pBlanks * Ct(Cg(P("import"), "stype") * pBlanks * (Cg(pStr, "slib") + vExLeft * P("from") * vImLib * Ct(pBLeft * vImRight ^ -1 * pBRight) ^ -1)) * pBlanks,
-    vImLib = pBlanks * (Cg(pStr, "slib") + Cg(pVarRDot, "tlib")) * pBlanks,
-    vImRight = pVarRDot * (pBlanks * pComma * pBlanks * pVarRDot) ^ 0,
-    --
-    vAsSMT = Ct(vAsLeft * Cg(pEqual, "stype") * vAsRight),
-    vAsLeft = pBlanks * Ct(vEvalLeft * pBlanks * (pComma * pBlanks * vEvalLeft) ^ 0) * pBlanks,
-    vAsRight = pBlanks * Ct(Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr)) ^ 0) * pBlanks,
-    vAswSMT = pBlanks * Ct(vEvalLeft * pBlanks * Cg(pTwoOp, "stype") * pBlanks * Ct(vExpr)) * pBlanks,
-    --
-    vTbDef = Ct(Cg(pBLeft / fTrim, "etype") * (vTbKV * (pComma * vTbKV + pComma * vCmSMT^0 + vCmSMT^1) ^ 0 + vCmSMT^0) ^ -1 * pBRight),
-    vTbKV = vCmSMT^0 * Ct(vTbNk + vTbVk * vTbVal + vTbBk * vTbVal + vTbVal) * pBlanks,
-    vTbNk = pBlanks * pEqual * pBlanks * Cg(pVarArg, "nkey"),
-    vTbVk = pBlanks * Cg(pTbVKey, "vkey") * pBlanks * pEqual,
-    vTbBk = (pSLeft * Cg(vExpr, "bkey") * pSRight + Cg(vExpr, "bkey")) * pEqual,
-    vTbVal = pBlanks * Cg(Ct(vExpr), "value"),
-    --
-    vFnDefKW = pBlanks * Cg(P("fn"), "stype") * pBlanks,
-    vFnDefArg = pBlanks * Cg(pVarArg) * pBlanks,
-    vFnDefVArg = pBlanks * Cg(pVArgList) * pBlanks,
-    vFnDefArgs = Ct((vFnDefArg * pComma) ^ 0 * vFnDefVArg + vFnDefArg * (pComma * vFnDefArg) ^ 0),
-    vFnDefBody = pBLeft * Ct(vFnSMT ^ 0) * pBRight,
-    vFnDefName = pBlanks * Ct( Cg(P("local") + P("export"), "attr") ^ -1 * vFnDefKW * Cg(pVarColon + pVarLDot, "name") * pPLeft * Cg(vFnDefArgs, "args") ^ -1 *
-            pPRight * Cg(vFnDefBody, "body")),
-    --
-    vFnDefOnly = pBlanks * Ct(Cg(P("fn"), "etype") * pPLeft * Cg(vFnDefArgs, "args") ^ -1 * pPRight * Cg(vFnDefBody, "body")),
-    vFnClosure = pBLeft * Ct(Cg(fName("fn"), "etype") * Cg(vFnDefArgs, "args") ^ -1 * pBlanks * P("in") * pBlanks * Cg(Ct(vFnSMT ^ 0), "body")) * pBRight,
-    --
-    vFnCall = pBlanks * Ct(Cg(fName("("), "stype") * (pVarArg + pCPLeft * vExpr * pCPRight) *
-                              ((vDotExpr + vSquareExpr) ^ 0 * (vColonExpr + vParaExpr + vDOTExpr)) ^ 1),
-    --
-    vIfSMT = pBlanks * Ct(Cg(P("if"), "stype") * pBlanks * Cg(Ct(vExpr), "cond") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body")) * vElseIfSMT ^ 0 * vElseSMT ^ -1 *
-        Cmt(pBRight / fTrim, fMarkStype("ifend")),
-    vElseIfSMT = pBRight * Ct(Cg(P("elseif"), "stype") * pBlanks * Cg(Ct(vExpr), "cond") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body")),
-    vElseSMT = pBRight * Ct(Cg(P("else"), "stype") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body")),
-    --
-    vSwSMT = pBlanks * Ct(Cg(P("switch"), "stype") * pBlanks * Cg(Ct(vExpr), "cond") * pBlanks * pBLeft * vSwCaSMT ^ 1 * vSwDeSMT ^ -1 * pBRight),
-    vSwCaSMT = pBlanks * Ct( Cg(P("case"), "stype") * pBlanks * Ct(vExpr) * (pBlanks * pComma * pBlanks * Ct(vExpr)) ^ 0 * pBlanks * pColon *
-               Cg(Ct(vFnSMT ^ 0), "body") ),
-    vSwDeSMT = pBlanks * Ct(Cg(P("default"), "stype") * pBlanks * pColon * Cg(Ct(vFnSMT ^ 0), "body")),
-    --
-    vGuardSMT = pBlanks * Ct(Cg(P("guard"), "stype") * Cg(Cp(), "pos") * pBlanks * Cg(Ct(vExpr), "cond") * pBlanks * P("else") * pBLeft *
-                Cg(Ct(vFnSMT ^ 0), "body")) * pBRight,
-    --
-    vForSMT = pBlanks * Ct(Cg(P("for"), "stype") * Cg(Ct(vForVar * vForNext + vForList), "list") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body") * pBRight),
-    vForVar = pBlanks * Cg(pVarArg) * pBlanks * Cg(pEqual, "sub") * pBlanks * Ct(vExpr) * pBlanks * pComma,
-    vForNext = pBlanks * Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr)) ^ -1 * pBlanks,
-    vForList = pBlanks * Cg(pVarArg) * pBlanks * (pComma * pBlanks * Cg(pVarArg)) ^ 0 * pBlanks * Cg(P("in"), "sub") * pBlanks *
-        Ct(Ct(vExpr) * pBlanks * (pComma * Ct(vExpr)) ^ -2) * pBlanks,
-    --
-    vRptSMT = pBlanks * Ct(Cg(P("repeat"), "stype") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body") * pBRight * P("until") * pBlanks * Cg(Ct(vExpr), "cond")) *
-        pBlanks,
-    vWhileSMT = pBlanks * Ct(Cg(P("while"), "stype") * pBlanks * Cg(Ct(vExpr), "cond") * pBlanks * pBLeft * Cg(Ct(vFnSMT ^ 0), "body") * pBRight),
-    --
-    vBrkSMT = pBlanks * Cmt("break", fMarkStype("break")) * pBlanks,
-    vCntSMT = pBlanks * Cmt("continue", fMarkStype("continue")) * pBlanks,
-    vGoSMT = pBlanks * Ct( Cg("goto", "stype") * pBlanks * Cg(pVarArg, "name") +
-                          Cg(P("::"), "stype") * pBlanks * Cg(pVarArg, "name") * pBlanks * P("::")) * pBlanks,
-    --
-    vRetSMT = pBlanks * Ct(Cg("return", "stype") * Cg(Cp(), "pos") * (pBlanks * Ct(vExpr) * pBlanks * (pComma * pBlanks * Ct(vExpr) * pBlanks) ^ 0) ^ 0) *
-            pBlanks * vCmSMT ^ 0 * (#pBRight + #P("case") + #P("default") + -1),
-    vDeferSMT = pBlanks * Ct(Cg("defer", "stype") * Cg(Cp(), "pos") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body")) * pBRight,
-    vBlkSMT = pBlanks * Ct(Cg("do", "stype") * pBLeft * Cg(Ct(vFnSMT ^ 0), "body") * pBRight) * pBlanks,
-    --
-    vCmSMT = pBlanks * Cmt(pCmLong + pCmShort, fMarkStype("cm")) * pBlanks,
-    --
-    vStrExpr = pBlanks * Ct(Cg(fName("sexp"), "etype") * P('"') * (pStrRaw * P("\\(") * pBlanks *  Ct(vExpr) * pBlanks * P(")")) ^ 1 * pStrRaw * P('"')),
-    --
-    vDotExpr = Ct(Cg(P("."), "op") * pVarArg),
-    vDOTExpr = Ct(Cg(fName("("), "op") * pBlanks * P(".") * pBlanks * Ct(vTbDef + pStr)),
-    vParaExpr = Ct(Cg(pPLeft / fTrim, "op") * (pBlanks * Ct(vExpr) * (pBlanks * pComma * pBlanks * Ct(vExpr)) ^ 0) ^ 0 * pPRight),
-    vSquareExpr = Ct(Cg(pSLeft / fTrim, "op") * vExpr *  pSRight),
-    vColonExpr = Ct(Cg(P(":"), "op") * pVarArg * (vParaExpr + vDOTExpr)),
-    vEvalExpr = pBlanks * Ct(Cg(fName("rexp"), "etype") * pVarRight * (vDotExpr + vColonExpr + vSquareExpr + vParaExpr + vDOTExpr) ^ 0),
-    vEvalLeft = pBlanks * Ct(Cg(fName("lexp"), "etype") * pVarArg * ((vColonExpr + vParaExpr) ^ 0 * (vDotExpr + vSquareExpr)) ^ 0),
-    --
-    vClsOpUnit = pBlanks * (pSingleOp * vClsExpr + vTbDef + vStrExpr + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
-    vClsExpr = pCPLeft * vClsExpr * pCPRight * (pOperator * vClsExpr) ^ 0 + vClsOpUnit * (pOperator * vClsExpr) ^ 0,
-    --
-    vOpUnit = pBlanks * (pSingleOp * vExpr + vTbDef + vFnDefOnly + vFnClosure + vStrExpr + pStr + pNumber + pVArgList + vEvalExpr) * pBlanks,
-    vExpr = pCPLeft * vExpr * pCPRight * (pOperator * vExpr + vParaExpr) ^ 0 + vOpUnit * (pOperator * vExpr) ^ 0
-}
-
-grammar = Cf(Ct("") * gG * -1, fn(a, b) {
-    a[#a + 1] = b
-    return a
-})
-
-assert(fType(grammar) == "pattern")
-
+--- parse chunk
+-- @param string content
 -- return true, { content = CONTENT, ast = AST }
--- return false, { content = CONTENT, pos = POSITION }
+-- return false, { content = CONTENT, pos = POSITION, err_msg = ERR_MESSAGE }
 fn parse(content) {
-    last_pos = 0
-    cur_pos = 0
-    t = grammar:match(content)
-    if t == nil {
-        return false, {content = content, lpos = last_pos, cpos = cur_pos}
+    Parser:fReset(content)
+    ret, ast = pcall(Parser.fParseBlock, Parser)
+    if ret {
+        return true, { =content, =ast }
     } else {
-        return true, {content = content, ast = t}
+        err_msg, pos = Parser:getLastError()
+        return false, { =content, =pos, err_msg = (err_msg or ast) }
     }
 }
 

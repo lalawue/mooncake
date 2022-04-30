@@ -44,7 +44,7 @@ describe("test success 2 #string", function()
         fn getName() {
             return "guess"
         }
-        return "my name is \(getName())"
+        return "my name is \(getName()) \('what')"
     ]=====]
 
     local ret, ast = parser.parse(mnstr)
@@ -58,12 +58,40 @@ describe("test success 2 #string", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
-    local f = load(content, "test", "t")
+
     it("should get function", function()
+        local f = load(content, "test", "t")
         assert(type(f) == "function")
         local ret = f()
-        assert.is_equal(ret, "my name is guess")
+        assert.is_equal(ret, "my name is guess what")
+    end)
+end)
+
+describe("test success 3 #string", function()
+    local mnstr=[=====[
+        fn getName() {
+            return "guess"
+        }
+        return "my name is \(getName()) xixi"
+    ]=====]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    it("should get function", function()
+        local f = load(content, "test", "t")
+        assert(type(f) == "function")
+        local ret = f()
+        assert.is_equal(ret, "my name is guess xixi")
     end)
 end)
 
@@ -75,5 +103,27 @@ describe("test failed #string", function()
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
         assert.is_false(ret)
+        assert.is_equal(ast.err_msg, "unfinished long string near '<eof>'")
+        assert.is_equal(ast.pos, 17)
+    end)
+
+    local mnstr=[===[
+        return [=<abcde]==]
+    ]===]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_false(ret)
+        assert.is_equal(ast.err_msg, "invalid long string delimiter")
+        assert.is_equal(ast.pos, 17)
+    end)
+
+    local mnstr=[===[return "abcde]===]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_false(ret)
+        assert.is_equal(ast.err_msg, "unfinished string")
+        assert.is_equal(ast.pos, 13)
     end)
 end)

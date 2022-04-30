@@ -11,7 +11,7 @@ describe("test success #call", function()
             }
             return t
         }
-        
+
         d = { f = fn() {
                 t = {}
                 t.__index = {}
@@ -21,7 +21,7 @@ describe("test success #call", function()
                 return t
             }
         }
-        
+
         f = fn () {
             return { c = c }
         }
@@ -49,23 +49,23 @@ describe("test success #call", function()
 
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
-         assert.is_true(ret)
-         assert.is_true(type(ast) == "table")
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
     end)
 
     local ret, content = compile.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
-         assert.is_true(type(content) == "string")
+        assert.is_true(type(content) == "string")
     end)
- 
-    local f = load(content, "test", "t")
+
     it("should get function", function()
-         assert(type(f) == "function")
-         local a, v, c = f()
-         assert.is_equal(a, 1)
-         assert.is_equal(v, "v")
-         assert.is_function(c)
+        local f = load(content, "test", "t")
+        assert(type(f) == "function")
+        local a, v, c = f()
+        assert.is_equal(a, 1)
+        assert.is_equal(v, "v")
+        assert.is_function(c)
     end)
 end)
 
@@ -89,11 +89,11 @@ describe("test no parentheses #call", function()
     local ret, content = compile.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
-         assert.is_true(type(content) == "string")
+        assert.is_true(type(content) == "string")
     end)
- 
-    local f = load(content, "test", "t")
+
     it("should get result", function()
+        local f = load(content, "test", "t")
          assert(type(f) == "function")
          local a, b, c = f()
          assert.is_equal(a, "a")
@@ -144,6 +144,17 @@ end)
 describe("test failed 2 #call", function()
     local mnstr=[[
         print . 'a' "b"
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_false(ret)
+    end)
+end)
+
+describe("test failed 3 #call", function()
+    local mnstr=[[
+        print(a, b).a
     ]]
 
     local ret, ast = parser.parse(mnstr)

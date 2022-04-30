@@ -58,7 +58,7 @@ describe("test normal #class", function()
         assert.is_true(ret)        
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should inherit", function()
         assert(type(f) == "function")
@@ -88,7 +88,7 @@ describe("test normal #class", function()
             a:takeTime(0)
         end
         collectgarbage()
-        assert.stub(ClsA.deinit).was.called()        
+        assert.stub(ClsA.deinit).was.called()
     end)
 
     it("should invoke class and instance metamethod", function()
@@ -129,8 +129,8 @@ describe("test success #class", function()
         assert.is_true(type(content) == "string")
     end)
  
-    local f = load(content, "test", "t")
     it("should get function", function()
+        local f = load(content, "test", "t")
         assert(type(f) == "function")
         local c = f(10)
         assert.is_equal(c, "c")
@@ -141,7 +141,14 @@ describe("test inherit from lua side #class", function()
     local mnstr=[[
         class A {
             a = 10
+            b = 'A'
             fn name() {
+                return self.b
+            }
+            fn Name() {
+                return Self.b
+            }
+            fn NName() {
                 return 'A'
             }
         }
@@ -163,25 +170,27 @@ describe("test inherit from lua side #class", function()
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
-        assert.is_equal(f().name(), "A")
+        assert.is_equal(f():name(), "A")
+        assert.is_equal(f().Name(), "A")
+        assert.is_equal(f().NName(), "A")
     end)
 
     it("should create class B", function()
-        local B = clss('B')
+        local B = clss.newMoocClass('B')
         function B:init(a, b)
             self.a = a
             self.b = b
         end
         local b = B(1, 2)
-        assert.is_equal(tostring(b), "instance of B")
-        assert.is_equal(b.typename, "B")
+        assert.is_equal(tostring(b):sub(1, 9), "<class B:")
+        assert.is_equal(b.__tn, "B")
         assert.is_equal(b.a, 1)
         assert.is_equal(b.b, 2)
     end)
 
     it("should inherit from class A", function()
         local A = f()
-        local C = clss('C', A)
+        local C = clss.newMoocClass('C', A)
         function C:init(b)
             self.b = b
         end
@@ -189,8 +198,8 @@ describe("test inherit from lua side #class", function()
             return self.a + self.b
         end
         local c = C(20)
-        assert.is_equal(tostring(c), "instance of C")
-        assert.is_equal(c.supertype, A)
+        assert.is_equal(tostring(c):sub(1, 9), "<class C:")
+        assert.is_equal(c.__st, A)
         assert.is_equal(c.a, 10)
         assert.is_equal(c.b, 20)
         assert.is_equal(c:add(), 30)
@@ -229,7 +238,8 @@ describe("test failed #class", function()
     it("has error", function()
         local ret, content = compile.compile({}, ast)
         assert.is_false(ret)
-        assert.is_equal(content, "_:4:                 return self.a + 101 - c <undefined variable 'self'>")
+        assert.is_equal(content.err_msg, "undefined variable")
+        assert.is_equal(content.pos, 99)
    end)
 end)
 
@@ -248,6 +258,7 @@ describe("test failed #class", function()
     local ret, content = compile.compile({}, ast)
     it("has error", function()
         assert.is_false(ret)
-        assert.is_equal(content, "_:1:         class ClsA: ClsC { <undefined variable 'ClsC'>")
+        assert.is_equal(content.err_msg, "undefined variable")
+        assert.is_equal(content.pos, 20)
    end)
 end)

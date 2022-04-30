@@ -5,39 +5,47 @@
 [1]: https://img.shields.io/badge/license-MIT-blue.svg
 [2]: LICENSE
 
+- [MoonCake](#mooncake)
+- [Features](#features)
+- [Examples](#examples)
+  - [class / struct / extension](#class--struct--extension)
+  - [guard / continue / switch / defer](#guard--continue--switch--defer)
+  - [import / closure / string expression](#import--closure--string-expression)
+- [More Depth](#more-depth)
+- [Install](#install)
+- [Running](#running)
+- [Test](#test)
+- [Editor with LSP Support](#editor-with-lsp-support)
+- [Projects using MoonCake](#projects-using-mooncake)
+
 ## MoonCake
 
 MoonCake was a Swift like programming language that compiles into Lua, runs on Lua 5.1 and above, including LuaJIT.
-
-recommand install and running first, or get more straight expressions from 'examples/' dir, before dig into detials
- about the language and usage
-
-- [The Language](docs/language.md)
-- [CommandLine Usage](docs/cmdline.md)
-- [Library Interface](docs/library.md)
 
 ## Features
 
 with differences from Lua
 
-- variable default local scope
-- support guard keyword
-- support switch keyword
-- support continue keyword
-- support defer keyword in function scope
-- support create class / struct
-- support extension class / struct
-- support import keyword
-- support anonymous function form '{ in }' likes in Swift
+- always declare variable as `local`, unless using `export` keyword
+- using `{` and `}` instead of keyword `do`, `then`, `end` to seperate code block
+- support `guard` keyword, which must transfer control at scope end
+- support `switch` keyword, you can `case` a lot of conditions at a time
+- support `continue` keyword, implemented by `goto`, available in Lua 5.2 and LuaJIT
+- support `defer` keyword in function scope, including anonymous function
+- support `class` and `struct` for simpler Object Oriented programming
+- support `extension` keyword for extend class/struct
+- support `import` keyword for simpler `require` a lot of sub modules
+- support convenient anonymous function form `{ in }` likes in Swift
+- support expression in string like `print("5 + 3 = \(5 + 3)")`
 
 ## Examples
 
-### class/extension
+### class / struct / extension
 
 ```lua
 class Animal {
 
-    foot = 4
+    foot = 2
 
     wing = 0
 
@@ -57,30 +65,41 @@ class Bird : Animal {
     }
 }
 
-extension Bird {
+struct Songster {
+
+    tune = 'do'
+
+    fn canSing() {
+        return true
+    }
+}
+
+extension Bird: Songster {
+
+    feather = true
 
     fn canRun() {
-        return false
+        return self.foot >= 4
     }
 }
 
 b = Bird()
-print(b:canFly()) -- true
+print(b.foot) -- 2
+print(b.wing) -- 2
+print(b.tune) -- do
+print(b.feather) -- true
 print(b:canRun()) -- false
+print(b:canFly()) -- true
+print(b:canSing()) -- true
 ```
 
-### guard/continue/switch/defer
+### guard / continue / switch / defer
 
 ```lua
-
-import CJson from "cjson" -- import CJson
-import sort, concat from table {} -- import table.sort, table.concat
-
-tbl = { "A", "B", "C" }
-
 -- guard, continue, switch
 do {
     for i, v in ipairs(tbl) {
+
         guard i > 1 else {
             continue
         }
@@ -95,15 +114,6 @@ do {
 }
 -- print 'case B'
 -- print 'default C'
-
--- anonymous function
-do {
-    sort(tbl, { a, b in
-        return a > b
-    })
-    print(concat(tbl))
-}
--- print 'CBA'
 
 -- defer keyword
 do {
@@ -121,6 +131,36 @@ do {
 -- print 'return value'
 ```
 
+### import / closure / string expression
+
+```lua
+import Utils from "moocscript.utils" -- import Utils
+import sort, concat from table {} -- import table.sort, table.concat
+
+tbl = { "A", "B", "C" }
+
+-- closure, or anonymous function
+do {
+    sort(tbl, { a, b in
+        return a > b
+    })
+    print(concat(tbl))
+}
+-- print 'CBA'
+
+-- string expression
+print("Hello, world \(600 + 60 + 6) !")
+-- Hello, world 666 !
+```
+
+## More Depth
+
+recommand install and running first, or get more straight expressions from 'examples/' dir, before dig into detials about the language and usage
+
+- [The Language](docs/language.md)
+- [CommandLine Usage](docs/cmdline.md)
+- [Library Interface](docs/library.md)
+
 ## Install
 
 recommend install from [LuaRocks](https://luarocks.org/)
@@ -136,17 +176,18 @@ $ vi Makefile
 $ make install
 ```
 
-or just run as playground in project root dir, but need [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg/) installed, and in Lua's package.cpath
+or just run as playground in project root dir
 
 ```sh
+$ export LUA_PATH=./?.lua
 $ ./bin/moocscript
 ```
 
 with requirement
 
 - [Lua](https://www.lua.org/) >= 5.1 **OR** [LuaJIT](https://luajit.org/) >= 2.0
-- [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg/) >= 1.0.2
-- [LuaFileSystem](http://keplerproject.github.io/luafilesystem/) >= 1.5 ( only if you need project compile )
+- [LuaFileSystem](http://keplerproject.github.io/luafilesystem/) >= 1.5 (only if you need project building, bundling)
+
 
 ## Running
 
@@ -154,7 +195,7 @@ check install first
 
 ```sh
 $ moocscript -v
-moocscript v0.3.20210612, Lua 5.3, LPeg 1.0.2
+moocscript v0.7.20220501, Lua 5.4
 ```
 
 you can run .lua or .mooc source directly, support options below
@@ -170,32 +211,34 @@ Usage: [OPTIONS] SOURCE.[lua|mooc]
         -v version
 ```
 
-project config example is examples/proj/proj_config.mooc
+project config example is examples/proj/proj_config.mooc, you can see how to config it through [CommandLine Usage](docs/cmdline.md).
 
 ## Test
 
-using [busted](https://olivinelabs.com/busted/), running from project dir
+using [busted](https://olivinelabs.com/busted/), running from project dir, first `make test` before `busted`,
+for generating package.path including current `moocscript/` dir.
 
 ```sh
 $ luarocks install busted
-$ busted
+$ make test
 ●●●●●●●●●●●●●●●●●●...
-209 successes / 0 failures / 0 errors / 0 pending : 0.16972 seconds
+243 successes / 0 failures / 0 errors / 0 pending : 0.21381 seconds
 ```
 
 you can install [LuaCov](https://keplerproject.github.io/luacov/) to get code coverage report
 
 ```sh
 $ luarocks install luacov
+$ make test
 $ busted -c
 $ luacov
-$ cat luacov.report.out | grep 'moocscript/'
+$ cat luacov.report.out | grep '^moocscript/'
 ...
-moocscript/class.lua                                              30   2      93.75%
-moocscript/compile.lua                                            1109 14     98.75%
-moocscript/core.lua                                               86   2      97.73%
-moocscript/parser.lua                                             241  3      98.77%
-moocscript/utils.lua                                              110  4      96.49%
+moocscript/class.lua                                                    56   15     84.51%
+moocscript/compile.lua                                                  871  28     96.81%
+moocscript/core.lua                                                     68   11     86.08%
+moocscript/parser.lua                                                   1131 22     98.02%
+moocscript/utils.lua                                                    129  17     87.94%
 ...
 ```
 
@@ -211,5 +254,5 @@ you can create your own .vsix package through `vsce package`, or you can downloa
 
 ## Projects using MoonCake
 
-- [rpc_framework](https://github.com/lalawue/rpc_framework)
 - [cincau](https://github.com/lalawue/cincau)
+- [rpc_framework](https://github.com/lalawue/rpc_framework)

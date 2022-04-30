@@ -1,95 +1,9 @@
 local parser = require("moocscript.parser")
 local compile = require("moocscript.compile")
 
-describe("test success #function", function()
+describe("test success #number", function()
     local mnstr=[[
-        local fn sub(a, b) {
-            return a - b
-        }
-
-        export fn devide(...) {
-        }
-
-        fn add( d, f, ...) {
-        }
-
-        sqrt = fn(j, k) {
-        }
-
-        power = { m, n in
-            return
-        }
-
-        return sub, devide, add, sqrt, power
-    ]]
-
-    local ret, ast = parser.parse(mnstr)
-    it("should get ast", function()
-        assert.is_true(ret)
-        assert.is_true(type(ast) == "table")
-    end)
-
-    local ret, content = compile.compile({}, ast)
-    it("should get compiled lua", function()
-        assert.is_true(ret)
-        assert.is_true(type(content) == "string")
-    end)
- 
-    local f = load(content, "test", "t")
-    it("should get function", function()
-        assert(type(f) == "function")
-        local sub, devide, add, sqrt, power = f()
-        assert.is_function(sub)
-        assert.is_function(devide)
-        assert.is_function(add)
-        assert.is_function(sqrt)
-        assert.is_function(power)
-        assert.is_equal(sub(12, 10), 2)        
-    end)
-end)
-
-describe("test success 1 #function", function()
-    local mnstr=[[
-        local tbl = {  }
-        tbl.__index = tbl
-        tbl.a  = tbl
-        tbl.b = fn() {
-            return tbl
-        };
-        tbl.c = fn() {
-            return "c"
-        }
-        return tbl.a.a:b():c()
-    ]]
-
-    local ret, ast = parser.parse(mnstr)
-    it("should get ast", function()
-        assert.is_true(ret)
-        assert.is_true(type(ast) == "table")
-    end)
-
-    local ret, content = compile.compile({}, ast)
-    it("should get compiled lua", function()
-        assert.is_true(ret)
-        assert.is_true(type(content) == "string")
-    end)
- 
-    local f = load(content, "test", "t")
-    it("should get function", function()
-        assert(type(f) == "function")
-        local c = f()
-        assert.is_equal(c, "c")     
-    end)
-end)
-
-describe("test success 2 #function", function()
-    local mnstr=[[
-        B = { C = {} }
-        fn B.C:echo() {
-            self.d = 9
-            return self.d
-        }
-        return B.C
+        return 123, 123.45, .67, 0xFF, 1e3, 1e-3, .2e2
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -107,22 +21,19 @@ describe("test success 2 #function", function()
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
-        local c = f()
-        local d = c:echo()
-        assert.is_equal(d, 9)
+        local a, b, c, d, e, f, g = f()
+        assert.is_equal(a, 123)
+        assert.is_equal(b, 123.45)
+        assert.is_equal(c, 0.67)
+        assert.is_equal(d, 255)
+        assert.is_equal(e, 1000)
+        assert.is_equal(f, 0.001)
+        assert.is_equal(g, 20)
     end)
 end)
 
-describe("test success 3 #function", function()
-    local mnstr=[[
-        Bird = {}
-
-        fn Bird.fly() {  
-        }
-        
-        fn Bird:eat() {
-        }
-    ]]
+describe("test success_2 #number", function()
+    local mnstr=[[return 0xF]]
 
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
@@ -135,14 +46,17 @@ describe("test success 3 #function", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local a = f()
+        assert.is_equal(a, 15)
+    end)
 end)
 
-describe("test failed #function", function()
-    local mnstr=[[
-        fn b.sub() {
-            return 0
-        }
-    ]]
+describe("test success_3 #number", function()
+    local mnstr=[[return .2]]
 
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
@@ -150,31 +64,99 @@ describe("test failed #function", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    it("has error", function()
-        local ret, content = compile.compile({}, ast)
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local a = f()
+        assert.is_equal(a, 0.2)
+    end)
+end)
+
+describe("test success_4 #number", function()
+    local mnstr=[[return 3]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local a = f()
+        assert.is_equal(a, 3)
+    end)
+end)
+
+describe("test success_5 #number", function()
+    local mnstr=[[return .1e-2]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local a = f()
+        assert.is_equal(a, 0.001)
+    end)
+end)
+
+describe("test failed_1 #number", function()
+    local mnstr=[[
+        return 123.12.2
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
         assert.is_false(ret)
-        assert.is_equal(content.err_msg, "undefined variable")
-        assert.is_equal(content.pos, 11)
-   end)
+        assert.is_equal(ast.err_msg, "malformed number")
+        assert.is_equal(ast.pos, 21)
+    end)
 end)
 
-describe("test failed #function", function()
+describe("test failed_2 #number", function()
     local mnstr=[[
-        fn sub() {
-            return self
-        }
+        return 123e23e
     ]]
 
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
-        assert.is_true(ret)
-        assert.is_true(type(ast) == "table")
-    end)
-
-    it("has error", function()
-        local ret, content = compile.compile({}, ast)
         assert.is_false(ret)
-        assert.is_equal(content.err_msg, "undefined variable")
-        assert.is_equal(content.pos, 38)
-   end)
+        assert.is_equal(ast.err_msg, "malformed number")
+        assert.is_equal(ast.pos, 21)
+    end)
+end)
+
+describe("test failed_3 #number", function()
+    local mnstr=[[return 0x]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_false(ret)
+        assert.is_equal(ast.err_msg, "malformed number")
+        assert.is_equal(ast.pos, 9)
+    end)
 end)

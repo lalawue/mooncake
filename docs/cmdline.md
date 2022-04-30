@@ -7,7 +7,7 @@
   
 # CommandLine Usage
 
-get all options with option '-h' or leave it blank
+get help with option '-h' or leave it blank
 
 ```sh
 $ moocscript
@@ -61,19 +61,20 @@ $ moocscript -a do.mooc
     ["body"] = {
       [1] = {
         [1] = {
-          ["pos"] = 12,
-          ["etype"] = "lvar",
-          ["value"] = "print"
-        },
-        [2] = {
-          ["op"] = "(",
           [1] = {
+            ["pos"] = 14,
+            ["etype"] = "var",
+            ["value"] = "print"
+          },
+          [2] = {
             [1] = {
-              ["pos"] = 29,
-              ["etype"] = "string",
-              ["value"] = "Hello, world !"
-            }
-          }
+              ["pos"] = 20,
+              ["etype"] = "const",
+              ["value"] = "Hello, world!"
+            },
+            ["etype"] = "("
+          },
+          ["etype"] = "exp"
         },
         ["stype"] = "("
       }
@@ -90,7 +91,6 @@ the AST shows details about source file
 - 'stype' means statement
 - 'etype' means expression
 - 'pos' means position, offsets from file beginning
-- 'op' means operator
 - 'body' for statements holds code block, another statments
 
 and here shows part of it.
@@ -109,6 +109,8 @@ end
 ## project config
 
 you can output Lua source before running, and the output Lua source will not require any MoonCake component.
+
+project buildling requires `luafilesystem` (lfs)
 
 you can take a look at 'examples/proj/proj_config.mooc' for example.
 
@@ -142,9 +144,9 @@ here shows two project config, or two source directory.
 - 'proj_dir' is the input directory
 - 'proj_out' is the output directory
 - 'fn_filter' will filter in path, return false if you do not want to copy or output Lua source
-- 'fn_after' will be called after Lua code generated and before write to out path
+- 'fn_after' will be called after Lua code generated and before write to out path, you can modify output content here
 
-in project mode, MoonCake will travel proj_dir recursively, translate all .mooc file to .lua into 'proj_out' directory, the travel order will not as it running, a required calling order, maybe it will meet many global variable before declared, and it will cause error.
+in project mode, MoonCake will travel proj_dir recursively, translate all .mooc file to .lua into `proj_out` directory, the travel order will not as it running, a required calling order, maybe it will meet many global variable before declared, and it will cause error.
 
 you should declare these global names in 'proj_export' file before.
 
@@ -159,11 +161,15 @@ from: [examples]
  on : filter
  on : after
  DIR 'out/error'
-examples/error/compile_error.mooc:1: defer { <not in function 'defer'>
+Error: defer only support function scope
+File: examples/error/compile_error.mooc
+Line: 1 (Pos: 0)
+Source: defer {
+        ^
  ERR 'out/error/compile_error.mooc':
 ```
 
 the output is quite straight forward, 'ERR' means compile error, before it shows error details.
 
-any error will cause project build to stop.
+any error will stop project building.
 

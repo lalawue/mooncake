@@ -12,6 +12,9 @@ local type = type
 local srep = string.rep
 local ipairs = ipairs
 local mathmax = math.max
+local sfmt = string.format
+local pcall = pcall
+local tconcat = table.concat
 
 struct Out {
 
@@ -20,7 +23,7 @@ struct Out {
     _output = {}
     _inline = 0
 
-    fn init() {
+    fn reset() {
         self._indent = 0 -- indent char
         self._changeLine = false -- force change line
         self._output = {} -- output table
@@ -56,23 +59,7 @@ struct Out {
             t[i] = (t[i] or "") .. str
         } else {
             self._changeLine = false
-            prefix = self._indent > 0 and srep("\t", self._indent) or ""
-            t[#t + 1] = prefix .. str
-        }
-    }
-
-    fn getInfo() {
-        return { #self._output, self._indent }
-    }
-
-    fn appendExt(info, tbl) {
-        t = self._output
-        if #info > 1 and info[1] <= #t {
-            idx, indent = info[1], info[2]
-            prefix = indent > 0 and srep("\t", indent) or ""
-            for _, v in ipairs(tbl) {
-                t[idx] = (t[idx] or "") .. "\n" .. prefix .. v
-            }
+            t[#t + 1] = (self._indent > 0 and srep("\t", self._indent) or "") .. str
         }
     }
 }
@@ -133,111 +120,39 @@ struct Ctx {
     content = false
 
     scopes = false
-    in_defer = false
-    in_clsvar = false
-    in_clsname = false
-    in_supname = false
-
     err_info = false
     last_pos = 0
 
     -- MARK:
 
-    fn init(config, ast, content) {
+    fn reset(config, ast, content) {
         self.config = config
         self.ast = ast
         self.content = content
         -- { otype = "gl|pj|fi|cl|fn|lo|if|do|gu", vars = {} }
         self.scopes = {
+            index = 3,
             _scope_global,
             _scope_proj,
-            { otype = "fi", vars = {}, loidx = 0 }
+            { otype = "fi", vars = {} }
         }
+        self.err_info = false
+        self.last_pos = 0
     }
 
     fn pushScope(ot, exp) {
         t = self.scopes
-        scope = { otype = ot, vars = {}, exp = exp }
-        t[#t + 1] = scope
-        if ot == "lo" {
-            t[3].loidx += 1
-            scope.loidx =  t[3].loidx
-        }
+        t.index += 1
+        tn = t[t.index] or {}
+        tn.otype = ot
+        tn.vars = {}
+        tn.exp = exp
+        t[t.index] = tn
     }
 
     fn popScope() {
         t = self.scopes
-        t[#t] = nil
-    }
-
-    fn getScope(otype) {
-        t = self.scopes
-        for i = #t, 1, -1 {
-            v = t[i]
-            if v.otype == otype {
-                return v
-            }
-        }
-    }
-
-    fn supportDefer() {
-        t = self.scopes
-        for i = #t, 3, -1 {
-            if t[i].otype == "fn" {
-                return true
-            }
-        }
-        return false
-    }
-
-    fn isInLoop() {
-        t = self.scopes
-        for i = #t, 3, -1 {
-            otype = t[i].otype
-            if otype == "fn" {
-                return false
-            } elseif otype == "lo" {
-                return true
-            }
-        }
-        return false
-    }
-
-    fn pushDefer() {
-        t = self.scopes
-        for i = #t, 3, -1 {
-            v = t[i]
-            if v.otype == "fn" {
-                v.has_defer = true
-                break
-            }
-        }
-    }
-
-    fn hasDefers(){
-        t = self.scopes
-        for i = #t, 3, -1 {
-            v = t[i]
-            if v.otype == "fn" {
-                return v.has_defer
-            }
-        }
-        return false
-    }
-
-    fn pushOutInfo(info) {
-        t = self.scopes
-        t[#t].info = info
-    }
-
-    fn getOutInfo(otype) {
-        t = self.scopes
-        for i = #t, 3, -1 {
-            v = t[i]
-            if v.otype == otype {
-                return v.info
-            }
-        }
+        t.index -= 1
     }
 
     fn globalInsert(n) {
@@ -247,58 +162,35 @@ struct Ctx {
 
     fn localInsert(n) {
         t = self.scopes
-        t[#t].vars[n] = true
+        t[t.index].vars[n] = true
     }
 
-    -- treat lvar as to be defined, grammar checking
-    fn checkName(e, checkLeftLocal, onlyList1st) {
-        ret, name, pos = self:isVarDeclared(e, checkLeftLocal, onlyList1st)
-        if ret {
-            return
+    -- check var was defined
+    fn checkName(e, only_check) {
+        if e and e.etype == 'exp' {
+            e = e[1]
         }
-        self:errorPos("undefined variable", name, pos - 1)
-    }
-
-    -- checkLeftLocal: check left define, in transform to Lua
-    fn isVarDeclared(e, checkLeftLocal, onlyList1st) {
-        n, pos = nil, nil
-        assert(type(e) == "table", "Invalid var declare type")
-        etype = e.etype
-        if etype == "lvar" and e.list {
-            n = e.list[1]
-            pos = e.pos
-        } elseif etype == "lvar" and checkLeftLocal and not onlyList1st {
+        if e and e.etype == 'var' {
             n = e.value
-            pos = e.pos
-        } elseif etype == "rvar" {
-            n = e.list and e.list[1] or e.value
-            pos = e.pos
-        } elseif etype == "lexp" and checkLeftLocal and not onlyList1st {
-            n = e[1].value
-            pos = e[1].pos
-        } else {
-            return true
-        }
-        t = self.scopes
-        for i = #t, 1, -1 {
-            if t[i].vars[n] or t[i].vars["*"] {
-                return true
+            t = self.scopes
+            for i = t.index, 1, -1 {
+                if t[i].vars[n] or t[i].vars["*"] {
+                    return true
+                }
+            }
+            if not only_check {
+                self:errorPos("undefined variable", e.pos - 1)
             }
         }
-        return false, n, pos
     }
 
-    fn errorPos(msg, symbol, pos) {
+    fn errorPos(err_msg, pos) {
         if self.err_info {
             return
         }
         pos = pos or mathmax(0, self.last_pos - 1)
-        err = Utils.posLine(self.content, pos)
-        self.err_info = string.format("%s:%d: %s <%s '%s'>", self.config.fname or "_", err.line, err.message, msg, symbol)
-    }
-
-    fn hasError() {
-        return self.err_info
+        self.err_info = { =err_msg, =pos }
+        error('')
     }
 
     fn updatePos(pos) {
@@ -337,46 +229,18 @@ local _cls_metafns = Utils.set({"__add",
                                 "__sub",
                                 "__unm"})
 
-local _no_space_op = Utils.set({"(", ")", "#", "~", "-"})
-local _right_space_op = Utils.set({"not"})
+local _map_binop = { ['!='] = '~=' }
 
 struct M {
 
     ctx = false
     out = false
-    opfn = {}
     exfn = {}
     stfn = {}
 
-    fn init(ctx, out) {
+    fn reset(ctx, out) {
         self.ctx = ctx
         self.out = out
-    }
-
-    fn trOp(t) {
-        ctx = self.ctx
-        ctx:updatePos(t.pos)
-        op = t.op
-        func = self.opfn[op]
-        if func {
-            func(self, t)
-            return
-        }
-        switch op {
-        case "(":
-            func = self.trOpPara
-        case ".":
-            func = self.trOpDot
-        case ":":
-            func = self.trOpColon
-        case "[":
-            func = self.trOpSquare
-        default:
-            ctx:errorPos("Invalid op near", (t.op or "unknown"))
-            return
-        }
-        self.opfn[op] = func
-        func(self, t)
     }
 
     fn trExpr(t) {
@@ -384,85 +248,55 @@ struct M {
         ctx = self.ctx
         out = self.out
         etype = t.etype
-        func = self.exfn[etype or t.op]
-        ctx:updatePos(t.pos)
+        if etype == "exp" {
+            for _, v in ipairs(t) {
+                self:trExpr(v)
+            }
+            return
+        }
+        func = self.exfn[etype]
         if func {
             func(self, t)
             return
         }
         switch etype {
-        case "lvar":
-            func = { self, t in
-                local ctx = self.ctx
-                local out = self.out
-                if not ctx.in_clsvar {
-                    ctx:checkName(t)
-                }
-                if ctx.in_clsname and t.value == "Self" {
-                    out:append(ctx.in_clsname, true)
-                } elseif ctx.in_supname and t.value == "Super" {
-                    out:append(ctx.in_supname, true)
-                } else {
-                    out:append(t.value, true)
-                }
-            }
-        case "rvar":
-            func = { self, t in
-                local ctx = self.ctx
-                local out = self.out
+        case "var":
+            func = { _, t in
                 ctx:checkName(t)
-                if ctx.in_clsname and t.value == "Self" {
-                    out:append(ctx.in_clsname, true)
-                } elseif ctx.in_supname and t.value == "Super" {
-                    out:append(ctx.in_supname, true)
-                } else {
-                    out:append(t.value, true)
-                }
+                out:append(t.value, true)
             }
-        case "number":
-            func = { self, t in
-                self.out:append(t.value, true)
-            }
-        case "string":
-            func = { self, t in
-                self.out:append(t.value, true)
-            }
-        case "varg":
-            func = { self, t in
-                self.out:append("...", true)
-            }
-        case "op":
-            func = { self, t in
-                local out = self.out
-                if _no_space_op[t.value] and not t.sub {
-                    out:append(t.value, true)
-                } elseif _right_space_op[t.value] {
-                    out:append(t.value .. " ", true)
-                } elseif t.value == "!=" {
-                    out:append(" ~= ", true)
-                } else {
-                    out:append(" " .. t.value .. " ", true)
-                }
+        case "const":
+            func = { _, t in
+                out:append(t.value, true)
             }
         case "{":
             func = self.trEtTblDef
         case "fn":
             func = self.trEtFnOnly
-        case "rexp":
-            func = self.trEtRexp
-        case "lexp":
-            func = self.trEtLexp
-        case "sexp":
-            func = self.trEtSexp
-        default:
-            if t.op {
-                func = self.trOp
-            } else {
-                ctx:errorPos("Invalid expr etype near", (etype or "unknown"))
-                return
+        case "(":
+            func = self.trEtPara
+        case ".":
+            func = { _, t in
+                out:append("." .. t[1].value, true)
             }
+        case ":":
+            func = self.trEtColon
+        case "[":
+            func = self.trEtSquare
+        case 'unop':
+            func = { _, t in
+                v = t.value == 'not' and 'not ' or t.value
+                out:append(v, true)
+            }
+        case 'binop':
+            func = { _, t in
+                out:append(' ' .. (_map_binop[t.value] or t.value) .. ' ', true)
+            }
+        default:
+            ctx:errorPos("Invalid expr etype near " .. (etype or "unknown"))
+            return
         }
-        self.exfn[etype or t.op] = func
+        self.exfn[etype] = func
         func(self, t)
     }
 
@@ -479,13 +313,13 @@ struct M {
             t = ast[index]
             stype = t.stype
             func = stfn[stype]
-            ctx:updatePos(t.pos)
+            if t.pos {
+                ctx:updatePos(t.pos)
+            }
             if func {
                 func(self, t)
             } else {
                 switch stype {
-                case "cm":
-                    func = self.trStComment
                 case "import":
                     func = self.trStImport
                 case "fn":
@@ -500,11 +334,13 @@ struct M {
                     func = self.trStExtension
                 case "ex":
                     func = self.trStExport
+                case "=":
+                    func = self.trAssign
                 case "return":
                     func = self.trStReturn
                 case "defer":
                     func = self.trStDefer
-                case "if", "elseif", "else", "ifend":
+                case "if":
                     func = self.trStIfElse
                 case "switch":
                     func = self.trStSwitch
@@ -512,57 +348,68 @@ struct M {
                     func = self.trStGuard
                 case "break":
                     func = self.trStBreak
-                case "continue":
-                    func = self.trStContinue
                 case "goto", "::":
-                    func = self.trStGoto
+                    func = self.trStGotoLabel
                 case "for":
                     func = self.trStFor
                 case "while":
                     func = self.trStWhile
                 case "repeat":
                     func = self.trStRepeat
-                case "=":
-                    -- a = b * (2 + 4)
-                    func = self.trStEqual
                 case "do":
                     func = self.trStDo
-                case "raw":
-                    -- generate by compiler
-                    func = self.trStRaw
-                case ";":
-                    func = { self, _ in
-                        self.out:append(";", true)
-                    }
                 case "#!":
-                    func = { self, _ in
-                        if self.ctx.config.shebang {
-                            self.out:append("#!/usr/bin/env lua")
+                    func = { self, t in
+                        if self.ctx.config.shebang and t.value {
+                            self.out:append(t.value)
                         }
                     }
-                default:
-                    if stype and stype:sub(stype:len(), stype:len()) == "=" {
-                        -- q ..= "hello"
-                        func = self.trStTwoEqual
-                    } else {
-                        ctx:errorPos("Invalid stype near", (stype or "uknown stype"))
-                        return
+                case ';':
+                    func = { self, _ in
+                        t = out._output
+                        i = mathmax(#t, 1)
+                        t[i] = (t[i] or "") .. ';'
                     }
+                case 'raw':
+                    func = { self, t in
+                        self.out:append(t.value)
+                    }
+                default:
+                    ctx:errorPos("Invalid stype near " .. (stype or "uknown stype"))
+                    return
                 }
                 stfn[stype] = func
                 func(self, t)
             }
-            nstype = ast[index + 1] and ast[index + 1].stype
-            if stype ~= ";" {
-                out:changeLine()
-            }
+            out:changeLine()
         }
     }
 
-    -- MARK: Op
+    -- MARK: Expr
 
-    fn trOpPara(t) {
-        assert(t.op == "(", "Invalid op (")
+    -- return name, 1st value
+    fn trEtName(t) {
+        ctx = self.ctx
+        n = ''
+        if t.etype == 'exp' and #t > 0 {
+            name = ''
+            for i, v in ipairs(t) {
+                if i == 1 {
+                    n = v.value
+                    name = n
+                    ctx:checkName(v)
+                } else {
+                    name ..= v.etype .. v[1].value
+                }
+            }
+            return name, n
+        } elseif t.etype == 'const' {
+            return t.value, t.value
+        }
+    }
+
+    fn trEtPara(t) {
+        assert(t.etype == "(", "Invalid op (")
         out = self.out
         out:pushInline()
         out:append("(", true)
@@ -570,46 +417,31 @@ struct M {
             if i > 1 {
                 out:append(", ", true)
             }
-            for _, v in ipairs(e) {
-                self:trExpr(v)
-            }
+            self:trExpr(e)
         }
         out:append(")", true)
         out:popInline()
     }
 
-    fn trOpDot(t) {
-        assert(t.op == ".", "Invalid op .")
-        out = self.out
-        out:append("." .. t[1].value, true)
-    }
-
-    fn trOpColon(t) {
-        assert(t.op == ":", "Invalid op =")
-        out = self.out
-        out:append(":", true)
+    fn trEtColon(t) {
+        assert(t.etype == ":", "Invalid op =")
+        self.out:append(":", true)
         for i, e in ipairs(t) {
-            if e.etype {
-                self:trExpr(e)
-            } else {
-                self:trOp(e)
-            }
+            self:trExpr(e)
         }
     }
 
-    fn trOpSquare(t) {
-        assert(t.op == "[", "Invalid op [")
+    fn trEtSquare(t) {
+        assert(t.etype == "[", "Invalid op [")
         out = self.out
         out:pushInline()
         out:append("[", true)
-        for i, e in ipairs(t) {
+        for _, e in ipairs(t) {
             self:trExpr(e)
         }
         out:append("]", true)
         out:popInline()
     }
-
-    -- MARK: Expr
 
     fn trEtTblDef(t) {
         assert(t.etype == "{", "Invalid etype table def")
@@ -617,33 +449,24 @@ struct M {
         out = self.out
         out:append("{ ")
         for i, e in ipairs(t) {
-            if e.stype {
-                self:trStComment(e)
-                out:changeLine()
+            if e.nkey {
+                value = e.nkey.value
+                out:append(value, true)
+                out:append(" = ", true)
+                out:append(value, true)
             } else {
-                if e.nkey ~= nil {
-                    nk = e.nkey
-                    out:append(nk.value, true)
+                if e.vkey {
+                    out:append(e.vkey.value, true)
                     out:append(" = ", true)
-                    out:append(nk.value, true)
-                } else {
-                    if e.vkey ~= nil {
-                        vk = e.vkey
-                        out:append('["' .. vk.value .. '"]', true)
-                        out:append(" = ", true)
-                    } elseif e.bkey ~= nil {
-                        bk = e.bkey
-                        out:append("[", true)
-                        self:trExpr(bk)
-                        out:append("] = ", true)
-                    }
-                    for _, v in ipairs(e.value) {
-                        self:trExpr(v)
-                    }
+                } elseif e.bkey {
+                    out:append("[", true)
+                    self:trExpr(e.bkey)
+                    out:append("] = ", true)
                 }
-                if i < #t {
-                    out:append(", ")
-                }
+                self:trExpr(e.value)
+            }
+            if i < #t {
+                out:append(", ")
             }
         }
         out:append(" }")
@@ -651,157 +474,45 @@ struct M {
 
     fn trEtFnOnly(t) {
         assert(t.etype == "fn", "Invalid etype fn def only")
-        args = t.args or {}
-        body = t.body
         ctx = self.ctx
         out = self.out
         ctx:pushScope("fn", t)
-        out:append("function(" .. Utils.seqReduce(args, "", { init, i, v in
+        out:append("function(" .. Utils.seqReduce(t.args, "", { init, i, v in
             ctx:localInsert(v.value)
             return init .. (i > 1 and ", " or "") .. v.value
         }) .. ")")
         out:incIndent()
-        ctx:pushOutInfo(out:getInfo())
-        if #body > 0 {
-            out:changeLine()
-            self:trStatement(body)
-            if ctx:hasDefers() and body[#body].stype ~= "return" {
-                out:append("__df_run__()")
+        if #t.body > 0 {
+            if t.df {
                 out:changeLine()
+                out:append(t.df)
             }
+            out:changeLine()
+            self:trStatement(t.body)
         }
         out:decIndent()
         out:append("end")
         ctx:popScope()
     }
 
-    fn trEtRexp(t) {
-        assert(t.etype == "rexp", "Invalid etype rexp")
-        ctx = self.ctx
-        out = self.out
-        ctx:checkName(t[1])
-        for i, e in ipairs(t) {
-            if e.etype {
-                self:trExpr(e)
-            } elseif e.op {
-                self:trOp(e)
-            }
-        }
-    }
-
-    fn trEtLexp(t) {
-        assert(t.etype == "lexp", "Invalid etype lexp")
-        ctx = self.ctx
-        out = self.out
-        ctx:checkName(t[1], (#t - 1) > 0)
-        for i, e in ipairs(t) {
-            if e.etype {
-                self:trExpr(e)
-            } elseif e.op {
-                self:trOp(e)
-            }
-        }
-    }
-
-    fn trEtSexp(t) {
-        assert(t.etype == "sexp", "Invalid etype sexp")
-        out = self.out
-        out:pushInline()
-        for i, e in ipairs(t) {
-        local prefix = i > 1 and " .. " or ""
-            if e.etype == "strraw" {
-                if e.value:len() > 0 {
-                    out:append(prefix .. '"' .. e.value .. '"')
-                }
-            } else {
-                out:append(prefix .. "tostring(")
-                for _, v in ipairs(e) {
-                    self:trExpr(v)
-                }
-                out:append(")")
-            }
-        }
-        out:popInline()
-    }
-
     -- MARK: Statement
-
-    fn trStEqual(t) {
-        assert(t.stype == "=", "Invalid stype equal")
-        assert(#t == 2, "Invalid asign count")
-        ctx = self.ctx
-        out = self.out
-        out:pushInline()
-        for i, v in ipairs(t[1]) {
-            if i == 1 {
-                if not ctx:isVarDeclared(v, true) {
-                    out:append("local ")
-                }
-            } else {
-                out:append(", ")
-            }
-            self:trExpr(v)
-        }
-        out:append(" = ")
-        for i, v in ipairs(t[2]) {
-            if i > 1 {
-                out:append(", ")
-            }
-            for _, n in ipairs(v) {
-                self:trExpr(n)
-            }
-        }
-        out:popInline()
-        -- name
-        for i, e in ipairs(t[1]) {
-            if e.etype == "lexp" and #e == 1 {
-                ctx:localInsert(e[1].value)
-            }
-        }
-    }
-
-    fn trStTwoEqual(t) {
-        tlen = t.stype:len()
-        assert(t.stype:sub(tlen, tlen) == "=", "Invalid stype two equal")
-        ctx = self.ctx
-        out = self.out
-        assert(#t == 2, "Invalid asign count")
-        out:pushInline()
-        ctx:checkName(t[1], true)
-        self:trExpr(t[1])
-        out:append(" = ")
-        self:trExpr(t[1])
-        out:append(" " .. t.stype:sub(1, tlen - 1) .. " (")
-        for _, v in ipairs(t[2]) {
-            self:trExpr(v)
-        }
-        out:append(")")
-        out:popInline()
-    }
-
-    fn trStComment(t) {
-        if self.ctx.config.comment {
-            assert(t.stype == "cm", "Invalid stype cm")
-            self.out:append(t.value)
-        }
-    }
 
     fn trStImport(t) {
         assert(t.stype == "import", "Invalid stype import")
         ctx = self.ctx
         out = self.out
         if #t <= 0 {
-            out:append("require(" .. t.slib.value .. ")")
-        } elseif t[2] == nil {
+            out:append("require(" .. t.lib.value .. ")")
+        } elseif #t == 1 {
             lt = t[1][1]
-            if t.slib {
-                out:append("local " .. lt.value .. " = require(" .. t.slib.value .. ")")
+            if t.lib.etype == 'const' {
+                out:append("local " .. lt.value .. " = require(" .. t.lib.value .. ")")
             } else {
-                ctx:checkName(t.tlib, true)
-                out:append("local " .. lt.value .. " = " .. t.tlib.value)
+                ctx:checkName(t.lib)
+                out:append("local " .. lt.value .. " = " .. t.lib.value)
             }
             ctx:localInsert(lt.value)
-        } elseif t.slib or t.tlib {
+        } else {
             lt = t[1]
             rt = t[2]
             if #rt <= 0 {
@@ -811,27 +522,25 @@ struct M {
                 ctx:localInsert(v.value)
                 return init .. (i <= 1 and "" or ", ") .. v.value
             }))
-            if t.slib {
+            if t.lib.etype == 'const' {
                 out:append("do")
                 out:incIndent()
-                out:append("local __lib__ = require(" .. t.slib.value .. ")")
+                out:append("local __l = require(" .. t.lib.value .. ")")
                 out:append(Utils.seqReduce(lt, "", { init, i, v in
                     return init .. (i <= 1 and "" or ", ") .. v.value
                 }))
                 out:append(" = " .. Utils.seqReduce(rt, "", { init, i, v in
-                    return init .. (i <= 1 and "__lib__." or ", __lib__.") .. v.value
+                    return init .. (i <= 1 and "__l." or ", __l.") .. v.value
                 }), true)
                 out:decIndent()
                 out:append("end")
             } else {
-                ctx:checkName(t.tlib, true)
-                tfirst, tnext = t.tlib.value .. ".", ", " .. t.tlib.value .. "."
+                ctx:checkName(t.lib)
+                tfirst, tnext = t.lib.value .. ".", ", " .. t.lib.value .. "."
                 out:append(" = " .. Utils.seqReduce(rt, "", { init, i, v in
                     return init .. (i <= 1 and tfirst or tnext) .. v.value
                 }), true)
             }
-        } else {
-            assert(nil, "Invalid import AST")
         }
     }
 
@@ -842,89 +551,112 @@ struct M {
         out:pushInline()
         if t.attr == "local" {
             out:append("local ")
-            for i, v in ipairs(t[1]) {
+            for i, v in ipairs(t) {
                 if i > 1 {
                     out:append(", ")
                 }
                 self:trExpr(v)
                 ctx:localInsert(v.value)
             }
-            if t[2] {
-                out:append(" = ")
-                for i, e in ipairs(t[2]) {
-                    if i > 1 {
-                        out:append(", ")
-                    }
-                    for _, v in ipairs(e) {
-                        self:trExpr(v)
-                    }
-                }
-            }
         } elseif t.attr == "export" {
-            if t.op == "*" {
-                ctx:localInsert("*")
-            } else {
-                for i, v in ipairs(t[1]) {
+            for i, v in ipairs(t) {
+                ctx:globalInsert(v.value)
+            }
+        } elseif t.attr == "*" {
+            ctx:localInsert("*")
+        } else {
+            ctx:errorPos("Invalid export attr near " .. (t.attr or "unknown"))
+        }
+        out:popInline()
+    }
+
+    fn trAssign(t) {
+        assert(t.stype == '=', "Invalid stype =")
+        ctx = self.ctx
+        out = self.out
+        out:pushInline()
+        if t.sub {
+            assert(#t[1] == 1 and #t[1] == #t[2], "Invalid assign sub AST")
+            --
+            e = t[1][1]
+            self:trExpr(e)
+            out:append(' = ')
+            self:trExpr(e)
+            out:append(' ' .. t.sub .. ' ')
+            --
+            e = t[2][1]
+            sp, ep = '', ''
+            if e.rlop {
+                sp, ep = '(', ')'
+            }
+            out:append(sp)
+            self:trExpr(e)
+            out:append(ep)
+        } else {
+            e = t[2]
+            for _, v in ipairs(e) {
+                ctx:checkName(v)
+            }
+            e = t[1]
+            for i, v in ipairs(e) {
+                if t.attr == 'export' {
                     ctx:globalInsert(v.value)
+                } elseif t.attr == 'local' or #v <= 0 and not ctx:checkName(v, true) {
+                    ctx:localInsert(v.value)
+                    if i == 1 {
+                        out:append("local ")
+                    }
                 }
-                if t[2] {
-                    for i, v in ipairs(t[1]) {
-                        if i > 1 {
-                            out:append(",")
-                        }
-                        self:trExpr(v)
-                    }
-                    out:append(" = ")
-                    for i, e in ipairs(t[2]) {
-                        if i > 1 {
-                            out:append(", ")
-                        }
-                        for _, v in ipairs(e) {
-                            self:trExpr(v)
-                        }
-                    }
+                self:trExpr(v)
+                if i < #e {
+                    out:append(", ")
                 }
             }
-        } else {
-            ctx:errorPos("Invalid export attr near", (t.attr or "unknown"))
+            out:append(" = ")
+            e = t[2]
+            for i, v in ipairs(e) {
+                self:trExpr(v)
+                if i < #e {
+                    out:append(", ")
+                }
+            }
         }
         out:popInline()
     }
 
     fn trStFnDef(t) {
         assert(t.stype == "fn", "Invalid stype fn")
-        attr = (t.attr == "export" and "" or "local ")
-        name = t.name and t.name.value or ""
-        args = t.args or {}
-        body = t.body
         ctx = self.ctx
         out = self.out
-        ctx:checkName(t.name, true, true)
-        if t.attr == "export" {
-            ctx:globalInsert(name)
-        } else {
-            ctx:localInsert(name)
-        }
-        if name:find(".", 1, true) {
-            attr = ""
+        attr = (t.attr == "export" and "" or "local ")
+        args = t.args or {}
+        fname, pname = self:trEtName(t.name)
+        if fname == pname {
+            if t.attr == "export" {
+                ctx:globalInsert(fname)
+            } else {
+                ctx:localInsert(fname)
+            }
         }
         ctx:pushScope("fn", t)
-        if name:find(":", 1, true) {
-            ctx:localInsert("self")
+        mark = self:hasColonDot(t.name)
+        if mark {
+            if mark == ':' {
+                ctx:localInsert("self")
+            }
             attr = ""
         }
-        out:append(attr .. "function " .. name .. "(" .. Utils.seqReduce(args, "", { init, i, v in
+        out:append(attr .. "function " .. fname .. "(" .. Utils.seqReduce(args, "", { init, i, v in
             ctx:localInsert(v.value)
             return init .. (i > 1 and ", " or "") .. v.value
         }) .. ")")
         out:incIndent()
-        ctx:pushOutInfo(out:getInfo())
-        if #body > 0 {
-            out:changeLine()
-            self:trStatement(body)
-            if ctx:hasDefers() and body[#body].stype ~= "return" {
-                out:append("__df_run__()")
+        if #t.body > 0 {
+            if t.df {
+                out:append(t.df)
             }
+            out:changeLine()
+            self:trStatement(t.body)
         }
         out:decIndent()
         out:append("end")
@@ -937,91 +669,67 @@ struct M {
         out = self.out
         n = 0
         out:pushInline()
-        if t[1].etype == "lvar" {
-            n = 1
-            ctx:checkName(t[1], true)
-            if ctx.in_clsname and t[1].value == "Self" {
-                out:append(ctx.in_clsname, true)
-            } elseif ctx.in_supname and t[1].value == "Super" {
-                out:append(ctx.in_supname, true)
-            } else {
-                out:append(t[1].value, true)
-            }
-        }
         for i, e in ipairs(t) {
             if i > n {
-                if e.etype {
-                    self:trExpr(e)
-                } elseif e.op {
-                    self:trOp(e)
-                }
+                self:trExpr(e)
             }
         }
         out:popInline()
     }
 
     fn trStIfElse(t) {
+        assert(t.stype == "if", "Invalid stype if")
         ctx = self.ctx
         out = self.out
-        if t.stype == "if" or t.stype == "elseif" {
-            out:append(t.stype .. " ")
-            out:pushInline()
-            for _, v in ipairs(t.cond) {
-                self:trExpr(v)
+        for i, e in ipairs(t) {
+            out:append(e.sub .. " ")
+            if e.sub != 'else' {
+                out:pushInline()
+                self:trExpr(e.cond)
+                out:popInline()
+                out:append(" then", true)
             }
-            out:popInline()
-            out:append(" then", true)
-            ctx:pushScope("if", t)
+            ctx:pushScope("if", e)
             out:changeLine()
             out:incIndent()
-            self:trStatement(t.body)
-            ctx:popScope()
-            out:decIndent()
-        } elseif t.stype == "else" {
-            ctx:pushScope("if", t)
-            out:append("else")
-            out:changeLine()
-            out:incIndent()
-            self:trStatement(t.body)
+            self:trStatement(e.body)
             out:decIndent()
             ctx:popScope()
-        } elseif t.stype == "ifend" {
-            out:append("end")
-        } else {
-            ctx:errorPos("Invalid stype near", (t.stype or "unknown"))
         }
+        out:append('end')
     }
 
     fn trStSwitch(t) {
         assert(t.stype == "switch", "Invalid stype switch")
         ctx = self.ctx
         out = self.out
-        out:append("local __sw__ = ")
+        out:append("local __s = ")
         out:pushInline()
-        for _, v in ipairs(t.cond) {
-            self:trExpr(v)
-        }
+        self:trExpr(t.cond)
         out:popInline()
         out:changeLine()
         for i = 1, #t {
             c = t[i]
             out:pushInline()
-            if c.stype == "case" {
+            if c.cond {
                 if i == 1 {
                     out:append("if ")
                 } else {
                     out:append("elseif ")
                 }
-                out:append("__sw__ == (")
-                for j, s in ipairs(c) {
-                    if j > 1 {
-                        out:append(") or __sw__ == (")
+                sp, ep, count = nil, nil, #c.cond
+                for j, e in ipairs(c.cond) {
+                    out:append("__s ==")
+                    if e.rlop {
+                        sp, ep = ' (', (j == count and ')' or ') or ')
+                    } else {
+                        sp, ep = ' ', (j == count and '' or ' or ')
                     }
-                    for _, e in ipairs(s) {
-                        self:trExpr(e)
-                    }
+                    out:append(sp)
+                    self:trExpr(e)
+                    out:append(ep)
                 }
-                out:append(") then")
+                out:append(" then")
             } else {
                 out:append("else")
             }
@@ -1041,84 +749,46 @@ struct M {
         assert(t.stype == "guard", "Invalid stype guard")
         ctx = self.ctx
         out = self.out
-        body = t.body
-        bt = body[#body]
-        if #body <= 0 or not (bt.stype == "return" or bt.stype == "goto" or bt.stype == "break" or bt.stype == "continue") {
-            ctx:errorPos("guard statement need return/goto/break/continue at last", "guard", t.pos - 1)
-            return
-        }
         out:append("if not (")
         out:pushInline()
-        for _, v in ipairs(t.cond) {
-            self:trExpr(v)
-        }
+        self:trExpr(t.cond)
         out:append(") then", true)
         out:popInline()
         out:changeLine()
         out:incIndent()
         ctx:pushScope("gu", t)
-        self:trStatement(body)
+        self:trStatement(t.body)
         ctx:popScope()
         out:decIndent()
         out:append("end")
     }
 
     fn trStFor(t) {
-        assert(t.stype == "for", "Invalid stype for")
-        list = t.list
-        staments = t.body
+        assert(t.stype == "for" and (t.sub == '=' or t.sub == 'in'), "Invalid stype for")
         ctx = self.ctx
         out = self.out
-        ctx:pushScope("lo", t)
         out:pushInline()
         out:append("for ")
-        if list.sub == "=" {
-            for i, e in ipairs(list) {
-                if i == 1 {
-                    self:trExpr(e)
-                    out:append(" = ")
-                    ctx:localInsert(e.value)
-                } else {
-                    if i > 2 {
-                        out:append(", ")
-                    }
-                    for _, v in ipairs(e) {
-                        self:trExpr(v)
-                    }
-                }
+        ctx:pushScope("lo", t)
+        for i, e in ipairs(t.name) {
+            ctx:localInsert(e.value)
+            if i > 1 {
+                out:append(", ")
             }
-        } elseif list.sub == "in" {
-            for i, e in ipairs(list) {
-                if i == #list {
-                    out:append(" in ")
-                } elseif i > 1 {
-                    out:append(", ")
-                }
-                if i == #list {
-                    for j, v in ipairs(e) {
-                        if j > 1 {
-                            out:append(", ")
-                        }
-                        for _, z in ipairs(v) {
-                            self:trExpr(z)
-                        }
-                    }
-                } else {
-                    self:trExpr(e)
-                }
-                if i ~= #list {
-                    ctx:localInsert(e.value)
-                }
+            self:trExpr(e)
+        }
+        out:append(' ' .. t.sub .. ' ')
+        for i, e in ipairs(t.step) {
+            if i > 1 {
+                out:append(", ")
             }
-        } else {
-            ctx:errorPos("Invalid sub near", (list.sub or "unknown"))
-            return
+            self:trExpr(e)
         }
         out:append(" do")
         out:popInline()
         out:changeLine()
         out:incIndent()
-        self:trStatement(staments)
+        self:trStatement(t.body)
         out:decIndent()
         out:append("end")
         ctx:popScope()
@@ -1128,37 +798,33 @@ struct M {
         assert(t.stype == "while", "Invalid stype while")
         ctx = self.ctx
         out = self.out
-        ctx:pushScope("lo", t)
         out:append("while ")
         out:pushInline()
-        for _, v in ipairs(t.cond) {
-            self:trExpr(v)
-        }
+        self:trExpr(t.cond)
         out:append(" do")
         out:popInline()
         out:changeLine()
         out:incIndent()
+        ctx:pushScope("lo", t)
         self:trStatement(t.body)
+        ctx:popScope()
         out:decIndent()
         out:append("end")
-        ctx:popScope()
     }
 
     fn trStRepeat(t) {
         assert(t.stype == "repeat", "Invalid repeat op")
         ctx = self.ctx
         out = self.out
-        ctx:pushScope("lo", t)
         out:append("repeat")
         out:changeLine()
         out:incIndent()
+        ctx:pushScope("lo", t)
         self:trStatement(t.body)
         out:decIndent()
         out:append("until ")
         out:pushInline()
-        for _, v in ipairs(t.cond) {
-            self:trExpr(v)
-        }
+        self:trExpr(t.cond)
         out:popInline()
         ctx:popScope()
     }
@@ -1167,42 +833,17 @@ struct M {
         assert(t.stype == "break", "Invalid stype break")
         ctx = self.ctx
         out = self.out
-        if not ctx:isInLoop() {
-            ctx:errorPos("not in loop", t.stype, t.pos - 1)
-            return
-        }
         out:append("break")
     }
 
-    fn trStContinue(t) {
-        assert(t.stype == "continue", "Invalid continue op")
+    fn trStGotoLabel(t) {
+        assert(t.stype == "goto" or t.stype == "::", "Invalid stype goto")
         ctx = self.ctx
         out = self.out
-        if not ctx:isInLoop() {
-            ctx:errorPos("not in loop", t.stype, t.pos - 1)
-            return
-        }
-        scope = ctx:getScope("lo")
-        if scope and scope.exp and scope.exp.body {
-            label = "__continue" .. tostring(scope.loidx) .. "__"
-            out:append("goto " .. label)
-            le = scope.exp.body
-            v = le[#le]
-            if v.stype == "return" or v.stype == "break" {
-                ctx:errorPos("try do { " .. v.stype .. " } for continue will insert label after", v.stype, v.pos - 1)
-            } elseif #le == 0 or le[#le].stype ~= "raw" or le[#le].sub ~= "continue" {
-                le[#le + 1] = { stype = "raw", sub = "continue", "::" .. label .. "::" }
-            }
-        }
-    }
-
-    fn trStGoto(t) {
-        assert(t.stype == "goto" or t.stype == "::", "Invalid stype go")
-        out = self.out
         if t.stype == "goto" {
-            out:append("goto " .. t.name.value)
+            out:append("goto " .. t[1].value)
         } else {
-            out:append("::" .. t.name.value .. "::")
+            out:append("::" .. t[1].value .. "::")
         }
     }
 
@@ -1210,22 +851,13 @@ struct M {
         assert(t.stype == "return", "Invalid stpye return")
         ctx = self.ctx
         out = self.out
-        if ctx.in_defer {
-            ctx:errorPos("defer statement can not return value", t.stype)
-            return
-        }
         out:append("return ")
         out:pushInline()
         for i, e in ipairs(t) {
             if i > 1 {
                 out:append(", ")
             }
-            for _, v in ipairs(e) {
-                self:trExpr(v)
-            }
-        }
-        if ctx:hasDefers() {
-            out:append((#t > 0 and ", " or "") .. "__df_run__()")
+            self:trExpr(e)
         }
         out:popInline()
     }
@@ -1234,56 +866,28 @@ struct M {
         assert(t.stype == "defer", "Invalid stype defer")
         ctx = self.ctx
         out = self.out
-        if not ctx:supportDefer() {
-            ctx:errorPos("not in function", t.stype, t.pos)
-            return
-        }
-        if not ctx:hasDefers() {
-            ctx:pushDefer()
-            info = ctx:getOutInfo("fn")
-            if info {
-                out:appendExt(info, {
-                    "local __df_fns__ = {}",
-                    "local __df_run__ = function() local t=__df_fns__; for i=#t, 1, -1 do t[i]() end; end"
-                })
-            }
-        }
-        if not ctx.in_defer {
-            ctx.in_defer = true
-            out:append("__df_fns__[#__df_fns__ + 1] = function()")
-            out:changeLine()
-            out:incIndent()
-            ctx:pushScope("df")
-            self:trStatement(t.body)
-            ctx:popScope()
-            out:decIndent()
-            out:append("end")
-            ctx.in_defer = false
-        }
+        out:append("__df[#__df+1] = function()")
+        out:changeLine()
+        out:incIndent()
+        ctx:pushScope("df")
+        self:trStatement(t.body)
+        ctx:popScope()
+        out:decIndent()
+        out:append("end")
     }
 
     fn trStDo(t) {
         assert(t.stype == "do", "Invalid stype do end")
         ctx = self.ctx
         out = self.out
-        ctx:pushScope("do")
         out:append("do")
         out:changeLine()
         out:incIndent()
+        ctx:pushScope("do")
         self:trStatement(t.body)
+        ctx:popScope()
         out:decIndent()
         out:append("end")
-        ctx:popScope()
-    }
-
-    -- generated by compiler 1st pass
-    fn trStRaw(t) {
-        assert(t.stype == "raw", "Invalid stype raw")
-        out = self.out
-        for _, v in ipairs(t) {
-            out:append(v)
-            out:changeLine()
-        }
     }
 
     fn trStClass(t) {
@@ -1293,49 +897,44 @@ struct M {
         attr = (t.attr == "export") and "" or "local "
         clsname = t.name.value
         supertype = t.super and t.super.value
-        ctx.in_clsname = clsname
-        ctx.in_supname = supertype or false
         if t.attr == "export" {
             ctx:globalInsert(clsname)
         } else {
             ctx:localInsert(clsname)
         }
         if supertype {
-            ctx:checkName(t.super, true)
+            ctx:checkName(t.super)
         }
+        ctx:updatePos(t.name.pos)
         out:append(attr .. clsname .. " = {}")
         out:append("do")
         out:changeLine()
         out:incIndent()
-        out:append("local __stype__ = " .. (supertype or "nil"))
-        out:append('local __clsname__ = "' .. clsname .. '"')
-        out:append("local __clstype__ = " .. clsname)
+        out:append("local __st = " .. (supertype or "nil"))
+        out:append('local __cn = "' .. clsname .. '"')
+        out:append("local __ct = " .. clsname)
         if supertype {
-            out:append('assert(type(__stype__) == "table" and type(__stype__.classtype) == "table")')
-            out:append('for k, v in pairs(__stype__) do __clstype__[k] = v end')
+            out:append('assert(type(__st) == "table" and type(__st.__ct) == "table")')
+            out:append('for k, v in pairs(__st) do __ct[k] = v end')
         }
-        out:append("__clstype__.typename = __clsname__")
-        out:append("__clstype__.typekind = 'class'")
-        out:append("__clstype__.classtype = __clstype__")
-        out:append("__clstype__.supertype = __stype__")
+        out:append("__ct.__tn = __cn")
+        out:append("__ct.__tk = 'class'")
+        out:append("__ct.__ct = __ct")
+        out:append("__ct.__st = __st")
         if not supertype {
-            out:append("__clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end")
+            out:append("__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end")
         }
         --
         ctx:pushScope("cl")
-        ctx:localInsert("Self")
-        if ctx.in_supname {
-            ctx:localInsert("Super")
-        }
         cls_fns, ins_fns = {}, {}
-        fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns)
+        fn_deinit = self:hlVarAndFns(t, "__ct", ctx, out, cls_fns, ins_fns)
         --
-        out:append("local __ins_mt__ = {")
+        out:append("local __imt = {")
         out:incIndent()
-        out:append('__tostring = function() return "instance of " .. __clsname__ end,')
+        out:append('__tostring = function(t) return string.format("<class %s: %p>", __cn, t) end,')
         out:append("__index = function(t, k)")
         out:incIndent()
-        out:append("local v = __clstype__[k]")
+        out:append("local v = __ct[k]")
         out:append("if v ~= nil then rawset(t, k, v) end")
         out:append("return v")
         out:decIndent()
@@ -1350,19 +949,20 @@ struct M {
         out:decIndent()
         out:append("}")
         --
-        out:append("setmetatable(__clstype__, {")
+        out:append("setmetatable(__ct, {")
         out:incIndent()
-        out:append('__tostring = function() return "class " .. __clsname__ end,')
+        out:append('__tostring = function() return "<class " .. __cn .. ">" end,')
         out:append('__index = function(_, k)')
         out:incIndent()
-        out:append('local v = __stype__ and __stype__[k]')
-        out:append('if v ~= nil then rawset(__clstype__, k, v) end')
+        out:append('local v = __st and __st[k]')
+        out:append('if v ~= nil then rawset(__ct, k, v) end')
         out:append('return v')
         out:decIndent()
         out:append('end,')
         out:append("__call = function(_, ...)")
         out:incIndent()
-        out:append("local ins = setmetatable({}, __ins_mt__)")
+        out:append("local ins = setmetatable({}, __imt)")
+        out:append("if type(ins.init) == 'function' and ins:init(...) == false then return nil end")
         if fn_deinit {
             out:append('if _VERSION == "Lua 5.1" then')
             out:incIndent()
@@ -1370,9 +970,6 @@ struct M {
             out:append("getmetatable(ins.__gc_proxy).__gc = function() ins:deinit() end")
             out:decIndent()
             out:append("end")
-        }
-        if fn_init {
-            out:append("if ins:init(...) == false then return nil end")
         }
         out:append("return ins")
         out:decIndent()
@@ -1387,8 +984,6 @@ struct M {
         out:decIndent()
         out:append("end")
         ctx:popScope()
-        ctx.in_clsname = false
-        ctx.in_supname = false
     }
 
     fn trStStruct(t) {
@@ -1397,38 +992,37 @@ struct M {
         out = self.out
         attr = (t.attr == "export") and "" or "local "
         strname = t.name.value
-        ctx.in_clsname = strname
         if t.attr == "export" {
             ctx:globalInsert(strname)
         } else {
             ctx:localInsert(strname)
         }
+        ctx:updatePos(t.name.pos)
         out:append(attr .. strname .. " = {}")
         out:append("do")
         out:changeLine()
         out:incIndent()
-        out:append('local __clsname__ = "' .. strname .. '"')
-        out:append("local __clstype__ = " .. strname)
-        out:append("__clstype__.typename = __clsname__")
-        out:append("__clstype__.typekind = 'struct'")
-        out:append("__clstype__.classtype = __clstype__")
+        out:append('local __cn = "' .. strname .. '"')
+        out:append("local __ct = " .. strname)
+        out:append("__ct.__tn = __cn")
+        out:append("__ct.__tk = 'struct'")
+        out:append("__ct.__ct = __ct")
         --
         ctx:pushScope("cl")
-        ctx:localInsert("Self")
         cls_fns, ins_fns = {}, {}
-        fn_init, fn_deinit = self:hlVarAndFns(t, "__clstype__", ctx, out, cls_fns, ins_fns)
+        fn_deinit = self:hlVarAndFns(t, "__ct", ctx, out, cls_fns, ins_fns)
         --
-        out:append("local __ins_mt__ = {")
+        out:append("local __imt = {")
         out:incIndent()
-        out:append('__tostring = function() return "one of " .. __clsname__ end,')
+        out:append('__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,')
         out:append("__index = function(t, k)")
         out:incIndent()
-        out:append("local v = rawget(__clstype__, k)")
+        out:append("local v = rawget(__ct, k)")
         out:append("if v ~= nil then rawset(t, k, v) end")
         out:append("return v")
         out:decIndent()
         out:append("end,")
-        out:append("__newindex = function(t, k, v) if rawget(__clstype__, k) ~= nil then rawset(t, k, v) end end,")
+        out:append("__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,")
         if fn_deinit {
             out:append("__gc = function(t) t:deinit() end,")
         }
@@ -1441,15 +1035,13 @@ struct M {
         --
         out:append(strname .. " = setmetatable({}, {")
         out:incIndent()
-        out:append('__tostring = function() return "struct " .. __clsname__ end,')
-        out:append('__index = function(_, k) return rawget(__clstype__, k) end,')
-        out:append('__newindex = function(_, k, v) if v ~= nil and rawget(__clstype__, k) ~= nil then rawset(__clstype__, k, v) end end,')
+        out:append('__tostring = function() return "<struct " .. __cn .. ">" end,')
+        out:append('__index = function(_, k) return rawget(__ct, k) end,')
+        out:append('__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,')
         out:append("__call = function(_, ...)")
         out:incIndent()
-        out:append("local ins = setmetatable({}, __ins_mt__)")
-        if fn_init {
-            out:append("if ins:init(...) == false then return nil end")
-        }
+        out:append("local ins = setmetatable({}, __imt)")
+        out:append("if type(ins.init) == 'function' and ins:init(...) == false then return nil end")
         if fn_deinit {
             out:append('if _VERSION == "Lua 5.1" then')
             out:incIndent()
@@ -1471,7 +1063,6 @@ struct M {
         out:decIndent()
         out:append("end")
         ctx:popScope()
-        ctx.in_clsname = false
     }
 
     fn trStExtension(t) {
@@ -1479,27 +1070,27 @@ struct M {
         ctx = self.ctx
         out = self.out
         clsname = t.name.value
-        extype = t.extend and t.extend.value
-        ctx.in_clsname = clsname
-        ctx:checkName(t.name, true)
+        extype = t.super and t.super.value
+        ctx:checkName(t.name)
         if extype {
-            ctx:checkName(t.extend, true)
+            ctx:checkName(t.super)
         }
+        ctx:updatePos(t.name.pos)
         out:append("do")
         out:changeLine()
         out:incIndent()
-        out:append("local __extype__ = " .. (extype or "nil"))
-        out:append("local __clstype__ = " .. clsname)
-        out:append('assert(type(__clstype__) == "table" and type(__clstype__.classtype) == "table")')
-        out:append("__clstype__ = __clstype__.classtype")
+        out:append("local __et = " .. (extype or "nil"))
+        out:append("local __ct = " .. clsname)
+        out:append('assert(type(__ct) == "table" and type(__ct.__ct) == "table")')
+        out:append("__ct = __ct.__ct")
         if extype {
             -- extype can be class or struct
-            out:append('assert(type(__extype__) == "table" and type(__extype__.classtype) == "table")')
-            out:append('for k, v in pairs(__extype__.classtype) do')
+            out:append('assert(type(__et) == "table" and type(__et.__ct) == "table")')
+            out:append('for k, v in pairs(__et.__ct) do')
             out:incIndent()
-            out:append('if __clstype__[k] == nil and k:sub(1, 2) ~= "__" and k ~= "supertype" and k ~= "isKindOf" then')
+            out:append('if __ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "__st" and k ~= "isKindOf")) then')
             out:incIndent()
-            out:append('__clstype__[k] = v')
+            out:append('__ct[k] = v')
             out:decIndent()
             out:append("end")
             out:decIndent()
@@ -1507,58 +1098,46 @@ struct M {
         }
         --
         ctx:pushScope("cl")
-        ctx:localInsert("Self")
-        self:hlVarAndFns(t, "__clstype__", ctx, out, {}, {})
+        self:hlVarAndFns(t, "__ct", ctx, out, {}, {})
         out:decIndent()
         out:append("end")
         ctx:popScope()
-        ctx.in_clsname = false
     }
 
     fn hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns) {
         out:append("-- declare struct var and methods")
         out:changeLine()
-        fn_init = false
         fn_deinit = false
-        for _, e in ipairs(t) {
-            stype = e.stype
+        for _, s in ipairs(t) {
+            stype = s.stype
             if stype == "=" {
-                ctx.in_clsvar = true
                 out:append(sname .. ".")
                 out:pushInline()
-                for i, v in ipairs(e) {
-                    self:trExpr(v)
-                    if i == 1 {
-                        out:append(" = ")
-                    }
-                }
+                self:trExpr(s[1])
+                out:append(' = ')
+                self:trExpr(s[2])
                 out:popInline()
                 out:changeLine()
-                ctx.in_clsvar = false
             } elseif stype == "fn" {
-                fn_name = e.name.value
-                if fn_name == "init" {
-                    fn_init = true
-                } elseif fn_name == "deinit" {
+                fn_name = s.name.value
+                if fn_name == "deinit" {
                     fn_deinit = true
                 }
-                fn_ins = e.attr ~= "static"
+                fn_ins = s.attr ~= "static"
                 if _cls_metafns[fn_name] {
                     if fn_ins {
-                        ins_fns[#ins_fns + 1] = e
+                        ins_fns[#ins_fns + 1] = s
                     } else {
-                        cls_fns[#cls_fns + 1] = e
+                        cls_fns[#cls_fns + 1] = s
                     }
                 } else {
                     out:append("function " .. sname .. (fn_ins and ":" or ".") .. fn_name .. "(")
-                    self:hlFnArgsBody(e, fn_ins)
+                    self:hlFnArgsBody(s, fn_ins)
                 }
-            } elseif stype == "cm" {
-                self:trStComment(e)
             }
         }
         out:append("-- declare end")
-        return fn_init, fn_deinit
+        return fn_deinit
     }
 
     fn hlFnArgsBody(e, fn_ins, comma_end) {
@@ -1566,31 +1145,46 @@ struct M {
         out = self.out
         out:pushInline()
         ctx:pushScope("fn", e)
-        if e.args {
-            for i, v in ipairs(e.args) {
-                if i > 1 {
-                    out:append(", ")
-                }
-                self:trExpr(v)
-                ctx:localInsert(v.value)
+        for i, v in ipairs(e.args) {
+            if i > 1 {
+                out:append(", ")
             }
+            self:trExpr(v)
+            ctx:localInsert(v.value)
         }
         if fn_ins {
             ctx:localInsert("self")
         }
         out:append(")")
-        out:incIndent()
         out:popInline()
-        out:changeLine()
-        ctx:pushOutInfo(out:getInfo())
-        self:trStatement(e.body)
-        if ctx:hasDefers() and e.body[#e.body].stype ~= "return" {
-            out:append("__df_run__()")
+        out:incIndent()
+        if #e.body > 0 {
+            if e.df {
+                out:append(e.df)
+            }
+            out:changeLine()
+            self:trStatement(e.body)
         }
         out:decIndent()
         out:append("end" .. (comma_end and "," or ""))
         out:changeLine()
         ctx:popScope()
+    }
+
+    fn hasColonDot(expr) {
+        if type(expr) == 'table' {
+            if expr.etype == 'exp' {
+                count = #expr
+                for i = count, 1, -1 {
+                    v = expr[i]
+                    if v.etype == ':' or v.etype == '.' {
+                        return v.etype
+                    }
+                }
+            }
+            return (expr.etype == ':' or expr.etype == '.') and expr.etype
+        }
+        return false
     }
 }
 
@@ -1603,17 +1197,16 @@ fn compile(config, data) {
         return false, "Invalid data"
     }
 
-    ctx = Ctx(config, data.ast, data.content)
-    out = Out()
-    comp = M(ctx, out)
+    Ctx:reset(config, data.ast, data.content)
+    Out:reset()
+    M:reset(Ctx, Out)
 
-    comp:trStatement(ctx.ast)
-
-    if ctx:hasError() {
-        return false, ctx.err_info
+    ret, emsg = pcall(M.trStatement, M, Ctx.ast)
+    guard ret else {
+        return false, (Ctx.err_info or { err_msg = emsg, pos = 0 })
     }
 
-    return true, table.concat(out._output, "\n")
+    return true, tconcat(Out._output, "\n")
 }
 
 -- clear proj exports

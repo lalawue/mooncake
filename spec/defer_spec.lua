@@ -54,9 +54,9 @@ describe("test success #defer", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
-    local f = load(content, "test", "t")
+
     it("should get function", function()
+        local f = load(content, "test", "t")
         assert(type(f) == "function")
         local a, _, b, _, _, c, d = f()
         assert.is_equal(a, 60)
@@ -66,7 +66,7 @@ describe("test success #defer", function()
     end)
 end)
 
-describe("test failed #defer", function()
+describe("test failed_1 #defer", function()
     local mnstr=[[
         var_test_c = 0
         defer {
@@ -76,13 +76,27 @@ describe("test failed #defer", function()
 
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
-         assert.is_true(ret)
-         assert.is_true(type(ast) == "table")
-    end)
-
-    it("has error", function()
-        local ret, content = compile.compile({}, ast)
         assert.is_false(ret)
-        assert.is_equal(content, "_:2:         defer { <not in function 'defer'>")
-   end)
+        assert.is_equal(ast.err_msg, "defer only support function scope")
+    end)
+end)
+
+describe("test failed_2 #defer", function()
+    local mnstr=[[
+        fn abc() {
+            a = 0
+            defer {
+                a += 1
+                defer {
+                    a += 1
+                }
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_false(ret)
+        assert.is_equal(ast.err_msg, "defer can not inside another defer")
+    end)
 end)

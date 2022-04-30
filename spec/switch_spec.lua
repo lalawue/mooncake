@@ -33,8 +33,8 @@ describe("test success #switch", function()
         assert.is_true(type(content) == "string")
     end)
  
-    local f = load(content, "test", "t")
     it("should get function", function()
+        local f = load(content, "test", "t")
         assert(type(f) == "function")
         local a1 = f(1)
         local a2 = f(2, 4)
@@ -50,20 +50,17 @@ end)
 describe("test failed #switch", function()
     local mnstr=[[
         switch ... {
-            case 10: break
             default:
                 return 10
+            default:
+                return 9
         }
     ]]
 
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
-        assert.is_true(ret)
-    end)
-
-    it("has error", function()
-        local ret, content = compile.compile({}, ast)
         assert.is_false(ret)
-        assert.is_equal(content, "_:2:             case 10: break <not in loop 'break'>")
-   end)    
+        assert.is_equal(ast.err_msg, 'too much default case in switch statement')
+        assert.is_equal(ast.pos, 80)
+    end)
 end)

@@ -40,16 +40,17 @@
 
 MoonCake was a bit Swift like language that compiles to Lua, and compares to Lua, main difference are
 
-- always declare variable as 'local', unless using 'export' keyword
-- using '{' and '}' instead of keyword 'do', 'then', 'end' to seperate code block
-- support 'guard' keyword, which must transfer control at the scope end
-- support 'switch' keyword, you can 'case' a lot of conditions at a time
-- support 'continue' keyword, implemented by 'goto', available in Lua 5.2 and LuaJIT
-- support 'defer' keyword in function scope, including anonymous function
-- support 'class' and 'struct' for simpler Object Oriented programming
-- support 'extension' keyword for extend class/struct
-- support 'import' keyword for simpler 'require' a lot of sub modules
-- can declare anonymous function as '{ _ in }' form, a bit like in Swift
+- always declare variable as `local`, unless using `export` keyword
+- using `{` and `}` instead of keyword `do`, `then`, `end` to seperate code block
+- support `guard` keyword, which must transfer control at scope end
+- support `switch` keyword, you can `case` a lot of conditions at a time
+- support `continue` keyword, implemented by `goto`, available in Lua 5.2 and LuaJIT
+- support `defer` keyword in function scope, including anonymous function
+- support `class` and `struct` for simpler Object Oriented programming
+- support `extension` keyword for extend class/struct
+- support `import` keyword for `require` a lot of sub modules at once
+- support anonymous function form `{ in }` likes in Swift
+- support expression in string like `print("5 + 3 = \(5 + 3)")`
 
 ## Forbiden words
 
@@ -63,7 +64,7 @@ forget them at this language.
 
 # Content
 
-MoonCake using internal variable like '_\_name__' to accomplish some functionality, so please avoiding define variable like this.
+MoonCake using internal variable like `__name` with double `_` to accomplish some functionality, so please avoiding variable name like this.
 
 ## String
 
@@ -79,16 +80,14 @@ print([[Hello,
 and support another form can contains expression likes in Swift
 
 ```lua
--- print("Hello, world " .. tostring(6 * 100 + 6 * 10 + 6) .. " !")
+-- print("Hello, world " .. tostring(600 + 60 + 6) .. " !")
 print("Hello, world \(600 + 60 + 6) !")
 -- Hello, world 666 !
 ```
 
 ## Comment
 
-support single and multi line comment, but has limitations.
-
-only support comment in seperate line, not support mixed comment with another keyword in one line, except table definition.
+support single and multi line comment.
 
 ```lua
 -- comment in seperate line
@@ -102,7 +101,7 @@ tbl = {
 
 ## Assigment & Scope
 
-default is local scope, unless using 'export' keyword.
+default is local scope, unless using `export` keyword.
 
 you can export variable, function, table, class and struct.
 
@@ -113,7 +112,7 @@ a = 10
 export b = 11
 ```
 
-you can use 'local' to shadow existed variable, like in Lua
+you can use `local` to shadow existed variable, like in Lua
 
 ```lua
 local b = 10
@@ -182,11 +181,14 @@ these global names are pre-defined:
     "type",
     "unpack",
     "xpcall",
+    "nil",
+    "true",
+    "false",
 ```
 
 ### operators
 
-"*=", "/=", "%=", "+=", "-=", "..=", "or=", "and=", "^=" operators was added for convenient as expended form
+`+=`, `-=`, `*=`, `/=`, `//=`, `^=`, `%=`, `&=`, `|=`, `>>=`, `<<=`, `..=`, `or=`, `and=` operators was added for convenient as expended form
 
 ```lua
 --[[
@@ -198,65 +200,29 @@ a += 100
 
 ## Table
 
-likes in Lua, and you can use '=' between key and value.
+likes in Lua, plus bare key support number and string, if key and value are same lexical identifier, just `=key` to name it,
+add paired `[` and `]` when you need expression key.
 
 ```lua
 --[[
-  local a = 3
-  local tbl = {
-    1,
-    "2",
-    ["3"] = 4,
-    ["7"] = 6
-  }
+local a = 3
+local tbl = { 1, "2", 3 + 5, ["5"] = 6, [8] = '28', a = a, [next(_G)] = 'what' }
 ]]
 a = 3
 tbl = {
   1,
   "2",
-  "3" = 4,
-  ["5"] = 6
-}
-```
-
-'[' and ']' can always treat key as expression, otherwise, in some cases, it will defined as table literal index, for example
-
-```lua
---[[
-  local a = 10
-  tbl = {
-    a = 10,  -- tbl.a = 10
-    [a] = 10 -- [10] = 10
-  }
-]]
-a = 10
-tbl = {
-  a = 10,  -- tbl.a = 10
-  [a] = 10 -- [10] = 10
-}
-```
-
-if key and value with same literal name, you can define table as
-
-```lua
---[[
-local value1 = 10
-local value2 = 11
-tbl = {
-  value1 = value1,
-  value2 = value2
-}
-]]
-value1 = 10
-value2 = 11
-tbl = {
-  =value1
+  3 + 5,
+  "5" = 6,
+  8 = '28',
+  =a,
+  [next(_G)] = 'what'
 }
 ```
 
 ## Function
 
-function definition has shorten keyword 'fn', and holding codes with paired '{' and '}', the origin 'function', 'end' became forbidden words.
+function definition has shorten keyword `fn`, and holding codes with paired `{` and `}`, the origin `function`, `end` became forbidden words.
 
 there are two types function call, likes
 
@@ -310,7 +276,7 @@ fn Bird:eat() {
 }
 ```
 
-but recommended using 'class' or 'struct' keyword to achive these, for a better object oriented style.
+but recommended using `class` or `struct` keyword to achive these, for a better object oriented style.
 
 ### anonymous
 
@@ -327,7 +293,7 @@ add = fn(a, b) {
 }
 ```
 
-another is more like in Swift, just a sugar, using keyword 'in' inside curly braces
+another is more like in Swift, just a sugar, using keyword `in` inside curly braces
 
 ```lua
 --[[
@@ -345,15 +311,19 @@ the later form looks more suitable as anonymous callback function, but don't for
 so, shortest empty anonymous function can defined as
 
 ```lua
+--[[
+  local a = function()end
+  local b = function()end
+]]
 a = fn(){}
 b = {in} -- or { _ in }
 ```
 
 ### defer
 
-'defer' is a keyword to perform some work before leaving function scope, not like Swift in all scope.
+`defer` is a keyword to perform some work before leaving function scope, not like Swift in all scope.
 
-and defer only take effect after its definition, with the latest defer block will perform first, just last in first out, like in stack.
+and defer only take effect after its definition, with the latest defer block will perform first, just last in first out (LIFO), like in stack.
 
 ```lua
 fn test(a) {
@@ -374,28 +344,28 @@ fn test(a) {
 }
 --[[
   local function test(a)
-        local __df_fns__ = {}
-        local __df_run__ = function() local t=__df_fns__; for i=#t, 1, -1 do t[i]() end; end
+        local __df={};
+        local __dr=function() local __t=__df; for __i=#__t, 1, -1 do __t[__i]() end;end;
         local fp = io.open("record", "w")
         if fp == nil then
                 return -1
         end
-        __df_fns__[#__df_fns__ + 1] = function()
+        __df[#__df+1] = function()
                 fp:close()
                 -- do not return anything
         end
         -- write something
         if a < 5 then
-                return 5, __df_run__()
+                return 5, __dr()
         end
         -- write something
         -- return nil
-        __df_run__()
+        __dr()
   end
 ]]
 ```
 
-and do not return anything in defer block, for it will became the last return element in some cases.
+if you return anything inside defer block, will cause parser error.
 
 ## Do statement
 
@@ -416,11 +386,11 @@ do {
 
 ## Loop
 
-support for, while, repeat until, likes in Lua
+support `for`, `while`, `repeat` ... `until`, likes in Lua
 
 ### for
 
-just replace 'do', 'end' with '{' and '}', keyword 'end' is forbidden.
+just replace `do`, `end` with `{` and `}`, keyword `end` is forbidden.
 
 ```lua
 --[[
@@ -463,7 +433,7 @@ while true {
 
 ### repeat / until
 
-likes in Lua, until expression can use variable defined after 'repeat'
+likes in Lua, until expression can use variable defined after `repeat`
 
 ```lua
 --[[
@@ -480,7 +450,7 @@ repeat {
 
 ### if
 
-support keyword if, elseif, else, change 'then', 'end' to '{', '}'
+support keyword `if`, `elseif`, `else`, change `then`, `end` to `{` and `}`
 
 ```lua
 --[[
@@ -491,7 +461,7 @@ if true {
 }
 ```
 
-'else' example
+`else` example
 
 ```lua
 --[[
@@ -504,7 +474,7 @@ if false {
 }
 ```
 
-or 'elseif' example
+or `elseif` example
 
 ```lua
 --[[
@@ -525,7 +495,7 @@ if false {
 
 ### guard
 
-'guard' likes 'if not' sugar, and it will check last break/goto/return keyword for transfer control
+`guard` is a sugar of `if not`, and it will check last `break`/`continue`/`goto`/`return` keyword in scope end for transfer control.
 
 ```lua
 --[[
@@ -541,7 +511,7 @@ guard true else {
 
 ### switch
 
-'switch' is a sugar of 'if .. then ... elseif .. then .. else .. end', expression after switch will only evaluate once.
+`switch` is a sugar of `if .. then ... elseif .. then .. else .. end`, condition expression of switch will only evaluate once.
 
 ```lua
 switch animal {
@@ -553,10 +523,10 @@ switch animal {
     print("can swim")
 }
 --[[
-  local __sw__ = animal
-  if __sw__ == ('dog') or __sw__ == ('cat') then
+  local __s = animal
+  if __s == 'dog' or __s == 'cat' then
           print("can run")
-  elseif __sw__ == ('bird') then
+  elseif __s == 'bird' then
           print("can fly")
   else
           print("can swim")
@@ -566,7 +536,7 @@ switch animal {
 
 ### continue
 
-'continue' implemented by 'goto', not supoprt Lua 5.1
+`continue` implemented by `goto`, not supoprt in Lua 5.1
 
 ```lua
 for i=1, 10 {
@@ -577,9 +547,9 @@ for i=1, 10 {
 --[[
   for i = 1, 10 do
     if i < 5 then
-      goto __continue1__
+      goto __c1
     end
-    ::__continue1__::
+    ::__c1::
   end
 ]]
 ```
@@ -637,11 +607,11 @@ in class, you can
 
 the instance will copy when visit, and variables and methods below are pre-defined:
 
-- variable typename, typekind, classtype, supertype (only inherit from other class)
+- variable __tn, __tk, __ct, __st (only inherit from other class)
 - method isKindOf
 - method init / deinit (if defined)
 
-'init', 'deinit' will added when you defined, 'deinit' will be called when collectgarbage, but 'deinit' will cause instance creation a bit slower.
+`init`, `deinit` will added when you defined, `deinit` will be called when collectgarbage, but `deinit` will cause instance creation a bit slower.
 
 actually, static method will expand as 'function table.name()', and instance method will be 'function table:name()'.
 
@@ -657,37 +627,39 @@ will expand as Lua code
 ```lua
 local Animal = {}
 do
-        local __stype__ = nil
-        local __clsname__ = "Animal"
-        local __clstype__ = Animal
-        __clstype__.typename = __clsname__
-        __clstype__.typekind = 'class'
-        __clstype__.classtype = __clstype__
-        __clstype__.supertype = __stype__
-        __clstype__.isKindOf = function(cls, a) return a and ((cls.classtype == a) or (cls.supertype and cls.supertype:isKindOf(a))) or false end
-        -- declare var and methods
-        -- declare end
-        local __ins_mt__ = {
-                __tostring = function() return "instance of " .. __clsname__ end,
-                __index = function(t, k)
-                        local v = __clstype__[k]
-                        if v ~= nil then rawset(t, k, v) end
-                        return v
-                end,
-        }
-        setmetatable(__clstype__, {
-                __tostring = function() return "class " .. __clsname__ end,
-                __index = function(_, k)
-                        local v = __stype__ and __stype__[k]
-                        if v ~= nil then rawset(__clstype__, k, v) end
-                        return v
-                end,
-                __call = function(_, ...)
-                        local ins = setmetatable({}, __ins_mt__)
-                        return ins
-                end,
-        })
+	local __st = nil
+	local __cn = "Animal"
+	local __ct = Animal
+	__ct.__tn = __cn
+	__ct.__tk = 'class'
+	__ct.__ct = __ct
+	__ct.__st = __st
+	__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end
+	-- declare struct var and methods
+	-- declare end
+	local __imt = {
+		__tostring = function(t) return string.format("<class %s: %p>", __cn, t) end,
+		__index = function(t, k)
+			local v = __ct[k]
+			if v ~= nil then rawset(t, k, v) end
+			return v
+		end,
+	}
+	setmetatable(__ct, {
+		__tostring = function() return "<class " .. __cn .. ">" end,
+		__index = function(_, k)
+			local v = __st and __st[k]
+			if v ~= nil then rawset(__ct, k, v) end
+			return v
+		end,
+		__call = function(_, ...)
+			local ins = setmetatable({}, __imt)
+			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
+			return ins
+		end,
+	})
 end
+
 ```
 
 you can inherit class, and use 'self' in instance method
@@ -700,7 +672,7 @@ class Bird : Animal {
   fn init(count) {
     self.wing_count = count
   }
-  
+
   fn featherColor() {
     return "dark"
   }
@@ -724,58 +696,58 @@ will expand to Lua code
 ```lua
 local Bird = {}
 do
-        local __stype__ = Animal
-        local __clsname__ = "Bird"
-        local __clstype__ = Bird
-        assert(type(__stype__) == "table" and __stype__.typekind == "class")
-        for k, v in pairs(__stype__) do __clstype__[k] = v end
-        __clstype__.typename = __clsname__
-        __clstype__.typekind = 'class'
-        __clstype__.classtype = __clstype__
-        __clstype__.supertype = __stype__
-        -- declare var and methods
-        __clstype__.wing_count = 2
-        function __clstype__:init(count)
-                self.wing_count = count
-        end
-        function __clstype__:featherColor()
-                return "dark"
-        end
-        function __clstype__.hasWings()
-                return true
-        end
-        -- declare end
-        local __ins_mt__ = {
-                __tostring = function() return "instance of " .. __clsname__ end,
-                __index = function(t, k)
-                        local v = __clstype__[k]
-                        if v ~= nil then rawset(t, k, v) end
-                        return v
-                end,
-                __sub = function(a, b)
-                        return a.wing_count - b.wing_count
-                end,
-        }
-        setmetatable(__clstype__, {
-                __tostring = function() return "class " .. __clsname__ end,
-                __index = function(_, k)
-                        local v = __stype__ and __stype__[k]
-                        if v ~= nil then rawset(__clstype__, k, v) end
-                        return v
-                end,
-                __call = function(_, ...)
-                        local ins = setmetatable({}, __ins_mt__)
-                        if ins:init(...) == false then return nil end
-                        return ins
-                end,
-                __add = function(a, b)
-                        return a.wing_count + b.wing_count
-                end,
-        })
+	local __st = Animal
+	local __cn = "Bird"
+	local __ct = Bird
+	assert(type(__st) == "table" and type(__st.__ct) == "table")
+	for k, v in pairs(__st) do __ct[k] = v end
+	__ct.__tn = __cn
+	__ct.__tk = 'class'
+	__ct.__ct = __ct
+	__ct.__st = __st
+	-- declare struct var and methods
+	__ct.wing_count = 2
+	function __ct:init(count)
+		self.wing_count = count
+	end
+	function __ct:featherColor()
+		return "dark"
+	end
+	function __ct.hasWings()
+		return true
+	end
+	-- declare end
+	local __imt = {
+		__tostring = function(t) return string.format("<class %s: %p>", __cn, t) end,
+		__index = function(t, k)
+			local v = __ct[k]
+			if v ~= nil then rawset(t, k, v) end
+			return v
+		end,
+		__sub = function(a, b)
+			return a.wing_count - b.wing_count
+		end,
+	}
+	setmetatable(__ct, {
+		__tostring = function() return "<class " .. __cn .. ">" end,
+		__index = function(_, k)
+			local v = __st and __st[k]
+			if v ~= nil then rawset(__ct, k, v) end
+			return v
+		end,
+		__call = function(_, ...)
+			local ins = setmetatable({}, __imt)
+			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
+			return ins
+		end,
+		__add = function(a, b)
+			return a.wing_count + b.wing_count
+		end,
+	})
 end
 ```
 
-in 'init' function, you can return 'false' to create a nil instance for caller, cause creation failure.
+in `init` function, you can return `false` to create a nil instance for caller, cause creation failure.
 
 you can add variable/method to class or instance at anytime, likes other normal Lua table, but class/instance will copy not exist key/value from super/class when they visited.
 
@@ -792,9 +764,9 @@ print(b - a)
 
 ### self / Self / Super
 
-- 'self' refers to class instance, you can use it in instance method, likes in Lua
-- 'Self' refers to class itself in class scope, including variable definition
-- 'Super' refers to super calss in class scope, including variable definition
+- `self` refers to class instance, you can use it in instance method, likes in Lua
+- `Self` refers to class itself in class scope, including variable definition
+- `Super` refers to super calss in class scope, including variable definition
 
 you can visit defined variable in sequence as what you write in the source.
 
@@ -857,8 +829,8 @@ you can change its value after definition, and likes in class, you can
 
 the instance will copy when visit, variables and methods below are pre-defined:
 
-- variable typename, typekind, classtype
-- method init / deinit (if defined) 
+- variable __tn, __tk, __ct
+- method init / deinit (if defined)
 
 examples:
 
@@ -881,47 +853,48 @@ will expanded to Lua code
 ```lua
 local Car = {}
 do
-        local __clsname__ = "Car"
-        local __clstype__ = Car
-        __clstype__.typename = __clsname__
-        __clstype__.typekind = 'struct'
-        __clstype__.classtype = __clstype__
-        -- declare var and methods
-        __clstype__._wheel_count = 4
-        function __clstype__:init(wheel_count)
-                self._wheel_count = wheel_count
-        end
-        -- declare end
-        local __ins_mt__ = {
-                __tostring = function() return "one of " .. __clsname__ end,
-                __index = function(t, k)
-                        local v = rawget(__clstype__, k)
-                        if v ~= nil then rawset(t, k, v) end
-                        return v
-                end,
-                __newindex = function(t, k, v) if rawget(__clstype__, k) ~= nil then rawset(t, k, v) end end,
-                __add = function(a, b)
-                        return a._wheel_count + b._wheel_count
-                end,
-        }
-        Car = setmetatable({}, {
-                __tostring = function() return "struct " .. __clsname__ end,
-                __index = function(_, k) return rawget(__clstype__, k) end,
-                __newindex = function(_, k, v) if v ~= nil and rawget(__clstype__, k) ~= nil then rawset(__clstype__, k, v) end end,
-                __call = function(_, ...)
-                        local ins = setmetatable({}, __ins_mt__)
-                        if ins:init(...) == false then return nil end
-                        return ins
-                end,
-        })
+	local __cn = "Car"
+	local __ct = Car
+	__ct.__tn = __cn
+	__ct.__tk = 'struct'
+	__ct.__ct = __ct
+	-- declare struct var and methods
+	__ct._wheel_count = 4
+	function __ct:init(wheel_count)
+		self._wheel_count = wheel_count
+	end
+	-- declare end
+	local __imt = {
+		__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,
+		__index = function(t, k)
+			local v = rawget(__ct, k)
+			if v ~= nil then rawset(t, k, v) end
+			return v
+		end,
+		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
+		__add = function(a, b)
+			return a._wheel_count + b._wheel_count
+		end,
+	}
+	Car = setmetatable({}, {
+		__tostring = function() return "<struct " .. __cn .. ">" end,
+		__index = function(_, k) return rawget(__ct, k) end,
+		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
+		__call = function(_, ...)
+			local ins = setmetatable({}, __imt)
+			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
+			return ins
+		end,
+	})
 end
+
 ```
 
-create instance likes class, and you can use 'self' or 'Self' in instance method or static method.
+create instance likes class, and you can use `self` or `Self` in instance method or static method.
 
 ## Extension
 
-'extension' is the only way to extend class/struct variable/method, the limitation is can not override exist variable/method, can not add metamethod.
+`extension` is the only way to extend class/struct variable/method, the limitation is can not add metamethod.
 
 - support extend class from struct, or extend struct from class
 - define new variable/method for class/struct
@@ -929,7 +902,7 @@ create instance likes class, and you can use 'self' or 'Self' in instance method
 
 ```lua
 class ClsA {
-  name = Self.typename
+  name = Self.__tn
 }
 
 struct StructA {
@@ -949,64 +922,68 @@ print(a:fullName())
 -- struct base: ClsA
 ```
 
-the last 'extension' keyword will expand as
+the last `extension` keyword will expand as
 
 ```lua
 do
-        local __extype__ = ClsA
-        local __clstype__ = StructA
-        assert(type(__clstype__) == "table" and type(__clstype__.classtype) == "table")
-        __clstype__ = __clstype__.classtype
-        assert(type(__extype__) == "table" and type(__extype__.classtype) == "table")
-        for k, v in pairs(__extype__.classtype) do
-                if __clstype__[k] == nil and k:sub(1, 2) ~= "__" and k ~= "supertype" and k ~= "isKindOf" then
-                        __clstype__[k] = v
-                end
-        end
-        -- declare var and methods
-        function __clstype__:fullName()
-                return "struct base: " .. self:getName()
-        end
-        -- declare end
-en
+	local __et = ClsA
+	local __ct = StructA
+	assert(type(__ct) == "table" and type(__ct.__ct) == "table")
+	__ct = __ct.__ct
+	assert(type(__et) == "table" and type(__et.__ct) == "table")
+	for k, v in pairs(__et.__ct) do
+		if __ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "__st" and k ~= "isKindOf")) then
+			__ct[k] = v
+		end
+	end
+	-- declare struct var and methods
+	function __ct:fullName()
+		return "struct base: " .. self:getName()
+	end
+	-- declare end
+end
 ```
 
 ## Import
 
-'import' keyword provide a convenient way to require module and its sub modules
+`import` keyword provide a convenient way to require module and its sub modules
 
 ```lua
--- require("lpeg")
-import "lpeg"
+-- require("moocscript.core")
+import "moocscript.core"
 ```
 
 or require to local variable
 
 ```lua
--- local lpeg = require("lpeg")
-import lpeg from "lpeg"
+-- local core = require("moocscript.core")
+import core from "moocscript.core"
 ```
 
 or only load sub modules
 
 ```lua
--- local P, R, S
--- do
---      local __lib__ = require("lpeg")
---      P, R, S = __lib__.P, __lib__.R, __lib__.S
--- end
-import P, R, S from "lpeg" {}
+--[[
+  local toAST, toLua
+  do
+  	local __l = require("moocscript.core")
+  	toAST, toLua = __l.toAST, __l.toLua
+  end
+]]
+import toAST, toLua from "moocscript.core" {}
 ```
 
 and you can load and rename sub modules
 
 ```lua
--- local p, r, s
--- do
---      local __lib__ = require("lpeg")
---      p, r, s = __lib__.P, __lib__.R, __lib__.S
--- end
-import p, r, s from "lpeg" { P, R, S }
+--[[
+  local toast, tolua
+  do
+  	local __l = require("moocscript.core")
+  	toast, tolua = __l.toAST, __l.toLua
+  end
+]]
+import toast, tolua from "moocscript.core" { toAST, toLua }
 ```
 
 you can perform these rules to a table
@@ -1018,17 +995,21 @@ import insert, remove from table {}
 
 ## Errors
 
-there are two phase for generate Lua code, first it parse source to generate AST, then translate AST to Lua code, so some error may happen in these phase.
+there are two phase for generate Lua code, first it parse source to AST, then translate AST to Lua code, so some error may happen in these phase.
 
 ### parse
 
-using source 'examples/error/parse_error.mooc' for example
+using source `examples/error/parse_error.mooc` for example
 
 ```lua
-tbl = {
-  name : "table"
-}
--- parse error examples/error/parse_error.mooc:2:   name : "table"
+a = 123.23.23
+--[[
+Error: malformed number
+File: examples/error/parse_error.mooc
+Line: 1 (Pos: 10)
+Source: a = 123.23.23
+                  ^
+]]
 ```
 
 run the source will cause parse error, the right way is using '=' instead of ':' after tbl.
@@ -1043,14 +1024,19 @@ when we got AST, there are some restriction to generate Lua code, for example
 - guard should transfer control in the scope end
 - defer should inside function
 
-using source 'examples/error/compile_error.mooc' for example
+using source `examples/error/compile_error.mooc` for example
 
 ```lua
-defer {
-}
--- examples/error/compile_error.mooc:1: defer { <not in function 'defer'>
+a += 10
+--[[
+Error: undefined variable
+File: examples/error/compile_error.mooc
+Line: 1 (Pos: 0)
+Source: a += 10
+        ^
+]]
 ```
 
 ## Debug
 
-you should debug generated .lua source, not .mooc
+you should debug generated .lua source, not .mooc source

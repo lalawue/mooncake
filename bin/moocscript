@@ -30,6 +30,7 @@ function Cmd.option(...)
         config.option = "ast"
         config.opcount = 2
         config.fname = b
+        config.shebang = true
         config.comment = true
     elseif a == "-s" then
         -- source config

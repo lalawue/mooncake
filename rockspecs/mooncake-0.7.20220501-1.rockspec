@@ -1,7 +1,8 @@
 package = "mooncake"
-version = "scm-1"
+version = "0.7.20220501-1"
 source = {
    url = "git+https://github.com/lalawue/mooncake",
+   tag = "0.7.20220501",
 }
 description = {
    summary = "Swift like programming language compiles to Lua",

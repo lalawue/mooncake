@@ -5,16 +5,17 @@
 -- under the terms of the MIT license. See LICENSE for details.
 --
 
-import LPeg from "lpeg"
+import Utils from "moocscript.utils"
 import parse from "moocscript.parser" {}
 import compile, clearproj from "moocscript.compile" {}
-import split, posLine, readFile from "moocscript.utils" {}
+import split, readFile from "moocscript.utils" {}
 import concat, insert, remove from table {}
 
 local unpack, assert = unpack or table.unpack, assert
 local type, error, load, loadstring = type, error, load, loadstring
 local jit = jit
-sfmt = string.format
+local sfmt = string.format
+local srep = string.rep
 
 -- source to AST
 fn toAST(config, text) {
@@ -25,9 +26,7 @@ fn toAST(config, text) {
     config = config or {}
     ret, tbl = parse(text)
     if not ret {
-        err = posLine(tbl.content, tbl.lpos, tbl.cpos)
-        msg = sfmt("parse error %s:%d: %s", config.fname, err.line, err.message)
-        return nil, msg
+        return nil, Utils.errorMessage(tbl.content, tbl.pos, tbl.err_msg, config.fname)
     }
     return tbl
 }
@@ -36,7 +35,7 @@ fn toAST(config, text) {
 fn toLua(config, tbl) {
     ret, code = compile(config, tbl)
     if not ret {
-        return nil, code
+        return nil, Utils.errorMessage(tbl.content, code.pos, code.err_msg, config.fname)
     }
     return code
 }
@@ -125,9 +124,7 @@ fn mcAppendLoader() {
 }
 
 fn mcVersion() {
-    lver = jit and jit.version or _VERSION
-    pver = type(LPeg.version) == "function" and ("LPeg " .. LPeg.version()) or LPeg.version
-    return "moocscript v0.6.20220116, " .. lver .. ", " .. pver
+    return "moocscript v0.7.20220501, " .. (jit and jit.version or _VERSION)
 }
 
 fn mcLoaded() {
@@ -136,6 +133,8 @@ fn mcLoaded() {
 
 -- append loader
 mcAppendLoader()
+
+-- MARK: -
 
 return {
     loadstring = mcLoadString,

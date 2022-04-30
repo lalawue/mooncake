@@ -1,5 +1,6 @@
 local parser = require("moocscript.parser")
 local compile = require("moocscript.compile")
+local clss = require("moocscript.class")
 
 describe("test success #extension", function()
     local mnstr=[[
@@ -37,7 +38,7 @@ describe("test success #extension", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
@@ -52,17 +53,17 @@ end)
 describe("test success #extension", function()
     local mnstr=[[
         class ClsA {
-            name = Self.typename
-          }
-          struct StructA {
+            name = Self.__tn
+        }
+        struct StructA {
             fn getName() {
-              return self.name or "none"
+                return self.name or "none"
             }
-          }
-          extension StructA : ClsA {
-          }
-          a = StructA()
-          return a:getName()
+        }
+        extension StructA : ClsA {
+        }
+        a = StructA()
+        return a:getName()
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -87,13 +88,13 @@ end)
 
 describe("test failed parser #extension", function()
     local mnstr=[[
-        class ClsA {            
+        class ClsA {
         }
-        struct StructB {            
+        struct StructB {
         }
-        struct StructC {            
+        struct StructC {
         }
-        extension ClsA: StructB, StructC {            
+        extension ClsA: StructB, StructC {
         }
     ]]
 
@@ -105,9 +106,9 @@ end)
 
 describe("test failed compile #extension", function()
     local mnstr=[[
-        struct StructB {            
+        struct StructB {
         }
-        extension ClsA: StructB {            
+        extension ClsA: StructB {
         }
     ]]
 
@@ -119,7 +120,8 @@ describe("test failed compile #extension", function()
     local ret, content = compile.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_false(ret)
-        assert.is_equal(content, "_:3:         extension ClsA: StructB {             <undefined variable 'ClsA'>")
+        assert.is_equal(content.err_msg, "undefined variable")
+        assert.is_equal(content.pos, 53)
     end)    
 end)
 
@@ -128,7 +130,7 @@ describe("test failed compile #extension", function()
     local mnstr=[[
         class ClsA {
         }
-        extension ClsA: StructB {            
+        extension ClsA: StructB {
         }
     ]]
 
@@ -140,6 +142,83 @@ describe("test failed compile #extension", function()
     local ret, content = compile.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_false(ret)
-        assert.is_equal(content, "_:3:         extension ClsA: StructB {             <undefined variable 'StructB'>")
+        assert.is_equal(content.err_msg, "undefined variable")
+        assert.is_equal(content.pos, 55)
     end)    
+end)
+
+describe("test mixed from lua side #extension", function()
+    local mnstr=[[
+        struct A {
+            a = 'A'
+            fn name() {
+                return 'A'
+            }
+        }
+        struct B {
+            a = 'B'
+            fn name() {
+                return 'B'
+            }
+        }
+        extension B: A {
+            a = 'C'
+            b = 'CC'
+            fn name() {
+                return 'C'
+            }
+            fn Name() {
+                return 'CC'
+            }
+            static fn NName() {
+                return 'CCC'
+            }
+        }
+        return B
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        assert.is_equal(f():name(), "C")
+        assert.is_equal(f().Name(), "CC")
+        assert.is_equal(f().NName(), "CCC")
+    end)
+
+    it("should extension struct B", function()
+
+        local ClassC = clss.newMoocClass('C')
+        function ClassC:add(c)
+            return self.a + self.b + c
+        end
+
+        local RestrictedStructB = f()
+        RestrictedStructB.init = function() end
+        assert.is_equal(RestrictedStructB.init, nil)
+
+        local RawTableB = clss.extentMoocClassStruct(RestrictedStructB, ClassC)
+        function RawTableB:init(a, b)
+            self.a = a
+            self.b = b
+        end
+
+        local b = RestrictedStructB(1, 2)
+        assert.is_equal(tostring(b):sub(1, 10), "<struct B:")
+        assert.is_equal(b.__tn, "B")
+        assert.is_equal(b.a, 1)
+        assert.is_equal(b.b, 2)
+        assert.is_equal(b:add(4), 7)
+    end)
 end)

@@ -101,7 +101,7 @@ describe("test success #continue", function()
     end)
 end)
 
-describe("test failed 1 #continue", function()
+describe("test failed #continue", function()
     local mnstr=[[
         fn failedContinue(a) {
             if a < 2 {
@@ -112,18 +112,12 @@ describe("test failed 1 #continue", function()
 
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
-         assert.is_true(ret)
-         assert.is_true(type(ast) == "table")
+         assert.is_false(ret)
+         assert.is_equal(ast.err_msg, "continue not in loop")
     end)
-
-    it("has error", function()
-        local ret, content = compile.compile({}, ast)
-        assert.is_false(ret)
-        assert.is_equal(content, "_:3:                 continue <not in loop 'continue'>")
-   end)
 end)
 
-describe("test failed return #continue", function()
+describe("test sucess return #continue", function()
     local mnstr=[[
         fn failedContinue(a) {
             for i=1, 2 {
@@ -141,14 +135,13 @@ describe("test failed return #continue", function()
          assert.is_true(type(ast) == "table")
     end)
 
-    it("has error", function()
+    it("compile success", function()
         local ret, content = compile.compile({}, ast)
-        assert.is_false(ret)
-        assert.is_equal(content, "_:6:                 return a <try do { return } for continue will insert label after 'return'>")
+        assert.is_true(ret)
    end)
 end)
 
-describe("test failed break #continue", function()
+describe("test success break #continue", function()
     local mnstr=[[
         fn failedContinue(a) {
             for i=1, 2 {
@@ -166,9 +159,8 @@ describe("test failed break #continue", function()
          assert.is_true(type(ast) == "table")
     end)
 
-    it("has error", function()
+    it("compile success", function()
         local ret, content = compile.compile({}, ast)
-        assert.is_false(ret)
-        assert.is_equal(content, "_:6:                 break <try do { break } for continue will insert label after 'break'>")
+        assert.is_true(ret)
    end)
 end)
