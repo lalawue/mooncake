@@ -32,8 +32,8 @@
   - [Extension](#extension)
   - [Import](#import)
   - [Errors](#errors)
-    - [parse](#parse)
-    - [compile](#compile)
+    - [parse error](#parse-error)
+    - [compile error](#compile-error)
   - [Debug](#debug)
 
 # MoonCake
@@ -68,7 +68,7 @@ MoonCake using internal variable like `__name` with double `_` to accomplish som
 
 ## String
 
-support Lua single string form, or multi-line string form, you can put paired '=' inside '[[' and ']]'.
+support Lua single string form, or multi-line string form, you can put paired `=` inside `[[` and `]]`.
 
 ```lua
 print('Hello, world !')
@@ -517,7 +517,7 @@ guard true else {
 switch animal {
   case 'dog', 'cat':
     print("can run")
-  case 'bird':
+  case tostring(1+1) .. ' wings bird':
     print("can fly")
   default:
     print("can swim")
@@ -525,11 +525,11 @@ switch animal {
 --[[
   local __s = animal
   if __s == 'dog' or __s == 'cat' then
-          print("can run")
-  elseif __s == 'bird' then
-          print("can fly")
+  	print("can run")
+  elseif __s == tostring(1 + 1) .. ' wings bird' then
+  	print("can fly")
   else
-          print("can swim")
+  	print("can swim")
   end
 ]]
 ```
@@ -613,7 +613,7 @@ the instance will copy when visit, and variables and methods below are pre-defin
 
 `init`, `deinit` will added when you defined, `deinit` will be called when collectgarbage, but `deinit` will cause instance creation a bit slower.
 
-actually, static method will expand as 'function table.name()', and instance method will be 'function table:name()'.
+actually, static method will expand as `function table.name()`, and instance method will be `function table:name()`.
 
 exmaples:
 
@@ -662,7 +662,7 @@ end
 
 ```
 
-you can inherit class, and use 'self' in instance method
+you can inherit class, and use `self` in instance method
 
 ```swift
 class Bird : Animal {
@@ -997,7 +997,7 @@ import insert, remove from table {}
 
 there are two phase for generate Lua code, first it parse source to AST, then translate AST to Lua code, so some error may happen in these phase.
 
-### parse
+### parse error
 
 using source `examples/error/parse_error.mooc` for example
 
@@ -1012,17 +1012,9 @@ Source: a = 123.23.23
 ]]
 ```
 
-run the source will cause parse error, the right way is using '=' instead of ':' after tbl.
+run the source will cause parse error "malformed number".
 
-parse error only contains file name, line number and the source line, for it use farthest match position for indicating, sometimes it can not show the right place.
-
-### compile
-
-when we got AST, there are some restriction to generate Lua code, for example
-
-- break should inside loop
-- guard should transfer control in the scope end
-- defer should inside function
+### compile error
 
 using source `examples/error/compile_error.mooc` for example
 
