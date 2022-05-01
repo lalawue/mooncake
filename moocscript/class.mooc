@@ -18,16 +18,15 @@ fn newMoocClass(cls_name, super_type) {
     guard fType(cls_name) == "string" else {
         return nil
     }
-    guard super_type == nil or (fType(super_type) == "table" and super_type.__tk == 'class') else {
-        return nil
-    }
     cls_type = {
         __tn = cls_name,
         __tk = 'class',
         __st = super_type,
     }
     cls_type.__ct = cls_type
-    if not super_type {
+    if super_type {
+        assert(type(super_type) == "table" and type(super_type.__ct) == "table" and super_type.__tk == "class")
+    } else {
         cls_type.isKindOf = fn(c, a) { return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false }
     }
     ins_mt = {
@@ -92,18 +91,17 @@ fn newMoocStruct(cls_name) {
 --- @param table, class / struct instance or base
 --- @return table, class / struct base with __newindex NOT restricted
 fn extentMoocClassStruct(cls, ext) {
-    if fType(cls) == "table" and (cls.__tk == 'class' or cls.__tk == 'struct') and cls.__ct {
-        ct = cls.__ct
-        if fType(ext) == "table" and (ext.__tk == 'class' or ext.__tk == 'struct') and ext.__ct {
-            et = ext.__ct
-            for k, v in pairs(et) {
-                if ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "__st" and k ~= "isKindOf")) {
-                    ct[k] = v
-                }
+    assert(type(cls) == "table" and type(cls.__ct) == "table" and (cls.__tk == 'class' or cls.__tk == 'struct'))
+    ct = cls.__ct
+    if ext {
+        assert(type(ext) == "table" and type(ext.__ct) == "table" and (ext.__tk == 'class' or ext.__tk == 'struct'))
+        for k, v in pairs(ext.__ct) {
+            if ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "__st" and k ~= "isKindOf")) {
+                ct[k] = v
             }
         }
-        return ct
     }
+    return ct
 }
 
 return { =newMoocClass, =newMoocStruct, =extentMoocClassStruct }

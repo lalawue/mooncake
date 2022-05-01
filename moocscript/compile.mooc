@@ -906,22 +906,16 @@ struct M {
             ctx:checkName(t.super)
         }
         ctx:updatePos(t.name.pos)
-        out:append(attr .. clsname .. " = {}")
+        out:append(attr .. clsname .. " = { __tn = '" .. clsname .. "', __tk = 'class', __st = " .. (supertype or "nil") .. " }")
         out:append("do")
         out:changeLine()
         out:incIndent()
         out:append("local __st = " .. (supertype or "nil"))
-        out:append('local __cn = "' .. clsname .. '"')
         out:append("local __ct = " .. clsname)
-        if supertype {
-            out:append('assert(type(__st) == "table" and type(__st.__ct) == "table")')
-            out:append('for k, v in pairs(__st) do __ct[k] = v end')
-        }
-        out:append("__ct.__tn = __cn")
-        out:append("__ct.__tk = 'class'")
         out:append("__ct.__ct = __ct")
-        out:append("__ct.__st = __st")
-        if not supertype {
+        if supertype {
+            out:append("assert(type(__st) == 'table' and __st.__ct == __st and __st.__tk == 'class', 'invalid super type')")
+        } else {
             out:append("__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end")
         }
         --
@@ -931,7 +925,7 @@ struct M {
         --
         out:append("local __imt = {")
         out:incIndent()
-        out:append('__tostring = function(t) return string.format("<class %s: %p>", __cn, t) end,')
+        out:append('__tostring = function(t) return string.format("<class ' .. clsname .. ': %p>", t) end,')
         out:append("__index = function(t, k)")
         out:incIndent()
         out:append("local v = __ct[k]")
@@ -951,7 +945,7 @@ struct M {
         --
         out:append("setmetatable(__ct, {")
         out:incIndent()
-        out:append('__tostring = function() return "<class " .. __cn .. ">" end,')
+        out:append('__tostring = function() return "<class ' .. clsname .. '>" end,')
         out:append('__index = function(_, k)')
         out:incIndent()
         out:append('local v = __st and __st[k]')
@@ -998,14 +992,11 @@ struct M {
             ctx:localInsert(strname)
         }
         ctx:updatePos(t.name.pos)
-        out:append(attr .. strname .. " = {}")
+        out:append(attr .. strname .. " = { __tn = '" .. strname .. "', __tk = 'struct' }")
         out:append("do")
         out:changeLine()
         out:incIndent()
-        out:append('local __cn = "' .. strname .. '"')
         out:append("local __ct = " .. strname)
-        out:append("__ct.__tn = __cn")
-        out:append("__ct.__tk = 'struct'")
         out:append("__ct.__ct = __ct")
         --
         ctx:pushScope("cl")
@@ -1014,7 +1005,7 @@ struct M {
         --
         out:append("local __imt = {")
         out:incIndent()
-        out:append('__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,')
+        out:append('__tostring = function(t) return string.format("<struct ' .. strname .. ': %p>", t) end,')
         out:append("__index = function(t, k)")
         out:incIndent()
         out:append("local v = rawget(__ct, k)")
@@ -1035,7 +1026,7 @@ struct M {
         --
         out:append(strname .. " = setmetatable({}, {")
         out:incIndent()
-        out:append('__tostring = function() return "<struct " .. __cn .. ">" end,')
+        out:append('__tostring = function() return "<struct ' .. strname .. '>" end,')
         out:append('__index = function(_, k) return rawget(__ct, k) end,')
         out:append('__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,')
         out:append("__call = function(_, ...)")
@@ -1081,14 +1072,14 @@ struct M {
         out:incIndent()
         out:append("local __et = " .. (extype or "nil"))
         out:append("local __ct = " .. clsname)
-        out:append('assert(type(__ct) == "table" and type(__ct.__ct) == "table")')
+        out:append("assert(type(__ct) == 'table' and type(__ct.__ct) == 'table' and (__ct.__tk == 'class' or __ct.__tk == 'struct'), 'invalid extended type')")
         out:append("__ct = __ct.__ct")
         if extype {
             -- extype can be class or struct
-            out:append('assert(type(__et) == "table" and type(__et.__ct) == "table")')
+            out:append("assert(type(__et) == 'table' and type(__et.__ct) == 'table' and (__et.__tk == 'class' or __et.__tk == 'struct'), 'invalid super type')")
             out:append('for k, v in pairs(__et.__ct) do')
             out:incIndent()
-            out:append('if __ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "__st" and k ~= "isKindOf")) then')
+            out:append('if __ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "isKindOf" and k ~= "init" and k ~= "deinit")) then')
             out:incIndent()
             out:append('__ct[k] = v')
             out:decIndent()

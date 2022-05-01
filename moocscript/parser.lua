@@ -35,12 +35,9 @@ local function schar(byte)
 	end
 	return _schar(byte)
 end
-local QuickStack = {}
+local QuickStack = { __tn = 'QuickStack', __tk = 'struct' }
 do
-	local __cn = "QuickStack"
 	local __ct = QuickStack
-	__ct.__tn = __cn
-	__ct.__tk = 'struct'
 	__ct.__ct = __ct
 	-- declare struct var and methods
 	__ct._array = {  }
@@ -67,7 +64,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,
+		__tostring = function(t) return string.format("<struct QuickStack: %p>", t) end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -76,7 +73,7 @@ do
 		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
 	QuickStack = setmetatable({}, {
-		__tostring = function() return "<struct " .. __cn .. ">" end,
+		__tostring = function() return "<struct QuickStack>" end,
 		__index = function(_, k) return rawget(__ct, k) end,
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)
@@ -86,12 +83,9 @@ do
 		end,
 	})
 end
-local GroupMap = {}
+local GroupMap = { __tn = 'GroupMap', __tk = 'struct' }
 do
-	local __cn = "GroupMap"
 	local __ct = GroupMap
-	__ct.__tn = __cn
-	__ct.__tk = 'struct'
 	__ct.__ct = __ct
 	-- declare struct var and methods
 	__ct._gcount = 1
@@ -132,7 +126,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,
+		__tostring = function(t) return string.format("<struct GroupMap: %p>", t) end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -141,7 +135,7 @@ do
 		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
 	GroupMap = setmetatable({}, {
-		__tostring = function() return "<struct " .. __cn .. ">" end,
+		__tostring = function() return "<struct GroupMap>" end,
 		__index = function(_, k) return rawget(__ct, k) end,
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)
@@ -151,12 +145,9 @@ do
 		end,
 	})
 end
-local Lexer = {}
+local Lexer = { __tn = 'Lexer', __tk = 'struct' }
 do
-	local __cn = "Lexer"
 	local __ct = Lexer
-	__ct.__tn = __cn
-	__ct.__tk = 'struct'
 	__ct.__ct = __ct
 	-- declare struct var and methods
 	__ct._chunk = ""
@@ -552,7 +543,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,
+		__tostring = function(t) return string.format("<struct Lexer: %p>", t) end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -561,7 +552,7 @@ do
 		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
 	Lexer = setmetatable({}, {
-		__tostring = function() return "<struct " .. __cn .. ">" end,
+		__tostring = function() return "<struct Lexer>" end,
 		__index = function(_, k) return rawget(__ct, k) end,
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)
@@ -571,12 +562,9 @@ do
 		end,
 	})
 end
-local Parser = {}
+local Parser = { __tn = 'Parser', __tk = 'struct' }
 do
-	local __cn = "Parser"
 	local __ct = Parser
-	__ct.__tn = __cn
-	__ct.__tk = 'struct'
 	__ct.__ct = __ct
 	-- declare struct var and methods
 	__ct._sub_mode = false
@@ -1497,7 +1485,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,
+		__tostring = function(t) return string.format("<struct Parser: %p>", t) end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -1506,7 +1494,7 @@ do
 		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
 	Parser = setmetatable({}, {
-		__tostring = function() return "<struct " .. __cn .. ">" end,
+		__tostring = function() return "<struct Parser>" end,
 		__index = function(_, k) return rawget(__ct, k) end,
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)

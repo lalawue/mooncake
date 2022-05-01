@@ -222,3 +222,57 @@ describe("test mixed from lua side #extension", function()
         assert.is_equal(b:add(4), 7)
     end)
 end)
+
+describe("test failed #extension", function()
+    local mnstr=[[
+        A = nil
+        struct B {}
+        extension B: A {}
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+         assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("has error", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+   end)
+
+   local f = load(content, "test", "t")
+   it("should get function", function()
+       assert(type(f) == "function")
+       local ret = pcall(f)
+       assert.is_false(ret)
+   end)
+end)
+
+describe("test failed #extension", function()
+    local mnstr=[[
+        A = nil
+        B = nil
+        extension B: A {}
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+         assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("has error", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+   end)
+
+   local f = load(content, "test", "t")
+   it("should get function", function()
+       assert(type(f) == "function")
+       local ret = pcall(f)
+       assert.is_false(ret)
+   end)
+end)

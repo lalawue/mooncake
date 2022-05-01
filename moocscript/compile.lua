@@ -8,12 +8,9 @@ local mathmax = math.max
 local sfmt = string.format
 local pcall = pcall
 local tconcat = table.concat
-local Out = {}
+local Out = { __tn = 'Out', __tk = 'struct' }
 do
-	local __cn = "Out"
 	local __ct = Out
-	__ct.__tn = __cn
-	__ct.__tk = 'struct'
 	__ct.__ct = __ct
 	-- declare struct var and methods
 	__ct._indent = 0
@@ -55,7 +52,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,
+		__tostring = function(t) return string.format("<struct Out: %p>", t) end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -64,7 +61,7 @@ do
 		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
 	Out = setmetatable({}, {
-		__tostring = function() return "<struct " .. __cn .. ">" end,
+		__tostring = function() return "<struct Out>" end,
 		__index = function(_, k) return rawget(__ct, k) end,
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)
@@ -77,12 +74,9 @@ end
 local _global_names = Utils.set({ "_G", "_VERSION", "_ENV", "assert", "collectgarbage", "coroutine", "debug", "dofile", "error", "getfenv", "getmetatable", "io", "ipairs", "jit", "load", "loadfile", "loadstring", "math", "module", "next", "os", "package", "pairs", "pcall", "print", "rawequal", "rawget", "rawlen", "rawset", "require", "select", "setfenv", "setmetatable", "string", "table", "tonumber", "tostring", "type", "unpack", "xpcall", "nil", "true", "false" })
 local _scope_global = { otype = "gl", vars = _global_names }
 local _scope_proj = { otype = "pj", vars = {  } }
-local Ctx = {}
+local Ctx = { __tn = 'Ctx', __tk = 'struct' }
 do
-	local __cn = "Ctx"
 	local __ct = Ctx
-	__ct.__tn = __cn
-	__ct.__tk = 'struct'
 	__ct.__ct = __ct
 	-- declare struct var and methods
 	__ct.config = false
@@ -152,7 +146,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,
+		__tostring = function(t) return string.format("<struct Ctx: %p>", t) end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -161,7 +155,7 @@ do
 		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
 	Ctx = setmetatable({}, {
-		__tostring = function() return "<struct " .. __cn .. ">" end,
+		__tostring = function() return "<struct Ctx>" end,
 		__index = function(_, k) return rawget(__ct, k) end,
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)
@@ -173,12 +167,9 @@ do
 end
 local _cls_metafns = Utils.set({ "__add", "__band", "__bnot", "__bor", "__bxor", "__close", "__concat", "__div", "__eq", "__idiv", "__le", "__len", "__lt", "__metatable", "__mod", "__mode", "__mul", "__name", "__pairs", "__pow", "__shl", "__shr", "__sub", "__unm" })
 local _map_binop = { ['!='] = '~=' }
-local M = {}
+local M = { __tn = 'M', __tk = 'struct' }
 do
-	local __cn = "M"
 	local __ct = M
-	__ct.__tn = __cn
-	__ct.__tk = 'struct'
 	__ct.__ct = __ct
 	-- declare struct var and methods
 	__ct.ctx = false
@@ -821,22 +812,16 @@ do
 			ctx:checkName(t.super)
 		end
 		ctx:updatePos(t.name.pos)
-		out:append(attr .. clsname .. " = {}")
+		out:append(attr .. clsname .. " = { __tn = '" .. clsname .. "', __tk = 'class', __st = " .. (supertype or "nil") .. " }")
 		out:append("do")
 		out:changeLine()
 		out:incIndent()
 		out:append("local __st = " .. (supertype or "nil"))
-		out:append('local __cn = "' .. clsname .. '"')
 		out:append("local __ct = " .. clsname)
-		if supertype then
-			out:append('assert(type(__st) == "table" and type(__st.__ct) == "table")')
-			out:append('for k, v in pairs(__st) do __ct[k] = v end')
-		end
-		out:append("__ct.__tn = __cn")
-		out:append("__ct.__tk = 'class'")
 		out:append("__ct.__ct = __ct")
-		out:append("__ct.__st = __st")
-		if not supertype then
+		if supertype then
+			out:append("assert(type(__st) == 'table' and __st.__ct == __st and __st.__tk == 'class', 'invalid super type')")
+		else 
 			out:append("__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end")
 		end
 		ctx:pushScope("cl")
@@ -844,7 +829,7 @@ do
 		local fn_deinit = self:hlVarAndFns(t, "__ct", ctx, out, cls_fns, ins_fns)
 		out:append("local __imt = {")
 		out:incIndent()
-		out:append('__tostring = function(t) return string.format("<class %s: %p>", __cn, t) end,')
+		out:append('__tostring = function(t) return string.format("<class ' .. clsname .. ': %p>", t) end,')
 		out:append("__index = function(t, k)")
 		out:incIndent()
 		out:append("local v = __ct[k]")
@@ -863,7 +848,7 @@ do
 		out:append("}")
 		out:append("setmetatable(__ct, {")
 		out:incIndent()
-		out:append('__tostring = function() return "<class " .. __cn .. ">" end,')
+		out:append('__tostring = function() return "<class ' .. clsname .. '>" end,')
 		out:append('__index = function(_, k)')
 		out:incIndent()
 		out:append('local v = __st and __st[k]')
@@ -908,21 +893,18 @@ do
 			ctx:localInsert(strname)
 		end
 		ctx:updatePos(t.name.pos)
-		out:append(attr .. strname .. " = {}")
+		out:append(attr .. strname .. " = { __tn = '" .. strname .. "', __tk = 'struct' }")
 		out:append("do")
 		out:changeLine()
 		out:incIndent()
-		out:append('local __cn = "' .. strname .. '"')
 		out:append("local __ct = " .. strname)
-		out:append("__ct.__tn = __cn")
-		out:append("__ct.__tk = 'struct'")
 		out:append("__ct.__ct = __ct")
 		ctx:pushScope("cl")
 		local cls_fns, ins_fns = {  }, {  }
 		local fn_deinit = self:hlVarAndFns(t, "__ct", ctx, out, cls_fns, ins_fns)
 		out:append("local __imt = {")
 		out:incIndent()
-		out:append('__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,')
+		out:append('__tostring = function(t) return string.format("<struct ' .. strname .. ': %p>", t) end,')
 		out:append("__index = function(t, k)")
 		out:incIndent()
 		out:append("local v = rawget(__ct, k)")
@@ -942,7 +924,7 @@ do
 		out:append("}")
 		out:append(strname .. " = setmetatable({}, {")
 		out:incIndent()
-		out:append('__tostring = function() return "<struct " .. __cn .. ">" end,')
+		out:append('__tostring = function() return "<struct ' .. strname .. '>" end,')
 		out:append('__index = function(_, k) return rawget(__ct, k) end,')
 		out:append('__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,')
 		out:append("__call = function(_, ...)")
@@ -986,13 +968,13 @@ do
 		out:incIndent()
 		out:append("local __et = " .. (extype or "nil"))
 		out:append("local __ct = " .. clsname)
-		out:append('assert(type(__ct) == "table" and type(__ct.__ct) == "table")')
+		out:append("assert(type(__ct) == 'table' and type(__ct.__ct) == 'table' and (__ct.__tk == 'class' or __ct.__tk == 'struct'), 'invalid extended type')")
 		out:append("__ct = __ct.__ct")
 		if extype then
-			out:append('assert(type(__et) == "table" and type(__et.__ct) == "table")')
+			out:append("assert(type(__et) == 'table' and type(__et.__ct) == 'table' and (__et.__tk == 'class' or __et.__tk == 'struct'), 'invalid super type')")
 			out:append('for k, v in pairs(__et.__ct) do')
 			out:incIndent()
-			out:append('if __ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "__st" and k ~= "isKindOf")) then')
+			out:append('if __ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "isKindOf" and k ~= "init" and k ~= "deinit")) then')
 			out:incIndent()
 			out:append('__ct[k] = v')
 			out:decIndent()
@@ -1088,7 +1070,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,
+		__tostring = function(t) return string.format("<struct M: %p>", t) end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -1097,7 +1079,7 @@ do
 		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
 	M = setmetatable({}, {
-		__tostring = function() return "<struct " .. __cn .. ">" end,
+		__tostring = function() return "<struct M>" end,
 		__index = function(_, k) return rawget(__ct, k) end,
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)

@@ -55,7 +55,7 @@ describe("test normal #class", function()
 
     local ret, content = compile.compile({}, ast)
     it("should get compiled lua", function()
-        assert.is_true(ret)        
+        assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
 
@@ -260,5 +260,31 @@ describe("test failed #class", function()
         assert.is_false(ret)
         assert.is_equal(content.err_msg, "undefined variable")
         assert.is_equal(content.pos, 20)
+   end)
+end)
+
+describe("test failed #class", function()
+    local mnstr=[[
+        A = nil
+        class B : A {}
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+         assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("has error", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+   end)
+
+   local f = load(content, "test", "t")
+   it("should get function", function()
+       assert(type(f) == "function")
+       local ret = pcall(f)
+       assert.is_false(ret)
    end)
 end)

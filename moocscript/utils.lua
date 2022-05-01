@@ -1,13 +1,9 @@
 local ipairs = ipairs
-local Utils = {}
+local Utils = { __tn = 'Utils', __tk = 'class', __st = nil }
 do
 	local __st = nil
-	local __cn = "Utils"
 	local __ct = Utils
-	__ct.__tn = __cn
-	__ct.__tk = 'class'
 	__ct.__ct = __ct
-	__ct.__st = __st
 	__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end
 	-- declare struct var and methods
 	function __ct.printValue(v)
@@ -165,7 +161,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<class %s: %p>", __cn, t) end,
+		__tostring = function(t) return string.format("<class Utils: %p>", t) end,
 		__index = function(t, k)
 			local v = __ct[k]
 			if v ~= nil then rawset(t, k, v) end
@@ -173,7 +169,7 @@ do
 		end,
 	}
 	setmetatable(__ct, {
-		__tostring = function() return "<class " .. __cn .. ">" end,
+		__tostring = function() return "<class Utils>" end,
 		__index = function(_, k)
 			local v = __st and __st[k]
 			if v ~= nil then rawset(__ct, k, v) end
