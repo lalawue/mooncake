@@ -117,9 +117,9 @@ describe("test success 3 #function", function()
     local mnstr=[[
         Bird = {}
 
-        fn Bird.fly() {  
+        fn Bird.fly() {
         }
-        
+
         fn Bird:eat() {
         }
     ]]
@@ -134,6 +134,35 @@ describe("test success 3 #function", function()
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
+    end)
+end)
+
+describe("test scope #function", function()
+    local mnstr=[[
+        export funcA
+        do {
+            fn funcA() {
+            }
+        }
+        return funcA
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        assert.is_function(f())
     end)
 end)
 

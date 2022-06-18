@@ -222,7 +222,7 @@ for generating package.path including current `moocscript/` dir.
 $ luarocks install busted
 $ make test
 ●●●●●●●●●●●●●●●●●●...
-243 successes / 0 failures / 0 errors / 0 pending : 0.21381 seconds
+267 successes / 0 failures / 0 errors / 0 pending : 0.155007 seconds
 ```
 
 you can install [LuaCov](https://keplerproject.github.io/luacov/) to get code coverage report
@@ -234,11 +234,11 @@ $ busted -c
 $ luacov
 $ cat luacov.report.out | grep '^moocscript/'
 ...
-moocscript/class.lua                                                    56   15     84.51%
-moocscript/compile.lua                                                  871  28     96.81%
-moocscript/core.lua                                                     68   11     86.08%
-moocscript/parser.lua                                                   1131 22     98.02%
-moocscript/utils.lua                                                    129  17     87.94%
+moocscript/class.lua                                                    53   3      94.64%
+moocscript/compile.lua                                                  840  12     98.59%
+moocscript/core.lua                                                     74   11     87.06%
+moocscript/parser.lua                                                   1132 14     98.78%
+moocscript/utils.lua                                                    112  8      93.33%
 ...
 ```
 

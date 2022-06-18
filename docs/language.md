@@ -787,7 +787,10 @@ print(Example.getFullName())
 
 only support these class/instance metamethod, and some of them only take effect in latest Lua version.
 
+`__tostring` is special metamethod, if you not provide in class/struct definition, it will use default function instead.
+
 ```lua
+  "__tostring",
   "__add",
   "__band",
   "__bnot",

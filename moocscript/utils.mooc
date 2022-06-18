@@ -7,7 +7,7 @@
 
 local ipairs = ipairs
 
-class Utils {
+struct Utils {
 
     static fn printValue(v) {
         tv = type(v)

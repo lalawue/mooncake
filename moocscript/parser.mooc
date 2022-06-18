@@ -1420,7 +1420,7 @@ struct Parser {
         out = {
             stype = st,
             =attr,
-            name = { etype = st == Token.KwExtension and 'var' or 'const', value = c, pos = p }
+            name = { etype = 'var', value = c, pos = p }
         }
         scope = self:clBodyStart()
         scope.cname = c
@@ -1840,7 +1840,7 @@ struct Parser {
     ]]
     fn etFnName(only_name) {
         t, c, p = Lexer:nextTokenKind(Token.Identifier)
-        out = { etype = "exp", { etype = "const", value = c, pos = p }}
+        out = { etype = "exp", { etype = "var", value = c, pos = p }}
         if not only_name {
             while Token.SepDot == Lexer:peekToken() {
                 Lexer:nextTokenKind(Token.SepDot)

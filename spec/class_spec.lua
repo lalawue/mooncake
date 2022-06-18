@@ -206,6 +206,68 @@ describe("test inherit from lua side #class", function()
     end)
 end)
 
+describe("test scope #class", function()
+    local mnstr=[[
+        export A
+        do {
+            class A {
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        assert.is_table(f())
+    end)
+end)
+
+describe("test tostring #struct", function()
+    local mnstr=[[
+        class A {
+            fn __tostring() {
+                return "a"
+            }
+            static fn __tostring() {
+                return "A"
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local A = f()
+        local a = A()
+        assert.is_equal(tostring(A), 'A')
+        assert.is_equal(tostring(a), 'a')
+    end)
+end)
+
 describe("test failed #class", function()
     local mnstr=[[
         class ClsA {

@@ -106,7 +106,7 @@ describe("test success #struct", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
@@ -173,6 +173,68 @@ describe("test create struct from lua side #struct", function()
         b.b = 2
         assert.is_equal(b.a, 3)
         assert.is_equal(b.b, 2)
+    end)
+end)
+
+describe("test scope #struct", function()
+    local mnstr=[[
+        export A
+        do {
+            struct A {
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        assert.is_table(f())
+    end)
+end)
+
+describe("test tostring #struct", function()
+    local mnstr=[[
+        struct A {
+            fn __tostring() {
+                return "a"
+            }
+            static fn __tostring() {
+                return "A"
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local A = f()
+        local a = A()
+        assert.is_equal(tostring(A), 'A')
+        assert.is_equal(tostring(a), 'a')
     end)
 end)
 

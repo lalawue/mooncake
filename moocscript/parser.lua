@@ -1124,7 +1124,7 @@ do
 		Lexer:clearPos()
 		Lexer:nextTokenKind(st)
 		t, c, p = Lexer:nextTokenKind(Token.Identifier)
-		local out = { stype = st, attr = attr, name = { etype = st == Token.KwExtension and 'var' or 'const', value = c, pos = p } }
+		local out = { stype = st, attr = attr, name = { etype = 'var', value = c, pos = p } }
 		local scope = self:clBodyStart()
 		scope.cname = c
 		if Token.SepColon == Lexer:peekToken() then
@@ -1463,7 +1463,7 @@ do
 	end
 	function __ct:etFnName(only_name)
 		local t, c, p = Lexer:nextTokenKind(Token.Identifier)
-		local out = { etype = "exp", { etype = "const", value = c, pos = p } }
+		local out = { etype = "exp", { etype = "var", value = c, pos = p } }
 		if not only_name then
 			while Token.SepDot == Lexer:peekToken() do
 				Lexer:nextTokenKind(Token.SepDot)

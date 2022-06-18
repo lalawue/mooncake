@@ -1,10 +1,8 @@
 local ipairs = ipairs
-local Utils = { __tn = 'Utils', __tk = 'class', __st = nil }
+local Utils = { __tn = 'Utils', __tk = 'struct' }
 do
-	local __st = nil
 	local __ct = Utils
 	__ct.__ct = __ct
-	__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end
 	-- declare struct var and methods
 	function __ct.printValue(v)
 		local tv = type(v)
@@ -161,20 +159,18 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<class Utils: %p>", t) end,
+		__tostring = function(t) return string.format("<struct Utils: %p>", t) end,
 		__index = function(t, k)
-			local v = __ct[k]
+			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
+		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
-	setmetatable(__ct, {
-		__tostring = function() return "<class Utils>" end,
-		__index = function(_, k)
-			local v = __st and __st[k]
-			if v ~= nil then rawset(__ct, k, v) end
-			return v
-		end,
+	Utils = setmetatable({}, {
+		__tostring = function() return "<struct Utils>" end,
+		__index = function(_, k) return rawget(__ct, k) end,
+		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __imt)
 			if type(ins.init) == 'function' and ins:init(...) == false then return nil end

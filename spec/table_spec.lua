@@ -10,8 +10,8 @@ describe("test success 1 #table", function()
              [4] = 3, --- 222
              [fn(){}] = 4,
              [{fn(){}}] = fn(){}, --[=[ 90123d ]=]
-             [false] = tonumber("10"),
-             ['class'] = 12,
+             "false" = tonumber("10"),
+             'class' = 12,
              c = 1 + ...,
              =b,
              d = b,

@@ -203,8 +203,9 @@ struct Ctx {
 --[[
 ]]
 
-    -- class and instance metamethod except __tostring, __index, __newindex, __call
-local _cls_metafns = Utils.set({"__add",
+-- class and instance metamethod except __index, __newindex, __call
+local _cls_metafns = Utils.set({"__tostring",
+                                "__add",
                                 "__band",
                                 "__bnot",
                                 "__bor",
@@ -397,13 +398,12 @@ struct M {
                 if i == 1 {
                     n = v.value
                     name = n
-                    ctx:checkName(v)
                 } else {
                     name ..= v.etype .. v[1].value
                 }
             }
             return name, n
-        } elseif t.etype == 'const' {
+        } elseif t.etype {
             return t.value, t.value
         }
     }
@@ -561,6 +561,17 @@ struct M {
         } elseif t.attr == "export" {
             for i, v in ipairs(t) {
                 ctx:globalInsert(v.value)
+                out:append(v.value)
+                if i < #t {
+                    out:append(", ")
+                }
+            }
+            out:append(' = ')
+            for i, v in ipairs(t) {
+                out:append(v.value .. ' or nil')
+                if i < #t {
+                    out:append(", ")
+                }
             }
         } elseif t.attr == "*" {
             ctx:localInsert("*")
@@ -632,11 +643,14 @@ struct M {
         args = t.args or {}
         fname, pname = self:trEtName(t.name)
         if fname == pname {
-            if t.attr == "export" {
+            if t.attr == "export" or ctx:checkName(t.name, true) {
+                attr = ''
                 ctx:globalInsert(fname)
             } else {
                 ctx:localInsert(fname)
             }
+        } else {
+            ctx:checkName(t.name)
         }
         ctx:pushScope("fn", t)
         mark = self:hasColonDot(t.name)
@@ -897,7 +911,8 @@ struct M {
         attr = (t.attr == "export") and "" or "local "
         clsname = t.name.value
         supertype = t.super and t.super.value
-        if t.attr == "export" {
+        if t.attr == "export" or ctx:checkName(t.name, true) {
+            attr = ''
             ctx:globalInsert(clsname)
         } else {
             ctx:localInsert(clsname)
@@ -925,7 +940,9 @@ struct M {
         --
         out:append("local __imt = {")
         out:incIndent()
-        out:append('__tostring = function(t) return string.format("<class ' .. clsname .. ': %p>", t) end,')
+        if not ins_fns.has_tostring {
+            out:append('__tostring = function(t) return string.format("<class ' .. clsname .. ': %p>", t) end,')
+        }
         out:append("__index = function(t, k)")
         out:incIndent()
         out:append("local v = __ct[k]")
@@ -945,7 +962,9 @@ struct M {
         --
         out:append("setmetatable(__ct, {")
         out:incIndent()
-        out:append('__tostring = function() return "<class ' .. clsname .. '>" end,')
+        if not cls_fns.has_tostring {
+            out:append('__tostring = function() return "<class ' .. clsname .. '>" end,')
+        }
         out:append('__index = function(_, k)')
         out:incIndent()
         out:append('local v = __st and __st[k]')
@@ -986,7 +1005,8 @@ struct M {
         out = self.out
         attr = (t.attr == "export") and "" or "local "
         strname = t.name.value
-        if t.attr == "export" {
+        if t.attr == "export" or ctx:checkName(t.name, true) {
+            attr = ''
             ctx:globalInsert(strname)
         } else {
             ctx:localInsert(strname)
@@ -1005,7 +1025,9 @@ struct M {
         --
         out:append("local __imt = {")
         out:incIndent()
-        out:append('__tostring = function(t) return string.format("<struct ' .. strname .. ': %p>", t) end,')
+        if not ins_fns.has_tostring {
+            out:append('__tostring = function(t) return string.format("<struct ' .. strname .. ': %p>", t) end,')
+        }
         out:append("__index = function(t, k)")
         out:incIndent()
         out:append("local v = rawget(__ct, k)")
@@ -1026,7 +1048,9 @@ struct M {
         --
         out:append(strname .. " = setmetatable({}, {")
         out:incIndent()
-        out:append('__tostring = function() return "<struct ' .. strname .. '>" end,')
+        if not cls_fns.has_tostring {
+            out:append('__tostring = function() return "<struct ' .. strname .. '>" end,')
+        }
         out:append('__index = function(_, k) return rawget(__ct, k) end,')
         out:append('__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,')
         out:append("__call = function(_, ...)")
@@ -1118,8 +1142,14 @@ struct M {
                 if _cls_metafns[fn_name] {
                     if fn_ins {
                         ins_fns[#ins_fns + 1] = s
+                        if fn_name == "__tostring" {
+                            ins_fns.has_tostring = true
+                        }
                     } else {
                         cls_fns[#cls_fns + 1] = s
+                        if fn_name == "__tostring" {
+                            cls_fns.has_tostring = true
+                        }
                     }
                 } else {
                     out:append("function " .. sname .. (fn_ins and ":" or ".") .. fn_name .. "(")
