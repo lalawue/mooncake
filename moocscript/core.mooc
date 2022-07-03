@@ -124,7 +124,7 @@ fn mcAppendLoader() {
 }
 
 fn mcVersion() {
-    return "moocscript v0.7.20220501, " .. (jit and jit.version or _VERSION)
+    return "moocscript v0.7.20220703, " .. (jit and jit.version or _VERSION)
 }
 
 fn mcLoaded() {

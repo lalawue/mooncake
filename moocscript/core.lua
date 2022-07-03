@@ -114,7 +114,7 @@ local function mcAppendLoader()
 	package.mooc_loaded = mcLoader
 end
 local function mcVersion()
-	return "moocscript v0.7.20220501, " .. (jit and jit.version or _VERSION)
+	return "moocscript v0.7.20220703, " .. (jit and jit.version or _VERSION)
 end
 local function mcLoaded()
 	return package.mooc_loaded ~= nil
