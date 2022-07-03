@@ -222,7 +222,7 @@ for generating package.path including current `moocscript/` dir.
 $ luarocks install busted
 $ make test
 ●●●●●●●●●●●●●●●●●●...
-267 successes / 0 failures / 0 errors / 0 pending : 0.155007 seconds
+268 successes / 0 failures / 0 errors / 0 pending : 0.243068 seconds
 ```
 
 you can install [LuaCov](https://keplerproject.github.io/luacov/) to get code coverage report

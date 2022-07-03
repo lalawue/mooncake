@@ -112,11 +112,13 @@ end)
 describe("test invalid self #assign", function()
      local mnstr=[[
           self, b =
+
+          
      ]]
      local ret, ast = parser.parse(mnstr)
      it("shoul get ast", function()
           assert.is_false(ret)
           assert.is_equal(ast.err_msg, "expect exp after assgin")
-          assert.is_equal(ast.pos, 24)
+          assert.is_equal(ast.pos, 19)
      end)
 end)

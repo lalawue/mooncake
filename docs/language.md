@@ -81,8 +81,11 @@ and support another form can contains expression likes in Swift
 
 ```lua
 -- print("Hello, world " .. tostring(600 + 60 + 6) .. " !")
+-- print('Hello, world "' .. tostring(600 + 60 + 6) .. '" !')
 print("Hello, world \(600 + 60 + 6) !")
+print('Hello, world "\(600 + 60 + 6)" !')
 -- Hello, world 666 !
+-- Hello, world "666" !
 ```
 
 ## Comment

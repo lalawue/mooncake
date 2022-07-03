@@ -3,7 +3,7 @@ local srep = string.rep
 local math_huge = math.huge
 local unpack = unpack or table.unpack
 local tostring = tostring
-local Token = { Illegal = "illegal", Eof = "eof", Identifier = "identifier", Number = "number", String = "string", StringExpr = "string+", Comment = "comment", SheBang = "shebang", Vararg = "...", SepSemi = ";", SepComma = ",", SepDot = ".", SepColon = ":", SepLabel = "::", SepLparen = "(", SepRparen = ")", SepLbreak = "[", SepRbreak = "]", SepLcurly = "{", SepRcurly = "}", OpAssign = "=", OpMinus = "-", OpWav = "~", OpAdd = "+", OpMul = "*", OpDiv = "/", OpIdiv = "//", OpPow = "^", OpMod = "%", OpBand = "&", OpBor = "|", OpShr = ">>", OpShl = "<<", OpConcat = "..", OpLt = "<", OpLe = "<=", OpGt = ">", OpGe = ">=", OpEq = "==", OpNe = "~=", OpNb = "!=", OpNen = "#", OpAnd = "and", OpOr = "or", OpNot = "not", KwBreak = "break", KwCase = "case", KwClass = "class", KwContinue = "continue", KwDefault = "default", KwDefer = "defer", KwDo = "do", KwElse = "else", KwElseIf = "elseif", KwExport = "export", KwExtension = "extension", KwFalse = "false", KwFn = "fn", KwFor = "for", KwFrom = "from", KwGoto = "goto", KwGuard = "guard", KwIf = "if", KwImport = "import", KwIn = "in", KwLocal = "local", KwNil = "nil", KwPublic = "public", KwRepeat = "repeat", KwReturn = "return", KwStatic = "static", KwStruct = "struct", KwSwitch = "switch", KwTrue = "true", KwUntil = "until", KwWhile = "while" }
+local Token = { Illegal = "illegal", Eof = "eof", Identifier = "identifier", Number = "number", String = "string", StringExprD = "string+d", StringExprS = "string+s", Comment = "comment", SheBang = "shebang", Vararg = "...", SepSemi = ";", SepComma = ",", SepDot = ".", SepColon = ":", SepLabel = "::", SepLparen = "(", SepRparen = ")", SepLbreak = "[", SepRbreak = "]", SepLcurly = "{", SepRcurly = "}", OpAssign = "=", OpMinus = "-", OpWav = "~", OpAdd = "+", OpMul = "*", OpDiv = "/", OpIdiv = "//", OpPow = "^", OpMod = "%", OpBand = "&", OpBor = "|", OpShr = ">>", OpShl = "<<", OpConcat = "..", OpLt = "<", OpLe = "<=", OpGt = ">", OpGe = ">=", OpEq = "==", OpNe = "~=", OpNb = "!=", OpNen = "#", OpAnd = "and", OpOr = "or", OpNot = "not", KwBreak = "break", KwCase = "case", KwClass = "class", KwContinue = "continue", KwDefault = "default", KwDefer = "defer", KwDo = "do", KwElse = "else", KwElseIf = "elseif", KwExport = "export", KwExtension = "extension", KwFalse = "false", KwFn = "fn", KwFor = "for", KwFrom = "from", KwGoto = "goto", KwGuard = "guard", KwIf = "if", KwImport = "import", KwIn = "in", KwLocal = "local", KwNil = "nil", KwPublic = "public", KwRepeat = "repeat", KwReturn = "return", KwStatic = "static", KwStruct = "struct", KwSwitch = "switch", KwTrue = "true", KwUntil = "until", KwWhile = "while" }
 local ReservedWord = { [Token.OpAnd] = Token.OpAnd, [Token.OpOr] = Token.OpOr, [Token.OpNot] = Token.OpNot, [Token.KwBreak] = Token.KwBreak, [Token.KwCase] = Token.KwCase, [Token.KwClass] = Token.KwClass, [Token.KwContinue] = Token.KwContinue, [Token.KwDefault] = Token.KwDefault, [Token.KwDefer] = Token.KwDefer, [Token.KwDo] = Token.KwDo, [Token.KwElse] = Token.KwElse, [Token.KwElseIf] = Token.KwElseIf, [Token.KwExport] = Token.KwExport, [Token.KwExtension] = Token.KwExtension, [Token.KwFalse] = Token.KwFalse, [Token.KwFn] = Token.KwFn, [Token.KwFor] = Token.KwFor, [Token.KwFrom] = Token.KwFrom, [Token.KwGoto] = Token.KwGoto, [Token.KwGuard] = Token.KwGuard, [Token.KwIf] = Token.KwIf, [Token.KwImport] = Token.KwImport, [Token.KwIn] = Token.KwIn, [Token.KwLocal] = Token.KwLocal, [Token.KwNil] = Token.KwNil, [Token.KwPublic] = Token.KwPublic, [Token.KwRepeat] = Token.KwRepeat, [Token.KwReturn] = Token.KwReturn, [Token.KwStatic] = Token.KwStatic, [Token.KwStruct] = Token.KwStruct, [Token.KwSwitch] = Token.KwSwitch, [Token.KwTrue] = Token.KwTrue, [Token.KwUntil] = Token.KwUntil, [Token.KwWhile] = Token.KwWhile }
 local CharSymbol = { [Token.SepSemi] = true, [Token.SepComma] = true, [Token.SepLparen] = true, [Token.SepRparen] = true, [Token.SepRbreak] = true, [Token.SepLcurly] = true, [Token.SepRcurly] = true, [Token.OpAdd] = true, [Token.OpMul] = true, [Token.OpPow] = true, [Token.OpMod] = true, [Token.OpBand] = true }
 local ArithmeticOp = { [Token.OpAdd] = true, [Token.OpMinus] = true, [Token.OpMul] = true, [Token.OpDiv] = true, [Token.OpIdiv] = true, [Token.OpPow] = true, [Token.OpMod] = true }
@@ -371,13 +371,14 @@ do
 				self._err_msg = "unfinished string"
 				error("")
 			elseif ch == '\\' and self:peekChar():len() > 0 then
-				if sep == '"' and self:peekChar() == '(' then
+				if (sep == '"' or sep == "'") and self:peekChar() == '(' then
 					local s, e, prefix = pos, self._pos - 1, ''
 					if self:charAt(pos) ~= sep then
 						s = pos + 1
 						prefix = sep
 					end
-					return Token.StringExpr, (s > e) and '' or (prefix .. self._chunk:sub(s, e) .. sep), s
+					local t = sep == '"' and Token.StringExprD or Token.StringExprS
+					return t, (s > e) and '' or (prefix .. self._chunk:sub(s, e) .. sep), s
 				end
 				self._pos = self._pos + 1
 			elseif ch == sep then
@@ -514,7 +515,7 @@ do
 				self._pos = self._pos + 1
 				self:oneComment()
 			else 
-				self._pos = self._pos - 1
+				self._pos = self._pos -  (ch:len() > 0 and 1 or 0)
 				break
 			end
 		end
@@ -841,7 +842,7 @@ do
 			return 
 		end
 		Lexer:clearPos()
-		local elist = self:etExprList("expect exp after assgin")
+		local elist = self:etExprList("expect exp after assgin", nil, p)
 		return { stype = '=', attr = attr, sub = sub, vlist, elist }
 	end
 	function __ct:stDo()
@@ -1170,7 +1171,7 @@ do
 			if __s == Token.KwNil or __s == Token.KwFalse or __s == Token.KwTrue or __s == Token.Vararg or __s == Token.Number or __s == Token.String then
 				Lexer:nextTokenKind(t)
 				out[#out + 1] = { etype = "const", value = c, pos = p }
-			elseif __s == Token.StringExpr then
+			elseif __s == Token.StringExprD or __s == Token.StringExprS then
 				Lexer:nextTokenKind(t)
 				while true do
 					if c:len() > 0 then
@@ -1179,7 +1180,7 @@ do
 					end
 					out[#out + 1] = { etype = "const", value = "tostring", pos = p }
 					self:etPrefixExpr(out)
-					t, c, p = Lexer:shortString('"')
+					t, c, p = Lexer:shortString(t == Token.StringExprD and '"' or "'")
 					if t == Token.String then
 						if c:len() > 0 then
 							out[#out + 1] = { etype = "binop", value = '..', pos = p }
@@ -1413,7 +1414,7 @@ do
 		end
 		return out
 	end
-	function __ct:etExprList(force_msg, extra)
+	function __ct:etExprList(force_msg, extra, pos)
 		local out = {  }
 		while true do
 			local expr = self:etExpr({  })
@@ -1430,7 +1431,7 @@ do
 		if #out > 0 then
 			return out
 		elseif force_msg then
-			self:fAsset(false, force_msg)
+			self:fAsset(false, force_msg, pos)
 		end
 	end
 	function __ct:etVarList()

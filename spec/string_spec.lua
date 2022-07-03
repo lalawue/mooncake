@@ -44,7 +44,7 @@ describe("test success 2 #string", function()
         fn getName() {
             return "guess"
         }
-        return "my name is \(getName()) \('what')"
+        return "my name is '\(getName())' \('what')", 'but "\(getName())" \("no")'
     ]=====]
 
     local ret, ast = parser.parse(mnstr)
@@ -62,8 +62,9 @@ describe("test success 2 #string", function()
     it("should get function", function()
         local f = load(content, "test", "t")
         assert(type(f) == "function")
-        local ret = f()
-        assert.is_equal(ret, "my name is guess what")
+        local r1, r2 = f()
+        assert.is_equal(r1, "my name is 'guess' what")
+        assert.is_equal(r2, 'but "guess" no')
     end)
 end)
 

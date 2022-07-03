@@ -28,6 +28,16 @@ describe("test success #comment", function()
     end)
 end)
 
+describe("test sucess #comment", function()
+    local mnstr=[[
+        -- and content]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+end)
+
 describe("test failed #comment", function()
     local mnstr=[[
         --[=[ aabb

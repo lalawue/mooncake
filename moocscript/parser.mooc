@@ -19,7 +19,8 @@ Token = {
     Identifier = "identifier",
     Number = "number",
     String = "string",
-    StringExpr = "string+", -- "string\(expr)"
+    StringExprD = "string+d", -- "string\(expr)"
+    StringExprS = "string+s", -- 'string\(expr)'
     Comment = "comment",
     SheBang = "shebang",
     --
@@ -537,14 +538,15 @@ struct Lexer {
                 self._err_msg = "unfinished string"
                 error("")
             } elseif ch == '\\' and self:peekChar():len() > 0 {
-                if sep == '"' and self:peekChar() == '(' {
-                    -- "1\(2)3\(4)5", "\(2)\(4)"
+                if (sep == '"' or sep == "'") and self:peekChar() == '(' {
+                    -- "1\(2)3\(4)5", '\(2)\(4)''
                     s, e, prefix = pos, self._pos - 1, ''
                     if self:charAt(pos) ~= sep {
                         s = pos + 1
                         prefix = sep
                     }
-                    return Token.StringExpr, (s > e) and '' or (prefix .. self._chunk:sub(s, e) .. sep), s
+                    t = sep == '"' and Token.StringExprD or Token.StringExprS
+                    return t, (s > e) and '' or (prefix .. self._chunk:sub(s, e) .. sep), s
                 }
                 self._pos += 1
             } elseif ch == sep {
@@ -693,7 +695,7 @@ struct Lexer {
                 self._pos += 1
                 self:oneComment()
             } else {
-                self._pos -= 1
+                self._pos -= ch:len() > 0 and 1 or 0
                 break
             }
         }
@@ -1062,7 +1064,7 @@ struct Parser {
             return
         }
         Lexer:clearPos()
-        elist = self:etExprList("expect exp after assgin")
+        elist = self:etExprList("expect exp after assgin", nil, p)
         return { stype = '=', =attr, =sub, vlist, elist }
     }
 
@@ -1487,7 +1489,7 @@ struct Parser {
             case Token.KwNil, Token.KwFalse, Token.KwTrue, Token.Vararg, Token.Number, Token.String:
                 Lexer:nextTokenKind(t)
                 out[#out + 1] = { etype = "const", value = c, pos = p }
-            case Token.StringExpr:
+            case Token.StringExprD, Token.StringExprS:
                 Lexer:nextTokenKind(t)
                 while true {
                     -- [ StringExpr ] String
@@ -1497,7 +1499,7 @@ struct Parser {
                     }
                     out[#out + 1] = { etype = "const", value = "tostring", pos = p }
                     self:etPrefixExpr(out)
-                    t, c, p = Lexer:shortString('"')
+                    t, c, p = Lexer:shortString(t == Token.StringExprD and '"' or "'")
                     if t == Token.String {
                         if c:len() > 0 {
                             out[#out + 1] = { etype = "binop", value = '..', pos = p }
@@ -1782,7 +1784,7 @@ struct Parser {
     --[[
         {exp `,´} exp
     ]]
-    fn etExprList(force_msg, extra) {
+    fn etExprList(force_msg, extra, pos) {
         out = {}
         while true {
             expr = self:etExpr({})
@@ -1799,7 +1801,7 @@ struct Parser {
         if #out > 0 {
             return out
         } elseif force_msg {
-            self:fAsset(false, force_msg)
+            self:fAsset(false, force_msg, pos)
         }
     }
 
