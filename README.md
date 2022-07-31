@@ -254,5 +254,6 @@ you can create your own .vsix package through `vsce package`, or you can downloa
 
 ## Projects using MoonCake
 
+- [Lua-ORM](https://github.com/lalawue/Lua4DaysORM)
 - [cincau](https://github.com/lalawue/cincau)
 - [rpc_framework](https://github.com/lalawue/rpc_framework)
