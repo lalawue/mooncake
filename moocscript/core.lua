@@ -9,11 +9,7 @@ do
 	local __l = require("moocscript.compile")
 	compile, clearproj = __l.compile, __l.clearproj
 end
-local split, readFile
-do
-	local __l = require("moocscript.utils")
-	split, readFile = __l.split, __l.readFile
-end
+local readFile = Utils.readFile
 local concat, insert, remove = table.concat, table.insert, table.remove
 local unpack, assert = unpack or table.unpack, assert
 local type, error, load, loadstring = type, error, load, loadstring
@@ -114,7 +110,7 @@ local function mcAppendLoader()
 	package.mooc_loaded = mcLoader
 end
 local function mcVersion()
-	return "moocscript v0.7.20220703, " .. (jit and jit.version or _VERSION)
+	return "moocscript v0.7.20220801, " .. (jit and jit.version or _VERSION)
 end
 local function mcLoaded()
 	return package.mooc_loaded ~= nil

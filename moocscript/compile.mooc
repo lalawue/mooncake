@@ -16,7 +16,7 @@ local sfmt = string.format
 local pcall = pcall
 local tconcat = table.concat
 
-struct Out {
+class Out {
 
     _indent = 0
     _changeLine = false
@@ -64,7 +64,7 @@ struct Out {
     }
 }
 
-local _global_names = Utils.set({
+_global_names = Utils.set({
     "_G",
     "_VERSION",
     "_ENV",
@@ -110,10 +110,10 @@ local _global_names = Utils.set({
     "false",
 })
 
-local _scope_global = { otype = "gl", vars = _global_names }
-local _scope_proj = { otype = "pj", vars = {} }
+_scope_global = { otype = "gl", vars = _global_names }
+_scope_proj = { otype = "pj", vars = {} }
 
-struct Ctx {
+class Ctx {
 
     config = false
     ast = false
@@ -122,8 +122,6 @@ struct Ctx {
     scopes = false
     err_info = false
     last_pos = 0
-
-    -- MARK:
 
     fn reset(config, ast, content) {
         self.config = config
@@ -203,8 +201,11 @@ struct Ctx {
 --[[
 ]]
 
--- class and instance metamethod except __index, __newindex, __call
-local _cls_metafns = Utils.set({"__tostring",
+-- class and instance metamethod except __call
+_cls_metafns = Utils.set({"__tostring",
+                                "__index", -- only for class
+                                "__newindex", -- only for class
+                                "__call", -- only for instance
                                 "__add",
                                 "__band",
                                 "__bnot",
@@ -217,22 +218,23 @@ local _cls_metafns = Utils.set({"__tostring",
                                 "__idiv",
                                 "__le",
                                 "__len",
+                                "__pairs",
+                                "__ipairs",
                                 "__lt",
                                 "__metatable",
                                 "__mod",
                                 "__mode",
                                 "__mul",
                                 "__name",
-                                "__pairs",
                                 "__pow",
                                 "__shl",
                                 "__shr",
                                 "__sub",
                                 "__unm"})
 
-local _map_binop = { ['!='] = '~=' }
+_map_binop = { ['!='] = '~=' }
 
-struct M {
+class M {
 
     ctx = false
     out = false
@@ -936,7 +938,7 @@ struct M {
         --
         ctx:pushScope("cl")
         cls_fns, ins_fns = {}, {}
-        fn_deinit = self:hlVarAndFns(t, "__ct", ctx, out, cls_fns, ins_fns)
+        fn_deinit = self:hlVarAndFns(t, "class", "__ct", ctx, out, cls_fns, ins_fns)
         --
         out:append("local __imt = {")
         out:incIndent()
@@ -945,7 +947,12 @@ struct M {
         }
         out:append("__index = function(t, k)")
         out:incIndent()
-        out:append("local v = __ct[k]")
+        if ins_fns.has_index {
+            out:append("local ok, v = __ct.__ins_index(t, k)")
+            out:append("if ok then return v else v = __ct[k] end")
+        } else {
+            out:append("local v = __ct[k]")
+        }
         out:append("if v ~= nil then rawset(t, k, v) end")
         out:append("return v")
         out:decIndent()
@@ -965,9 +972,14 @@ struct M {
         if not cls_fns.has_tostring {
             out:append('__tostring = function() return "<class ' .. clsname .. '>" end,')
         }
-        out:append('__index = function(_, k)')
+        out:append('__index = function(t, k)')
         out:incIndent()
-        out:append('local v = __st and __st[k]')
+        if cls_fns.has_index {
+            out:append('local ok, v = t.__cls_index(t, k)')
+            out:append('if ok then return v else v = __st and __st[k] end')
+        } else {
+            out:append('local v = __st and __st[k]')
+        }
         out:append('if v ~= nil then rawset(__ct, k, v) end')
         out:append('return v')
         out:decIndent()
@@ -975,7 +987,7 @@ struct M {
         out:append("__call = function(_, ...)")
         out:incIndent()
         out:append("local ins = setmetatable({}, __imt)")
-        out:append("if type(ins.init) == 'function' and ins:init(...) == false then return nil end")
+        out:append("if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end")
         if fn_deinit {
             out:append('if _VERSION == "Lua 5.1" then')
             out:incIndent()
@@ -1021,7 +1033,7 @@ struct M {
         --
         ctx:pushScope("cl")
         cls_fns, ins_fns = {}, {}
-        fn_deinit = self:hlVarAndFns(t, "__ct", ctx, out, cls_fns, ins_fns)
+        fn_deinit = self:hlVarAndFns(t, "struct", "__ct", ctx, out, cls_fns, ins_fns)
         --
         out:append("local __imt = {")
         out:incIndent()
@@ -1056,7 +1068,7 @@ struct M {
         out:append("__call = function(_, ...)")
         out:incIndent()
         out:append("local ins = setmetatable({}, __imt)")
-        out:append("if type(ins.init) == 'function' and ins:init(...) == false then return nil end")
+        out:append("if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end")
         if fn_deinit {
             out:append('if _VERSION == "Lua 5.1" then')
             out:incIndent()
@@ -1113,14 +1125,14 @@ struct M {
         }
         --
         ctx:pushScope("cl")
-        self:hlVarAndFns(t, "__ct", ctx, out, {}, {})
+        self:hlVarAndFns(t, "extension", "__ct", ctx, out, {}, {})
         out:decIndent()
         out:append("end")
         ctx:popScope()
     }
 
-    fn hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns) {
-        out:append("-- declare struct var and methods")
+    fn hlVarAndFns(t, cname, sname, ctx, out, cls_fns, ins_fns) {
+        out:append("-- declare " .. cname .. " var and methods")
         out:changeLine()
         fn_deinit = false
         for _, s in ipairs(t) {
@@ -1135,20 +1147,46 @@ struct M {
                 out:changeLine()
             } elseif stype == "fn" {
                 fn_name = s.name.value
-                if fn_name == "deinit" {
+                if cname == "extension" and (fn_name == "init" or fn_name == "deinit") {
+                    ctx:errorPos("extension not support init/deinit", s.name.pos)
+                } elseif fn_name == "deinit" {
                     fn_deinit = true
                 }
                 fn_ins = s.attr ~= "static"
                 if _cls_metafns[fn_name] {
-                    if fn_ins {
+                    if cname == "extension" {
+                        ctx:errorPos("extension not support metamethod", s.name.pos)
+                    } elseif fn_ins {
                         ins_fns[#ins_fns + 1] = s
                         if fn_name == "__tostring" {
                             ins_fns.has_tostring = true
+                        } elseif fn_name == "__index" or fn_name == "__newindex" {
+                            if cname == "struct" {
+                                ctx:errorPos("struct not support " .. fn_name, s.name.pos)
+                            } elseif fn_name == "__index" {
+                                ins_fns[#ins_fns] = nil -- clear last ins_fns
+                                ins_fns.has_index = true
+                                s.name.value = "__ins_index"
+                                out:append("function " .. sname .. "." .. s.name.value .. "(")
+                                self:hlFnArgsBody(s, false)
+                            }
                         }
                     } else {
                         cls_fns[#cls_fns + 1] = s
                         if fn_name == "__tostring" {
                             cls_fns.has_tostring = true
+                        } elseif fn_name == "__index" or fn_name == "__newindex" {
+                            if cname == "struct" {
+                                ctx:errorPos("struct not support " .. fn_name, s.name.pos)
+                            } elseif fn_name == "__index" {
+                                cls_fns[#cls_fns] = nil -- clear last cls_fns
+                                cls_fns.has_index = true
+                                s.name.value = "__cls_index"
+                                out:append("function " .. sname .. "." .. s.name.value .. "(")
+                                self:hlFnArgsBody(s, false)
+                            }
+                        } elseif fn_name == "__call" {
+                            ctx:errorPos(cname .. " not support static " .. fn_name, s.name.pos)
                         }
                     }
                 } else {

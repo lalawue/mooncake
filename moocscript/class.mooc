@@ -10,10 +10,11 @@ local fAssert = assert
 local fRawSet = rawset
 local sfmt = string.format
 
---- create or inherit mooc_class from Lua side
---- @param string cls_name
---- @param table super_type, can be nil
---- @return table class base
+---Create or inherit mooc_class from Lua side
+---
+---@param cls_name string
+---@param super_type table | nil
+---@return table
 fn newMoocClass(cls_name, super_type) {
     guard fType(cls_name) == "string" else {
         return nil
@@ -53,10 +54,11 @@ fn newMoocClass(cls_name, super_type) {
     return cls_type
 }
 
---- create mooc_struct from Lua side
---- @param string name, struct name
---- @return table struct base with __newindex restrected
---- @return table struct base with __newindex NOT restrected
+--- Create mooc_struct from Lua side
+---
+---@param cls_name string
+---@return table struct base with __newindex restrected
+---@return table struct base with __newindex NOT restrected
 fn newMoocStruct(cls_name) {
     guard fType(cls_name) == "string" else {
         return nil
@@ -87,9 +89,11 @@ fn newMoocStruct(cls_name) {
     }), cls_type
 }
 
---- extent mooc class or struct
---- @param table, class / struct instance or base
---- @return table, class / struct base with __newindex NOT restricted
+--- Extent mooc class or struct
+---
+---@param cls table class / struct instance or base
+---@param ext table extension
+---@return table class / struct base with __newindex NOT restricted
 fn extentMoocClassStruct(cls, ext) {
     assert(type(cls) == "table" and type(cls.__ct) == "table" and (cls.__tk == 'class' or cls.__tk == 'struct'))
     ct = cls.__ct

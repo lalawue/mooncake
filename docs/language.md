@@ -27,7 +27,8 @@
     - [goto](#goto)
   - [Class](#class)
     - [self / Self / Super](#self--self--super)
-    - [metamethod](#metamethod)
+    - [metamethod support](#metamethod-support)
+    - [metamethod example](#metamethod-example)
   - [Struct](#struct)
   - [Extension](#extension)
   - [Import](#import)
@@ -612,9 +613,9 @@ the instance will copy when visit, and variables and methods below are pre-defin
 
 - variable __tn, __tk, __ct, __st (only inherit from other class)
 - method isKindOf
-- method init / deinit (if defined)
+- method init() / deinit() (if defined)
 
-`init`, `deinit` will added when you defined, `deinit` will be called when collectgarbage, but `deinit` will cause instance creation a bit slower.
+`init()`, `deinit()` will added when you defined, `deinit()` will be called when collectgarbage, but `deinit()` will cause instance creation a bit slower.
 
 actually, static method will expand as `function table.name()`, and instance method will be `function table:name()`.
 
@@ -628,41 +629,36 @@ class Animal {
 will expand as Lua code
 
 ```lua
-local Animal = {}
+local Animal = { __tn = 'Animal', __tk = 'class', __st = nil }
 do
-	local __st = nil
-	local __cn = "Animal"
-	local __ct = Animal
-	__ct.__tn = __cn
-	__ct.__tk = 'class'
-	__ct.__ct = __ct
-	__ct.__st = __st
-	__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end
-	-- declare struct var and methods
-	-- declare end
-	local __imt = {
-		__tostring = function(t) return string.format("<class %s: %p>", __cn, t) end,
-		__index = function(t, k)
-			local v = __ct[k]
-			if v ~= nil then rawset(t, k, v) end
-			return v
-		end,
-	}
-	setmetatable(__ct, {
-		__tostring = function() return "<class " .. __cn .. ">" end,
-		__index = function(_, k)
-			local v = __st and __st[k]
-			if v ~= nil then rawset(__ct, k, v) end
-			return v
-		end,
-		__call = function(_, ...)
-			local ins = setmetatable({}, __imt)
-			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
-			return ins
-		end,
-	})
+        local __st = nil
+        local __ct = Animal
+        __ct.__ct = __ct
+        __ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end
+        -- declare class var and methods
+        -- declare end
+        local __imt = {
+                __tostring = function(t) return string.format("<class Animal: %p>", t) end,
+                __index = function(t, k)
+                        local v = __ct[k]
+                        if v ~= nil then rawset(t, k, v) end
+                        return v
+                end,
+        }
+        setmetatable(__ct, {
+                __tostring = function() return "<class Animal>" end,
+                __index = function(t, k)
+                        local v = __st and __st[k]
+                        if v ~= nil then rawset(__ct, k, v) end
+                        return v
+                end,
+                __call = function(_, ...)
+                        local ins = setmetatable({}, __imt)
+                        if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end
+                        return ins
+                end,
+        })
 end
-
 ```
 
 you can inherit class, and use `self` in instance method
@@ -697,64 +693,61 @@ class Bird : Animal {
 will expand to Lua code
 
 ```lua
-local Bird = {}
+local Bird = { __tn = 'Bird', __tk = 'class', __st = Animal }
 do
-	local __st = Animal
-	local __cn = "Bird"
-	local __ct = Bird
-	assert(type(__st) == "table" and type(__st.__ct) == "table")
-	for k, v in pairs(__st) do __ct[k] = v end
-	__ct.__tn = __cn
-	__ct.__tk = 'class'
-	__ct.__ct = __ct
-	__ct.__st = __st
-	-- declare struct var and methods
-	__ct.wing_count = 2
-	function __ct:init(count)
-		self.wing_count = count
-	end
-	function __ct:featherColor()
-		return "dark"
-	end
-	function __ct.hasWings()
-		return true
-	end
-	-- declare end
-	local __imt = {
-		__tostring = function(t) return string.format("<class %s: %p>", __cn, t) end,
-		__index = function(t, k)
-			local v = __ct[k]
-			if v ~= nil then rawset(t, k, v) end
-			return v
-		end,
-		__sub = function(a, b)
-			return a.wing_count - b.wing_count
-		end,
-	}
-	setmetatable(__ct, {
-		__tostring = function() return "<class " .. __cn .. ">" end,
-		__index = function(_, k)
-			local v = __st and __st[k]
-			if v ~= nil then rawset(__ct, k, v) end
-			return v
-		end,
-		__call = function(_, ...)
-			local ins = setmetatable({}, __imt)
-			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
-			return ins
-		end,
-		__add = function(a, b)
-			return a.wing_count + b.wing_count
-		end,
-	})
+        local __st = Animal
+        local __ct = Bird
+        __ct.__ct = __ct
+        assert(type(__st) == 'table' and __st.__ct == __st and __st.__tk == 'class', 'invalid super type')
+        -- declare class var and methods
+        __ct.wing_count = 2
+        function __ct:init(count)
+                self.wing_count = count
+        end
+        function __ct:featherColor()
+                return "dark"
+        end
+        function __ct.hasWings()
+                return true
+        end
+        -- declare end
+        local __imt = {
+                __tostring = function(t) return string.format("<class Bird: %p>", t) end,
+                __index = function(t, k)
+                        local v = __ct[k]
+                        if v ~= nil then rawset(t, k, v) end
+                        return v
+                end,
+                __sub = function(a, b)
+                        return a.wing_count - b.wing_count
+                end,
+        }
+        setmetatable(__ct, {
+                __tostring = function() return "<class Bird>" end,
+                __index = function(t, k)
+                        local v = __st and __st[k]
+                        if v ~= nil then rawset(__ct, k, v) end
+                        return v
+                end,
+                __call = function(_, ...)
+                        local ins = setmetatable({}, __imt)
+                        if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end
+                        return ins
+                end,
+                __add = function(a, b)
+                        return a.wing_count + b.wing_count
+                end,
+        })
 end
 ```
 
-in `init` function, you can return `false` to create a nil instance for caller, cause creation failure.
+in `init()` function, you can return `false` to create a nil instance for caller, cause creation failure.
 
 you can add variable/method to class or instance at anytime, likes other normal Lua table, but class/instance will copy not exist key/value from super/class when they visited.
 
 so if you modified original definition after running awhile, some of them can not update and run as expected.
+
+and class variable means `table` in class variable definition will shared by instances, or you can create one in `init()`
 
 you can create instance from class like
 
@@ -768,8 +761,8 @@ print(b - a)
 ### self / Self / Super
 
 - `self` refers to class instance, you can use it in instance method, likes in Lua
-- `Self` refers to class itself in class scope, including variable definition
-- `Super` refers to super calss in class scope, including variable definition
+- `Self` refers to class itself in class scope, including class variable definition
+- `Super` refers to super calss in class scope, including class variable definition
 
 you can visit defined variable in sequence as what you write in the source.
 
@@ -786,14 +779,17 @@ print(Example.getFullName())
 -- for example
 ```
 
-### metamethod
+### metamethod support
 
-only support these class/instance metamethod, and some of them only take effect in latest Lua version.
+only support these class/instance metamethods, and some of them only take effect in latest Lua version.
 
-`__tostring` is special metamethod, if you not provide in class/struct definition, it will use default function instead.
+and there is no `self` in metamethod, you should use proper parameters instead.
 
 ```lua
   "__tostring",
+  "__index",
+  "__newindex",
+  "__call",
   "__add",
   "__band",
   "__bnot",
@@ -820,6 +816,83 @@ only support these class/instance metamethod, and some of them only take effect 
   "__unm"
 ```
 
+### metamethod example
+
+`__tostring` is special metamethod, if you doesn't provide in your class/struct definition, will use default function instead.
+
+`__index` and `__newindex` only support class, but struct/extension.
+
+`__index` will not replace the whole class inheritance, but only part of it, and has priority than origin inheritance, so `return true, value` when you want value return.
+
+`__call` only support class/struct instance.
+
+```lua
+class A {
+  _array = { 10, 11 }
+
+  fn init(a, b) {
+    rawset(self, '_array', { a, b })
+    rawset(self. 'clear', Self.clear)
+  }
+
+  fn clear() {
+    self._array = {}
+  }
+
+  -- MARK: instance metamethod
+
+  fn __index(t, k) {
+    if type(k) == 'number' {
+      return true, t._array[k]
+    }
+  }
+
+  fn __newindex(t, k, v) {
+    if type(k) == 'number' {
+      t._array[k] = v
+    }
+  }
+
+  fn __tostring(t) {
+    return "Array<count: \(#t._array)>"
+  }
+
+  -- MARK: class metamethod
+
+  static fn __index(t, k) {
+    if type(k) == "number" {
+      return true, t._array[k]
+    }
+  }
+
+  static fn __newindex(t, k, v) {
+    if type(k) == "number" {
+      t._array[k] = v
+    }
+  }
+
+  static fn __tostring(t) {
+    return "ArrayClass<count: \(#t._array)>"
+  }
+}
+
+A[3] = 14
+
+a = A(22, 21)
+a[3] = 23
+a[4] = 24
+print(a)
+print("a[1] + a[2] + a[3] + a[4] = \(a[1] + a[2] + a[3] + a[4])")
+-- Array<count: 4>
+-- a[1] + a[2] + a[3] + a[4] = 90
+
+print(A)
+print("A[1] + A[2] + A[3] = \(A[1] + A[2] + A[3])")
+-- ArrayClass<count: 3>
+-- A[1] + A[2] + A[3] = 35
+```
+
+
 ## Struct
 
 struct is a limited Lua table with variable and method defined, the limitation is
@@ -836,7 +909,7 @@ you can change its value after definition, and likes in class, you can
 the instance will copy when visit, variables and methods below are pre-defined:
 
 - variable __tn, __tk, __ct
-- method init / deinit (if defined)
+- method init() / deinit() (if defined)
 
 examples:
 
@@ -857,43 +930,39 @@ struct Car {
 will expanded to Lua code
 
 ```lua
-local Car = {}
+local Car = { __tn = 'Car', __tk = 'struct' }
 do
-	local __cn = "Car"
-	local __ct = Car
-	__ct.__tn = __cn
-	__ct.__tk = 'struct'
-	__ct.__ct = __ct
-	-- declare struct var and methods
-	__ct._wheel_count = 4
-	function __ct:init(wheel_count)
-		self._wheel_count = wheel_count
-	end
-	-- declare end
-	local __imt = {
-		__tostring = function(t) return string.format("<struct %s: %p>", __cn, t) end,
-		__index = function(t, k)
-			local v = rawget(__ct, k)
-			if v ~= nil then rawset(t, k, v) end
-			return v
-		end,
-		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
-		__add = function(a, b)
-			return a._wheel_count + b._wheel_count
-		end,
-	}
-	Car = setmetatable({}, {
-		__tostring = function() return "<struct " .. __cn .. ">" end,
-		__index = function(_, k) return rawget(__ct, k) end,
-		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
-		__call = function(_, ...)
-			local ins = setmetatable({}, __imt)
-			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
-			return ins
-		end,
-	})
+        local __ct = Car
+        __ct.__ct = __ct
+        -- declare struct var and methods
+        __ct._wheel_count = 4
+        function __ct:init(wheel_count)
+                self._wheel_count = wheel_count
+        end
+        -- declare end
+        local __imt = {
+                __tostring = function(t) return string.format("<struct Car: %p>", t) end,
+                __index = function(t, k)
+                        local v = rawget(__ct, k)
+                        if v ~= nil then rawset(t, k, v) end
+                        return v
+                end,
+                __newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
+                __add = function(a, b)
+                        return a._wheel_count + b._wheel_count
+                end,
+        }
+        Car = setmetatable({}, {
+                __tostring = function() return "<struct Car>" end,
+                __index = function(_, k) return rawget(__ct, k) end,
+                __newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
+                __call = function(_, ...)
+                        local ins = setmetatable({}, __imt)
+                        if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end
+                        return ins
+                end,
+        })
 end
-
 ```
 
 create instance likes class, and you can use `self` or `Self` in instance method or static method.
@@ -905,6 +974,7 @@ create instance likes class, and you can use `self` or `Self` in instance method
 - support extend class from struct, or extend struct from class
 - define new variable/method for class/struct
 - can extend class/struct multiple times
+- not support metamethod
 
 ```lua
 class ClsA {
@@ -932,21 +1002,21 @@ the last `extension` keyword will expand as
 
 ```lua
 do
-	local __et = ClsA
-	local __ct = StructA
-	assert(type(__ct) == "table" and type(__ct.__ct) == "table")
-	__ct = __ct.__ct
-	assert(type(__et) == "table" and type(__et.__ct) == "table")
-	for k, v in pairs(__et.__ct) do
-		if __ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "__st" and k ~= "isKindOf")) then
-			__ct[k] = v
-		end
-	end
-	-- declare struct var and methods
-	function __ct:fullName()
-		return "struct base: " .. self:getName()
-	end
-	-- declare end
+        local __et = ClsA
+        local __ct = StructA
+        assert(type(__ct) == 'table' and type(__ct.__ct) == 'table' and (__ct.__tk == 'class' or __ct.__tk == 'struct'), 'invalid extended type')
+        __ct = __ct.__ct
+        assert(type(__et) == 'table' and type(__et.__ct) == 'table' and (__et.__tk == 'class' or __et.__tk == 'struct'), 'invalid super type')
+        for k, v in pairs(__et.__ct) do
+                if __ct[k] == nil and (k:len() < 2 or (k:sub(1, 2) ~= "__" and k ~= "isKindOf" and k ~= "init" and k ~= "deinit")) then
+                        __ct[k] = v
+                end
+        end
+        -- declare extension var and methods
+        function __ct:fullName()
+                return "struct base: " .. self:getName()
+        end
+        -- declare end
 end
 ```
 

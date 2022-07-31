@@ -290,3 +290,135 @@ describe("test failed #struct", function()
          assert.is_equal(ast.pos, 42)
     end)
 end)
+
+describe("test __call #struct", function()
+    local mnstr=[[
+        struct A {
+            fn __call(t, name) {
+                return name
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local A = f()
+        local a = A()
+        assert.is_equal(a("abcdef"), "abcdef")
+    end)
+end)
+
+describe("test failed __call #struct", function()
+    local mnstr=[[
+        struct A {
+            static fn __call(t, name) {
+                return name
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    it("has error", function()
+        local ret, content = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(content.err_msg, "struct not support static __call")
+        assert.is_equal(content.pos, 42)
+    end)
+end)
+
+describe("test __index #struct", function()
+    local mnstr=[[
+        struct A {
+            fn __index() {
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    it("has error", function()
+        local ret, content = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(content.err_msg, "struct not support __index")
+   end)
+end)
+
+describe("test __index #struct", function()
+    local mnstr=[[
+        struct A {
+            static fn __index() {
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    it("has error", function()
+        local ret, content = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(content.err_msg, "struct not support __index")
+   end)
+end)
+
+describe("test __newindex #struct", function()
+    local mnstr=[[
+        struct A {
+            fn __newindex() {
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    it("has error", function()
+        local ret, content = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(content.err_msg, "struct not support __newindex")
+   end)
+end)
+
+describe("test __newindex #struct", function()
+    local mnstr=[[
+        struct A {
+            static fn __newindex() {
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    it("has error", function()
+        local ret, content = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(content.err_msg, "struct not support __newindex")
+   end)
+end)

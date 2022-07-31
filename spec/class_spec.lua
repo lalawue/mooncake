@@ -234,7 +234,7 @@ describe("test scope #class", function()
     end)
 end)
 
-describe("test tostring #struct", function()
+describe("test tostring #class", function()
     local mnstr=[[
         class A {
             fn __tostring() {
@@ -265,6 +265,196 @@ describe("test tostring #struct", function()
         local a = A()
         assert.is_equal(tostring(A), 'A')
         assert.is_equal(tostring(a), 'a')
+    end)
+end)
+
+describe("test __index #class", function()
+    local mnstr=[[
+        class A {
+            fn init() {
+                self._array = { 10 }
+            }
+            fn __index(t, k) {
+                if type(k) == 'number' {
+                    return true, t._array[k]
+                }
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local A = f()
+        local a = A()
+        assert.is_equal(a[1], 10)
+    end)
+end)
+
+describe("test __index #class", function()
+    local mnstr=[[
+        class A {
+            _array = { 10 }
+            static fn __index(t, v) {
+                if type(v) == 'number' {
+                    return true, t._array[v]
+                }
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local A = f()
+        assert.is_equal(A[1], 10)
+    end)
+end)
+
+describe("test __newindex #class", function()
+    local mnstr=[[
+        class A {
+            _array = {}
+            fn __newindex(t, k, v) {
+                if type(k) == "number" {
+                    t._array[k] = v
+                } else {
+                    rawset(t, k, v)
+                }
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local A = f()
+        local a = A()
+        a[1] = 11
+        assert.is_equal(a._array[1], 11)
+    end)
+end)
+
+describe("test __newindex #class", function()
+    local mnstr=[[
+        class A {
+            _array = {}
+            static fn __newindex(t, k, v) {
+                if type(k) == "number" {
+                    t._array[k] = v
+                } else {
+                    rawset(t, k, v)
+                }
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local A = f()
+        A[1] = 11
+        assert.is_equal(A._array[1], 11)
+    end)
+end)
+
+describe("test __call #class", function()
+    local mnstr=[[
+        class A {
+            fn __call(t, name) {
+                return name
+            }
+        }
+        return A
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    local f = load(content, "test", "t")
+    it("should get function", function()
+        assert(type(f) == "function")
+        local A = f()
+        local a = A()
+        assert.is_equal(a("abcdef"), "abcdef")
+    end)
+end)
+
+describe("test failed __call #class", function()
+    local mnstr=[[
+        class A {
+            static fn __call(t, name) {
+                return name
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    it("has error", function()
+        local ret, content = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(content.err_msg, "class not support static __call")
+        assert.is_equal(content.pos, 41)
     end)
 end)
 

@@ -78,7 +78,7 @@ do
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __imt)
-			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
+			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
 	})
@@ -140,7 +140,7 @@ do
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __imt)
-			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
+			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
 	})
@@ -558,7 +558,7 @@ do
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __imt)
-			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
+			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
 	})
@@ -1500,7 +1500,7 @@ do
 		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __imt)
-			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
+			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
 	})

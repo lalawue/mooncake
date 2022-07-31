@@ -8,11 +8,13 @@ local mathmax = math.max
 local sfmt = string.format
 local pcall = pcall
 local tconcat = table.concat
-local Out = { __tn = 'Out', __tk = 'struct' }
+local Out = { __tn = 'Out', __tk = 'class', __st = nil }
 do
+	local __st = nil
 	local __ct = Out
 	__ct.__ct = __ct
-	-- declare struct var and methods
+	__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end
+	-- declare class var and methods
 	__ct._indent = 0
 	__ct._changeLine = false
 	__ct._output = {  }
@@ -52,21 +54,23 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct Out: %p>", t) end,
+		__tostring = function(t) return string.format("<class Out: %p>", t) end,
 		__index = function(t, k)
-			local v = rawget(__ct, k)
+			local v = __ct[k]
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
-		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
-	Out = setmetatable({}, {
-		__tostring = function() return "<struct Out>" end,
-		__index = function(_, k) return rawget(__ct, k) end,
-		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
+	setmetatable(__ct, {
+		__tostring = function() return "<class Out>" end,
+		__index = function(t, k)
+			local v = __st and __st[k]
+			if v ~= nil then rawset(__ct, k, v) end
+			return v
+		end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __imt)
-			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
+			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
 	})
@@ -74,11 +78,13 @@ end
 local _global_names = Utils.set({ "_G", "_VERSION", "_ENV", "assert", "collectgarbage", "coroutine", "debug", "dofile", "error", "getfenv", "getmetatable", "io", "ipairs", "jit", "load", "loadfile", "loadstring", "math", "module", "next", "os", "package", "pairs", "pcall", "print", "rawequal", "rawget", "rawlen", "rawset", "require", "select", "setfenv", "setmetatable", "string", "table", "tonumber", "tostring", "type", "unpack", "xpcall", "nil", "true", "false" })
 local _scope_global = { otype = "gl", vars = _global_names }
 local _scope_proj = { otype = "pj", vars = {  } }
-local Ctx = { __tn = 'Ctx', __tk = 'struct' }
+local Ctx = { __tn = 'Ctx', __tk = 'class', __st = nil }
 do
+	local __st = nil
 	local __ct = Ctx
 	__ct.__ct = __ct
-	-- declare struct var and methods
+	__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end
+	-- declare class var and methods
 	__ct.config = false
 	__ct.ast = false
 	__ct.content = false
@@ -146,32 +152,36 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct Ctx: %p>", t) end,
+		__tostring = function(t) return string.format("<class Ctx: %p>", t) end,
 		__index = function(t, k)
-			local v = rawget(__ct, k)
+			local v = __ct[k]
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
-		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
-	Ctx = setmetatable({}, {
-		__tostring = function() return "<struct Ctx>" end,
-		__index = function(_, k) return rawget(__ct, k) end,
-		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
+	setmetatable(__ct, {
+		__tostring = function() return "<class Ctx>" end,
+		__index = function(t, k)
+			local v = __st and __st[k]
+			if v ~= nil then rawset(__ct, k, v) end
+			return v
+		end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __imt)
-			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
+			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
 	})
 end
-local _cls_metafns = Utils.set({ "__tostring", "__add", "__band", "__bnot", "__bor", "__bxor", "__close", "__concat", "__div", "__eq", "__idiv", "__le", "__len", "__lt", "__metatable", "__mod", "__mode", "__mul", "__name", "__pairs", "__pow", "__shl", "__shr", "__sub", "__unm" })
+local _cls_metafns = Utils.set({ "__tostring", "__index", "__newindex", "__call", "__add", "__band", "__bnot", "__bor", "__bxor", "__close", "__concat", "__div", "__eq", "__idiv", "__le", "__len", "__pairs", "__ipairs", "__lt", "__metatable", "__mod", "__mode", "__mul", "__name", "__pow", "__shl", "__shr", "__sub", "__unm" })
 local _map_binop = { ['!='] = '~=' }
-local M = { __tn = 'M', __tk = 'struct' }
+local M = { __tn = 'M', __tk = 'class', __st = nil }
 do
+	local __st = nil
 	local __ct = M
 	__ct.__ct = __ct
-	-- declare struct var and methods
+	__ct.isKindOf = function(c, a) return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false end
+	-- declare class var and methods
 	__ct.ctx = false
 	__ct.out = false
 	__ct.exfn = {  }
@@ -840,7 +850,7 @@ do
 		end
 		ctx:pushScope("cl")
 		local cls_fns, ins_fns = {  }, {  }
-		local fn_deinit = self:hlVarAndFns(t, "__ct", ctx, out, cls_fns, ins_fns)
+		local fn_deinit = self:hlVarAndFns(t, "class", "__ct", ctx, out, cls_fns, ins_fns)
 		out:append("local __imt = {")
 		out:incIndent()
 		if not ins_fns.has_tostring then
@@ -848,7 +858,12 @@ do
 		end
 		out:append("__index = function(t, k)")
 		out:incIndent()
-		out:append("local v = __ct[k]")
+		if ins_fns.has_index then
+			out:append("local ok, v = __ct.__ins_index(t, k)")
+			out:append("if ok then return v else v = __ct[k] end")
+		else 
+			out:append("local v = __ct[k]")
+		end
 		out:append("if v ~= nil then rawset(t, k, v) end")
 		out:append("return v")
 		out:decIndent()
@@ -867,9 +882,14 @@ do
 		if not cls_fns.has_tostring then
 			out:append('__tostring = function() return "<class ' .. clsname .. '>" end,')
 		end
-		out:append('__index = function(_, k)')
+		out:append('__index = function(t, k)')
 		out:incIndent()
-		out:append('local v = __st and __st[k]')
+		if cls_fns.has_index then
+			out:append('local ok, v = t.__cls_index(t, k)')
+			out:append('if ok then return v else v = __st and __st[k] end')
+		else 
+			out:append('local v = __st and __st[k]')
+		end
 		out:append('if v ~= nil then rawset(__ct, k, v) end')
 		out:append('return v')
 		out:decIndent()
@@ -877,7 +897,7 @@ do
 		out:append("__call = function(_, ...)")
 		out:incIndent()
 		out:append("local ins = setmetatable({}, __imt)")
-		out:append("if type(ins.init) == 'function' and ins:init(...) == false then return nil end")
+		out:append("if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end")
 		if fn_deinit then
 			out:append('if _VERSION == "Lua 5.1" then')
 			out:incIndent()
@@ -920,7 +940,7 @@ do
 		out:append("__ct.__ct = __ct")
 		ctx:pushScope("cl")
 		local cls_fns, ins_fns = {  }, {  }
-		local fn_deinit = self:hlVarAndFns(t, "__ct", ctx, out, cls_fns, ins_fns)
+		local fn_deinit = self:hlVarAndFns(t, "struct", "__ct", ctx, out, cls_fns, ins_fns)
 		out:append("local __imt = {")
 		out:incIndent()
 		if not ins_fns.has_tostring then
@@ -953,7 +973,7 @@ do
 		out:append("__call = function(_, ...)")
 		out:incIndent()
 		out:append("local ins = setmetatable({}, __imt)")
-		out:append("if type(ins.init) == 'function' and ins:init(...) == false then return nil end")
+		out:append("if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end")
 		if fn_deinit then
 			out:append('if _VERSION == "Lua 5.1" then')
 			out:incIndent()
@@ -1006,13 +1026,13 @@ do
 			out:append("end")
 		end
 		ctx:pushScope("cl")
-		self:hlVarAndFns(t, "__ct", ctx, out, {  }, {  })
+		self:hlVarAndFns(t, "extension", "__ct", ctx, out, {  }, {  })
 		out:decIndent()
 		out:append("end")
 		ctx:popScope()
 	end
-	function __ct:hlVarAndFns(t, sname, ctx, out, cls_fns, ins_fns)
-		out:append("-- declare struct var and methods")
+	function __ct:hlVarAndFns(t, cname, sname, ctx, out, cls_fns, ins_fns)
+		out:append("-- declare " .. cname .. " var and methods")
 		out:changeLine()
 		local fn_deinit = false
 		for _, s in ipairs(t) do
@@ -1027,20 +1047,46 @@ do
 				out:changeLine()
 			elseif stype == "fn" then
 				local fn_name = s.name.value
-				if fn_name == "deinit" then
+				if cname == "extension" and (fn_name == "init" or fn_name == "deinit") then
+					ctx:errorPos("extension not support init/deinit", s.name.pos)
+				elseif fn_name == "deinit" then
 					fn_deinit = true
 				end
 				local fn_ins = s.attr ~= "static"
 				if _cls_metafns[fn_name] then
-					if fn_ins then
+					if cname == "extension" then
+						ctx:errorPos("extension not support metamethod", s.name.pos)
+					elseif fn_ins then
 						ins_fns[#ins_fns + 1] = s
 						if fn_name == "__tostring" then
 							ins_fns.has_tostring = true
+						elseif fn_name == "__index" or fn_name == "__newindex" then
+							if cname == "struct" then
+								ctx:errorPos("struct not support " .. fn_name, s.name.pos)
+							elseif fn_name == "__index" then
+								ins_fns[#ins_fns] = nil
+								ins_fns.has_index = true
+								s.name.value = "__ins_index"
+								out:append("function " .. sname .. "." .. s.name.value .. "(")
+								self:hlFnArgsBody(s, false)
+							end
 						end
 					else 
 						cls_fns[#cls_fns + 1] = s
 						if fn_name == "__tostring" then
 							cls_fns.has_tostring = true
+						elseif fn_name == "__index" or fn_name == "__newindex" then
+							if cname == "struct" then
+								ctx:errorPos("struct not support " .. fn_name, s.name.pos)
+							elseif fn_name == "__index" then
+								cls_fns[#cls_fns] = nil
+								cls_fns.has_index = true
+								s.name.value = "__cls_index"
+								out:append("function " .. sname .. "." .. s.name.value .. "(")
+								self:hlFnArgsBody(s, false)
+							end
+						elseif fn_name == "__call" then
+							ctx:errorPos(cname .. " not support static " .. fn_name, s.name.pos)
 						end
 					end
 				else 
@@ -1099,21 +1145,23 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct M: %p>", t) end,
+		__tostring = function(t) return string.format("<class M: %p>", t) end,
 		__index = function(t, k)
-			local v = rawget(__ct, k)
+			local v = __ct[k]
 			if v ~= nil then rawset(t, k, v) end
 			return v
 		end,
-		__newindex = function(t, k, v) if rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 	}
-	M = setmetatable({}, {
-		__tostring = function() return "<struct M>" end,
-		__index = function(_, k) return rawget(__ct, k) end,
-		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
+	setmetatable(__ct, {
+		__tostring = function() return "<class M>" end,
+		__index = function(t, k)
+			local v = __st and __st[k]
+			if v ~= nil then rawset(__ct, k, v) end
+			return v
+		end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __imt)
-			if type(ins.init) == 'function' and ins:init(...) == false then return nil end
+			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
 	})

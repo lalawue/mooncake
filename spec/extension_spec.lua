@@ -276,3 +276,47 @@ describe("test failed #extension", function()
        assert.is_false(ret)
    end)
 end)
+
+describe("test __index #extension", function()
+    local mnstr=[[
+        struct A {
+        }
+        extension A {
+            fn __index() {
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    it("has error", function()
+        local ret, content = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(content.err_msg, "extension not support metamethod")
+   end)
+end)
+
+describe("test __index #extension", function()
+    local mnstr=[[
+        struct A {
+        }
+        extension A {
+            static fn __index() {
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+         assert.is_true(ret)
+    end)
+
+    it("has error", function()
+        local ret, content = compile.compile({}, ast)
+        assert.is_false(ret)
+        assert.is_equal(content.err_msg, "extension not support metamethod")
+   end)
+end)
