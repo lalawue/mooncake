@@ -884,6 +884,15 @@ struct Parser {
         }
     }
 
+    fn isCurrentFn() {
+        array, count = self._scopes:dataOp()
+        guard count > 0 else {
+            return
+        }
+        t = array[count]
+        return t.scope == 'fn' and t
+    }
+
     fn isInLoop() {
         array, count = self._scopes:dataOp()
         guard count > 0 else {
@@ -965,7 +974,7 @@ struct Parser {
             t, c, p = Lexer:peekToken()
             self:fAsset(Token.Eof == t, "unexpected symbol near '" .. t .. "'", p)
         } elseif not self._df_in and #ast > 0 and ast[#ast].stype != 'return' {
-            ft = self:isInFn()
+            ft = self:isCurrentFn()
             if ft and ft.df {
                 ast[#ast + 1] = { stype = 'raw', value = '__dr()' }
             }

@@ -1,7 +1,7 @@
 local parser = require("moocscript.parser")
 local compile = require("moocscript.compile")
 
-describe("test success #defer", function()
+describe("test success_1 #defer", function()
     local mnstr=[[
         a = 0
         fn test_defer() {
@@ -63,6 +63,42 @@ describe("test success #defer", function()
         assert.is_equal(b, 20)
         assert.is_equal(c, 200)
         assert.is_equal(d, 200)
+    end)
+end)
+
+describe("test success_2 #defer", function()
+    local mnstr=[[
+        a = 0
+        fn test_defer() {
+            defer {
+                a += 1
+            }
+            b = 2
+            for i=1, 2 {
+                b += 2
+            }
+        }
+        test_defer()
+        return a
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    it("a == 1 ", function()
+        local f = load(content, "test", "t")
+        assert(type(f) == "function")
+        local a = f()
+        assert.is_equal(a, 1)
     end)
 end)
 

@@ -1,13 +1,9 @@
 local Utils = require("moocscript.utils")
-local setmetatable = setmetatable
 local assert = assert
 local type = type
 local srep = string.rep
 local ipairs = ipairs
 local mathmax = math.max
-local sfmt = string.format
-local pcall = pcall
-local tconcat = table.concat
 local Out = { __tn = 'Out', __tk = 'class', __st = nil }
 do
 	local __st = nil
@@ -890,7 +886,7 @@ do
 		else 
 			out:append('local v = __st and __st[k]')
 		end
-		out:append('if v ~= nil then rawset(__ct, k, v) end')
+		out:append('if v ~= nil then rawset(t, k, v) end')
 		out:append('return v')
 		out:decIndent()
 		out:append('end,')
@@ -968,8 +964,8 @@ do
 		if not cls_fns.has_tostring then
 			out:append('__tostring = function() return "<struct ' .. strname .. '>" end,')
 		end
-		out:append('__index = function(_, k) return rawget(__ct, k) end,')
-		out:append('__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,')
+		out:append('__index = function(t, k) local v = rawget(__ct, k); if v ~= nil then rawset(t, k, v); end return v end,')
+		out:append('__newindex = function(t, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(t, k, v) end end,')
 		out:append("__call = function(_, ...)")
 		out:incIndent()
 		out:append("local ins = setmetatable({}, __imt)")
@@ -1177,7 +1173,7 @@ local function compile(config, data)
 	if not (ret) then
 		return false, (Ctx.err_info or { err_msg = emsg, pos = 0 })
 	end
-	return true, tconcat(Out._output, "\n")
+	return true, table.concat(Out._output, "\n")
 end
 local function clearproj()
 	_scope_proj.vars = {  }

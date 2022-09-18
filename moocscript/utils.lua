@@ -169,8 +169,8 @@ do
 	}
 	Utils = setmetatable({}, {
 		__tostring = function() return "<struct Utils>" end,
-		__index = function(_, k) return rawget(__ct, k) end,
-		__newindex = function(_, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(__ct, k, v) end end,
+		__index = function(t, k) local v = rawget(__ct, k); if v ~= nil then rawset(t, k, v) end return v end,
+		__newindex = function(t, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 		__call = function(_, ...)
 			local ins = setmetatable({}, __imt)
 			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end

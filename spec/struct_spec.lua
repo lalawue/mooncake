@@ -7,14 +7,13 @@ describe("test normal #struct", function()
         local struct ClsA {
             a = 11
             f = Self.a + 109
+            deinit_value = false
             fn init() {
                 self.a = 9
                 self.b = 0
             }
             fn takeTime(c) {
                 return self.a + 101 - c
-            }
-            fn deinit() {
             }
             static fn __add(a, b) {
                 return "add"
@@ -23,6 +22,7 @@ describe("test normal #struct", function()
                 return 666
             }
             fn deinit() {
+                ClsA.deinit_value = 11
             }
         }
         ClsA.b = 100
@@ -37,14 +37,14 @@ describe("test normal #struct", function()
 
     local ret, content = compile.compile({}, ast)
     it("should get compiled lua", function()
-        assert.is_true(ret)        
+        assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should inherit", function()
         assert(type(f) == "function")
-        local ClsA = f()
+        local ClsA, b = f()
         local a = ClsA()
         assert.is_equal(ClsA.a, 11)
         assert.is_equal(ClsA.b, nil)
@@ -65,7 +65,7 @@ describe("test normal #struct", function()
             a:takeTime(0)
         end
         collectgarbage()
-        assert.stub(ClsA.deinit).was.called()        
+        assert.is_equal(ClsA.deinit_value, 11)
     end)
 
     it("should invoke class and instance metamethod", function()
@@ -82,16 +82,16 @@ describe("test success #struct", function()
     local mnstr=[[
         export struct Tbl {
             a = Tbl
-    
+
             static fn b() {
                 return Tbl
             }
-        
+
             static fn c() {
                 return "c"
             }
         }
-        
+
         return Tbl.a.a:b():c()
     ]]
 
