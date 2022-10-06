@@ -13,7 +13,6 @@ import concat, insert, remove from table {}
 
 local unpack, assert = unpack or table.unpack, assert
 local type, error, load, loadstring = type, error, load, loadstring
-local jit = jit
 local sfmt = string.format
 local srep = string.rep
 
@@ -69,8 +68,7 @@ fn mcLoader(name) {
     if not res {
         error(emsg)
     }
-    f, err = load(res, file_path)
-    return f
+    return (loadstring or load)(res, file_path)
 }
 
 fn mcLoadString(text, cname, mode, env) {
@@ -85,6 +83,19 @@ fn mcLoadString(text, cname, mode, env) {
     }
     f = (loadstring or load)
     return f(res, cname, unpack({ mode = mode, env = env }))
+}
+
+fn mcLoadBuffer(text, cname) {
+    tmp_config.fname = cname
+    res, emsg = toAST(tmp_config, text)
+    if not res {
+        return false, emsg
+    }
+    res, emsg = toLua(tmp_config, res)
+    if not res {
+        return false, emsg
+    }
+    return true, res
 }
 
 fn mcLoadFile(fname, ...) {
@@ -124,7 +135,7 @@ fn mcAppendLoader() {
 }
 
 fn mcVersion() {
-    return "moocscript v0.7.20220801, " .. (jit and jit.version or _VERSION)
+    return "moocscript v0.7.20221006, " .. (jit and jit.version or _VERSION)
 }
 
 fn mcLoaded() {
@@ -137,6 +148,7 @@ mcAppendLoader()
 -- MARK: -
 
 return {
+    loadbuffer = mcLoadBuffer,
     loadstring = mcLoadString,
     loadfile = mcLoadFile,
     dofile = mcDoFile,
@@ -146,5 +158,6 @@ return {
     toLua = toLua,
     clearProj = clearproj,
     version = mcVersion,
-    loaded = mcLoaded
+    loaded = mcLoaded,
+    require = mcLoader,
 }

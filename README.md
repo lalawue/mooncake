@@ -198,6 +198,26 @@ $ moocscript -v
 moocscript v0.7.20220501, Lua 5.4
 ```
 
+then enter REPL without an editor
+
+```sh
+$ ./bin/moocscript -i
+moocscript v0.7.20221006, Lua 5.4
+> export * -- default global variable
+> class Person {
+	name = ''
+	fn init(name) {
+		self.name = name
+	}
+	fn intro() {
+		return "My name is \(self.name)"
+	}
+}
+> petter = Person("Petter")
+> print(petter:intro())
+My name is Petter
+```
+
 you can run .lua or .mooc source directly, support options below
 
 ```
@@ -207,11 +227,12 @@ Usage: [OPTIONS] SOURCE.[lua|mooc]
         -h print help
         -a print AST
         -s print Lua code
+        -i enter REPL
         -p generate Lua code with project config
         -v version
 ```
 
-project config example is examples/proj/proj_config.mooc, you can see how to config it through [CommandLine Usage](docs/cmdline.md).
+project config example is `examples/proj/proj_config.mooc`, you can see how to config it through [CommandLine Usage](docs/cmdline.md).
 
 ## Test
 

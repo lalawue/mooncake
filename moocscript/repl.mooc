@@ -1,0 +1,70 @@
+--
+-- Copyright (c) 2022 lalawue
+--
+-- This library is free software; you can redistribute it and/or modify it
+-- under the terms of the MIT license. See LICENSE for details.
+--
+
+import Core from "moocscript.core"
+import Utils from "moocscript.utils"
+
+class M {
+
+    _config = {
+        shebang = false,
+        fi_scope = { "*" = true }
+    }
+
+    fn loadString(text) {
+        ret, emsg = Core.toAST(self._config, text)
+        guard ret else {
+            Utils.debug(emsg)
+            return false
+        }
+        ret, emsg = Core.toLua(self._config, ret)
+        guard ret else {
+            Utils.debug(emsg)
+            return false
+        }
+        ret, emsg = (loadstring or load)(ret)
+        guard ret else {
+            Utils.debug(emsg)
+            return false
+        }
+        ret()
+        return true
+    }
+
+    -- check paired '[', '(', '{'
+    fn checkPaired(input_text) {
+        paired = 0
+        for i=1, input_text:len() {
+            ch = string.char(input_text:byte(i))
+            switch ch {
+            case '[', '(', '{':
+                paired += 1
+            case ']', ')', '}':
+                paired -= 1
+            }
+        }
+        return paired <= 0
+    }
+
+    fn start() {
+        Utils.debug(Core.version())
+        Utils.debug('> export * -- default global variable')
+        input_text = "export *"
+        while true {
+            if self:loadString(input_text)  {
+                io.write("> ")
+            }
+            input_text = ''
+            repeat {
+                input_text ..= input_text:len() > 0 and '\n' or ''
+                input_text ..= (io.read() or '')
+            } until self:checkPaired(input_text)
+        }
+    }
+}
+
+return M

@@ -12,7 +12,7 @@ describe("test success #continue", function()
                 continue
             }
         }
-        
+
         while true {
             i += 1
             if i < 15 {
@@ -25,7 +25,7 @@ describe("test success #continue", function()
                 break
             }
         }
-        
+
         repeat {
             i += 1
             if i < 15 {
@@ -48,10 +48,10 @@ describe("test success #continue", function()
 
     local ret, content = compile.compile({}, ast)
     it("should get compiled lua", function()
-        assert.is_true(ret)        
+        assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
@@ -91,7 +91,7 @@ describe("test success #continue", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
@@ -100,6 +100,35 @@ describe("test success #continue", function()
         assert.is_equal(f(16), 48)
     end)
 end)
+
+describe("test success label #continue", function()
+    local mnstr=[[
+        fn testContineu() {
+            while false {}
+            while false {
+                while false {}
+                while false {}
+                while false {}
+                guard false else {
+                    continue
+                }
+            }
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+end)
+
 
 describe("test failed #continue", function()
     local mnstr=[[

@@ -2,6 +2,7 @@
 
 local Utils = require("moocscript.utils")
 local Core = require("moocscript.core")
+local REPL = require("moocscript.repl")
 
 local type = type
 
@@ -9,12 +10,13 @@ local Cmd = {}
 
 function Cmd.help()
     Utils.debug("Usage: [OPTIONS] SOURCE.[lua|mooc]")
-    Utils.debug("\t'' load SOURCE and run")
-    Utils.debug("\t-h print help")
-    Utils.debug("\t-a print AST")
-    Utils.debug("\t-s print Lua code")
-    Utils.debug("\t-p generate Lua code with project config")
-    Utils.debug("\t-v version")
+    Utils.debug("   '' load SOURCE and run")
+    Utils.debug("   -h print help")
+    Utils.debug("   -a print AST")
+    Utils.debug("   -s print Lua code")
+    Utils.debug("   -i enter REPL")
+    Utils.debug("   -p generate Lua code with project config")
+    Utils.debug("   -v version")
 end
 
 function Cmd.option(...)
@@ -45,6 +47,9 @@ function Cmd.option(...)
         config.opcount = 2
         config.fname = b
         config.shebang = true
+    elseif a == "-i" then
+        REPL:start()
+        return
     elseif a == "-v" then
         Utils.debug(Core.version())
         return

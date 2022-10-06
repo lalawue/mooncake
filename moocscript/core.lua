@@ -13,7 +13,6 @@ local readFile = Utils.readFile
 local concat, insert, remove = table.concat, table.insert, table.remove
 local unpack, assert = unpack or table.unpack, assert
 local type, error, load, loadstring = type, error, load, loadstring
-local jit = jit
 local sfmt = string.format
 local srep = string.rep
 local function toAST(config, text)
@@ -61,8 +60,7 @@ local function mcLoader(name)
 	if not res then
 		error(emsg)
 	end
-	local f, err = load(res, file_path)
-	return f
+	return (loadstring or load)(res, file_path)
 end
 local function mcLoadString(text, cname, mode, env)
 	tmp_config.fname = cname
@@ -76,6 +74,18 @@ local function mcLoadString(text, cname, mode, env)
 	end
 	local f = (loadstring or load)
 	return f(res, cname, unpack({ mode = mode, env = env }))
+end
+local function mcLoadBuffer(text, cname)
+	tmp_config.fname = cname
+	local res, emsg = toAST(tmp_config, text)
+	if not res then
+		return false, emsg
+	end
+	res, emsg = toLua(tmp_config, res)
+	if not res then
+		return false, emsg
+	end
+	return true, res
 end
 local function mcLoadFile(fname, ...)
 	local text, err = readFile(fname)
@@ -110,10 +120,10 @@ local function mcAppendLoader()
 	package.mooc_loaded = mcLoader
 end
 local function mcVersion()
-	return "moocscript v0.7.20220801, " .. (jit and jit.version or _VERSION)
+	return "moocscript v0.7.20221006, " .. (jit and jit.version or _VERSION)
 end
 local function mcLoaded()
 	return package.mooc_loaded ~= nil
 end
 mcAppendLoader()
-return { loadstring = mcLoadString, loadfile = mcLoadFile, dofile = mcDoFile, removeloader = mcRemoveLoader, appendloader = mcAppendLoader, toAST = toAST, toLua = toLua, clearProj = clearproj, version = mcVersion, loaded = mcLoaded }
+return { loadbuffer = mcLoadBuffer, loadstring = mcLoadString, loadfile = mcLoadFile, dofile = mcDoFile, removeloader = mcRemoveLoader, appendloader = mcAppendLoader, toAST = toAST, toLua = toLua, clearProj = clearproj, version = mcVersion, loaded = mcLoaded, require = mcLoader }

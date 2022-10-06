@@ -7,7 +7,7 @@
   - [create mooc struct from Lua](#create-mooc-struct-from-lua)
   - [extent class / struct from Lua](#extent-class--struct-from-lua)
   - [other interface](#other-interface)
-  
+
 # Library Interface
 
 with library, you can
@@ -227,3 +227,4 @@ these interfaces from `require("moocscript.core")`:
 - version(): show MoonCake version
 - loaded(): return loaded state
 - clearProj(): clear global export, used in project config
+- require(): only require `.mooc` file in `package.path`

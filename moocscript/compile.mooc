@@ -128,7 +128,7 @@ class Ctx {
             index = 3,
             _scope_global,
             _scope_proj,
-            { otype = "fi", vars = {} }
+            { otype = "fi", vars = config.fi_scope or {} }
         }
         self.err_info = false
         self.last_pos = 0
@@ -1244,8 +1244,15 @@ class M {
 }
 
 --[[
-    config as { fname = "filename", shebang = false, comment = true }
-    data as { content = CONTENT, ast = AST_TREE }
+    config = {
+        fname = "filename",
+        shebang = false,
+        fi_scope = {},
+    }
+    data = {
+        content = CONTENT,
+        ast = AST_TREE
+    }
 ]]
 fn compile(config, data) {
     guard type(data) == "table" and data.ast and data.content else {

@@ -91,7 +91,7 @@ do
 		self.config = config
 		self.ast = ast
 		self.content = content
-		self.scopes = { index = 3, _scope_global, _scope_proj, { otype = "fi", vars = {  } } }
+		self.scopes = { index = 3, _scope_global, _scope_proj, { otype = "fi", vars = config.fi_scope or {  } } }
 		self.err_info = false
 		self.last_pos = 0
 	end

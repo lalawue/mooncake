@@ -839,7 +839,7 @@ struct Parser {
 
     fn loBodyEnd(body) {
         t = self._scopes:decTop()
-        if t.co {
+        if t.co and #body > 0 {
             ot = body[#body]
             if ot.stype == 'return' or ot.stype == 'break' {
                 body[#body] = { stype = 'do', body = { ot } }
@@ -1379,7 +1379,7 @@ struct Parser {
             return { stype = 'break' }
         } else {
             lt.co = true
-            return { stype = 'goto', { etype = "const", value = "__c" .. tostring(self._lo_count), pos = p }}
+            return { stype = 'goto', { etype = "const", value = "__c" .. tostring(lt.index), pos = p }}
         }
     }
 

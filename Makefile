@@ -49,6 +49,7 @@ gen:
 	$(CS) $(NAME)/parser.$(SUFX) > $(ODIR)/parser.lua
 	$(CS) $(NAME)/utils.$(SUFX) > $(ODIR)/utils.lua
 	$(CS) $(NAME)/class.$(SUFX) > $(ODIR)/class.lua
+	$(CS) $(NAME)/repl.$(SUFX) > $(ODIR)/repl.lua
 
 MN_DIR=$(INSTALL_LUA_PATH)/$(NAME)/
 MN_BIN=$(INSTALL_BIN_PATH)/$(NAME)

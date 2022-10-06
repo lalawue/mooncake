@@ -656,7 +656,7 @@ do
 	end
 	function __ct:loBodyEnd(body)
 		local t = self._scopes:decTop()
-		if t.co then
+		if t.co and #body > 0 then
 			local ot = body[#body]
 			if ot.stype == 'return' or ot.stype == 'break' then
 				body[#body] = { stype = 'do', body = { ot } }
@@ -1094,7 +1094,7 @@ do
 			return { stype = 'break' }
 		else 
 			lt.co = true
-			return { stype = 'goto', { etype = "const", value = "__c" .. tostring(self._lo_count), pos = p } }
+			return { stype = 'goto', { etype = "const", value = "__c" .. tostring(lt.index), pos = p } }
 		end
 	end
 	function __ct:stBlockEnd()
