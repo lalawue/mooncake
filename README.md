@@ -7,11 +7,11 @@
 
 - [MoonCake](#mooncake)
 - [Features](#features)
-- [Examples](#examples)
+- [Highlight](#highlight)
   - [class / struct / extension](#class--struct--extension)
   - [guard / continue / switch / defer](#guard--continue--switch--defer)
   - [import / closure / string expression](#import--closure--string-expression)
-- [More Depth](#more-depth)
+- [Documentation](#documentation)
 - [Install](#install)
 - [Running](#running)
 - [Test](#test)
@@ -38,7 +38,7 @@ with differences from Lua
 - support convenient anonymous function form `{ in }` likes in Swift
 - support expression in string like `print("5 + 3 = \(5 + 3)")`
 
-## Examples
+## Highlight
 
 ### class / struct / extension
 
@@ -153,9 +153,9 @@ print("Hello, world \(600 + 60 + 6) !")
 -- Hello, world 666 !
 ```
 
-## More Depth
+## Documentation
 
-recommand install and running first, or get more straight expressions from 'examples/' dir, before dig into detials about the language and usage
+recommand install and running first, or get more straight expressions from `examples/` dir, before dig into detials about the language.
 
 - [The Language](docs/language.md)
 - [CommandLine Usage](docs/cmdline.md)
