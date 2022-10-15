@@ -678,6 +678,10 @@ do
 		end
 		out:append("end")
 		out:changeLine()
+		if t.tail then
+			self:trStGotoLabel(t.tail)
+			out:changeLine()
+		end
 	end
 	function __ct:trStGuard(t)
 		assert(t.stype == "guard", "Invalid stype guard")

@@ -32,7 +32,7 @@ describe("test success #switch", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     it("should get function", function()
         local f = load(content, "test", "t")
         assert(type(f) == "function")
@@ -44,6 +44,49 @@ describe("test success #switch", function()
         assert.is_equal(a2, 40)
         assert.is_equal(a3, 90)
         assert.is_equal(a4, 20)
+    end)
+end)
+
+describe("test success #switch", function()
+    local mnstr=[[
+        fn abc() {
+            a = 0
+            while a < 1000 {
+                switch a {
+                case 0:
+                    a += 1
+                    continue
+                default:
+                    if a == 1 {
+                        a += 10
+                        break
+                    }
+                    a += 100
+                }
+                a += 1000
+            }
+            return a
+        }
+        return abc()
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_true(ret)
+        assert.is_true(type(ast) == "table")
+    end)
+
+    local ret, content = compile.compile({}, ast)
+    it("should get compiled lua", function()
+        assert.is_true(ret)
+        assert.is_true(type(content) == "string")
+    end)
+
+    it("should get function", function()
+        local f = load(content, "test", "t")
+        assert(type(f) == "function")
+        local a = f()
+        assert.is_equal(a, 1011)
     end)
 end)
 
@@ -62,5 +105,23 @@ describe("test failed #switch", function()
         assert.is_false(ret)
         assert.is_equal(ast.err_msg, 'too much default case in switch statement')
         assert.is_equal(ast.pos, 80)
+    end)
+end)
+
+describe("test failed #switch", function()
+    local mnstr=[[
+        a = 10
+        switch a {
+            case 10:
+                continue
+            default:
+                return 10
+        }
+    ]]
+
+    local ret, ast = parser.parse(mnstr)
+    it("should get ast", function()
+        assert.is_false(ret)
+        assert.is_equal(ast.err_msg, 'continue not in loop')
     end)
 end)

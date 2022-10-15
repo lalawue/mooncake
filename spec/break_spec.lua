@@ -9,7 +9,7 @@ describe("test success #break", function()
             }
             print(i)
         }
-        
+
         i = 2
         while true {
             i += 1
@@ -18,14 +18,14 @@ describe("test success #break", function()
             }
             print(i)
         }
-        
+
         repeat {
             i += 1
             if i < 15 {
                 break
             }
             print(i)
-        } until i >= 20        
+        } until i >= 20
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -36,10 +36,10 @@ describe("test success #break", function()
 
     local ret, content = compile.compile({}, ast)
     it("should get compiled lua", function()
-        assert.is_true(ret)        
+        assert.is_true(ret)
          assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
          assert(type(f) == "function")
@@ -56,6 +56,6 @@ describe("test failed #break", function()
     local ret, ast = parser.parse(mnstr)
     it("should get ast", function()
          assert.is_false(ret)
-         assert.is_equal(ast.err_msg, 'break not in loop')
+         assert.is_equal(ast.err_msg, 'break not in loop or switch')
     end)
 end)

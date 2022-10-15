@@ -664,6 +664,18 @@ do
 			body[#body + 1] = { stype = '::', { etype = "const", value = "__c" .. tostring(t.index), pos = 0 } }
 		end
 	end
+	function __ct:swBodyStart()
+		self._lo_count = self._lo_count + 1
+		local t = self._scopes:incTop()
+		t.scope = 'sw'
+		t.index = self._lo_count
+	end
+	function __ct:swBodyEnd(body)
+		local t = self._scopes:decTop()
+		if t.br and #body > 0 then
+			body.tail = { stype = '::', { etype = "const", value = "__c" .. tostring(t.index), pos = 0 } }
+		end
+	end
 	function __ct:clBodyStart()
 		local t = self._scopes:incTop()
 		t.scope = 'cl'
@@ -702,7 +714,7 @@ do
 		local t = array[count]
 		return t.scope == 'fn' and t
 	end
-	function __ct:isInLoop()
+	function __ct:isInLoop(token)
 		local array, count = self._scopes:dataOp()
 		if not (count > 0) then
 			return 
@@ -712,6 +724,8 @@ do
 			if t.scope == 'cl' or t.scope == 'fn' then
 				return 
 			elseif t.scope == 'lo' then
+				return t
+			elseif t.scope == 'sw' and token == Token.KwBreak then
 				return t
 			end
 		end
@@ -902,6 +916,7 @@ do
 		Lexer:nextTokenKind(Token.KwSwitch)
 		local sw_ret = { stype = "switch", cond = self:etExpr({  }, "expect condition after switch") }
 		Lexer:nextTokenKind(Token.SepLcurly)
+		self:swBodyStart()
 		local df_count = 0
 		while true do
 			local t, c, p = Lexer:peekToken()
@@ -927,6 +942,8 @@ do
 				break
 			end
 		end
+		self:fAsset(#sw_ret > 0, "switch require 'case' or 'default' in body")
+		self:swBodyEnd(sw_ret)
 		Lexer:nextTokenKind(Token.SepRcurly)
 		return sw_ret
 	end
@@ -1086,12 +1103,19 @@ do
 		if not (t == Token.KwBreak or t == Token.KwContinue) then
 			return 
 		end
-		local lt = self:isInLoop()
-		self:fAsset(lt, t .. " not in loop")
+		local lt = self:isInLoop(t)
+		self:fAsset(lt, t .. " not in loop" .. (t == Token.KwBreak and " or switch" or ""))
 		self:termInGuard()
 		Lexer:nextTokenKind(t)
+		local nt = Lexer:peekToken()
+		self:fAsset(nt == Token.SepRcurly or nt == Token.KwCase or nt == Token.KwDefault, "'}' expected after 'break' or 'continue'")
 		if t == Token.KwBreak then
-			return { stype = 'break' }
+			if lt.scope == 'sw' then
+				lt.br = true
+				return { stype = 'goto', { etype = "const", value = "__c" .. tostring(lt.index), pos = p } }
+			else 
+				return { stype = 'break' }
+			end
 		else 
 			lt.co = true
 			return { stype = 'goto', { etype = "const", value = "__c" .. tostring(lt.index), pos = p } }
@@ -1144,7 +1168,7 @@ do
 			scope.sname = c
 		end
 		Lexer:nextTokenKind(Token.SepLcurly)
-		while true do
+		repeat
 			t, c, p = Lexer:peekToken()
 			local __s = t
 			if __s == Token.KwStatic then
@@ -1162,17 +1186,17 @@ do
 				out[#out + 1] = { stype = '=', { etype = 'const', value = c, pos = p }, self:etExpr({  }, "expect expr in variable definition") }
 				self._sub_mode = false
 			elseif __s == Token.SepRcurly then
-				break
 			else
 				self:fAsset(false, "invalid token " .. t .. " in " .. st .. " definition")
 			end
-		end
+		until t == Token.SepRcurly
 		self:clBodyEnd()
 		Lexer:nextTokenKind(Token.SepRcurly)
 		return out
 	end
 	function __ct:etExpr(out, force_errmsg)
 		out.etype = 'exp'
+		local to_break = false
 		repeat
 			local t, c, p = Lexer:peekToken()
 			local __s = t
@@ -1228,11 +1252,11 @@ do
 					self:etPrefixExpr(out)
 					self:etPrefixExprFinish(out)
 					if #out <= ncount then
-						break
+						to_break = true
 					end
 				end
 			end
-		until not isBinOp(Lexer:peekToken())
+		until to_break or not isBinOp(Lexer:peekToken())
 		if #out > 0 then
 			return #out == 1 and out[1] or out
 		elseif force_errmsg then
@@ -1271,7 +1295,8 @@ do
 		end
 	end
 	function __ct:etPrefixExprFinish(out)
-		while true do
+		local to_break = false
+		repeat
 			local t, c, p = Lexer:peekToken()
 			local __s = t
 			if __s == Token.SepLbreak then
@@ -1311,9 +1336,9 @@ do
 				self:fAsset(#out > 0, "expect prefix expr before " .. t)
 				out[#out + 1] = { etype = '(', self:etArgs() }
 			else
-				break
+				to_break = true
 			end
-		end
+		until to_break
 	end
 	function __ct:etArgs()
 		local t, c, p = Lexer:peekToken()
@@ -1410,14 +1435,14 @@ do
 			elseif __s == Token.Vararg then
 				Lexer:nextTokenKind(t)
 				out[#out + 1] = { etype = "const", value = c, pos = p }
-				break
+				return out
 			else
 				return out
 			end
 			if Token.SepComma == Lexer:peekToken() then
 				Lexer:nextTokenKind(Token.SepComma)
 			else 
-				break
+				return out
 			end
 		end
 		return out

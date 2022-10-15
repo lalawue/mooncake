@@ -740,7 +740,7 @@ struct Lexer {
 -- generate AST tree
 struct Parser {
     _sub_mode = false -- sub mode for class block or other edge case
-    _scopes = QuickStack() -- 'cl', 'fn', 'lo', 'gu'
+    _scopes = QuickStack() -- 'cl', 'fn', 'lo', 'gu', 'sw'
     _lo_count = 0 -- loop count in file scope
     _df_in = false -- in defer block
     _err_msg = false -- error message
@@ -848,6 +848,20 @@ struct Parser {
         }
     }
 
+    fn swBodyStart() {
+        self._lo_count += 1
+        t = self._scopes:incTop()
+        t.scope = 'sw'
+        t.index = self._lo_count
+    }
+
+    fn swBodyEnd(body) {
+        t = self._scopes:decTop()
+        if t.br and #body > 0 {
+            body.tail = { stype = '::', { etype = "const", value = "__c" .. tostring(t.index), pos = 0 }}
+        }
+    }
+
     -- for class/struct/extension
     fn clBodyStart() {
         t = self._scopes:incTop()
@@ -893,7 +907,7 @@ struct Parser {
         return t.scope == 'fn' and t
     }
 
-    fn isInLoop() {
+    fn isInLoop(token) {
         array, count = self._scopes:dataOp()
         guard count > 0 else {
             return
@@ -903,6 +917,8 @@ struct Parser {
             if t.scope == 'cl' or t.scope == 'fn' {
                 return
             } elseif t.scope == 'lo' {
+                return t
+            } elseif t.scope == 'sw' and token == Token.KwBreak {
                 return t
             }
         }
@@ -1146,6 +1162,7 @@ struct Parser {
         Lexer:nextTokenKind(Token.KwSwitch)
         sw_ret = { stype = "switch", cond = self:etExpr({}, "expect condition after switch") }
         Lexer:nextTokenKind(Token.SepLcurly)
+        self:swBodyStart()
         df_count = 0
         while true {
             t, c, p = Lexer:peekToken()
@@ -1171,6 +1188,8 @@ struct Parser {
                 break
             }
         }
+        self:fAsset(#sw_ret > 0, "switch require 'case' or 'default' in body")
+        self:swBodyEnd(sw_ret)
         Lexer:nextTokenKind(Token.SepRcurly)
         return sw_ret
     }
@@ -1371,12 +1390,20 @@ struct Parser {
         guard t == Token.KwBreak or t == Token.KwContinue else {
             return
         }
-        lt = self:isInLoop()
-        self:fAsset(lt, t .. " not in loop")
+        lt = self:isInLoop(t)
+        self:fAsset(lt, t .. " not in loop" .. (t == Token.KwBreak and " or switch" or ""))
         self:termInGuard()
         Lexer:nextTokenKind(t)
+        nt = Lexer:peekToken()
+        self:fAsset(nt == Token.SepRcurly or nt == Token.KwCase or nt == Token.KwDefault,
+                    "'}' expected after 'break' or 'continue'")
         if t == Token.KwBreak {
-            return { stype = 'break' }
+            if lt.scope == 'sw' {
+                lt.br = true
+                return { stype = 'goto', { etype = "const", value = "__c" .. tostring(lt.index), pos = p }}
+            } else {
+                return { stype = 'break' }
+            }
         } else {
             lt.co = true
             return { stype = 'goto', { etype = "const", value = "__c" .. tostring(lt.index), pos = p }}
@@ -1443,7 +1470,7 @@ struct Parser {
             scope.sname = c
         }
         Lexer:nextTokenKind(Token.SepLcurly)
-        while true {
+        repeat {
             t, c, p = Lexer:peekToken()
             switch t {
             case Token.KwStatic:
@@ -1465,11 +1492,11 @@ struct Parser {
                 }
                 self._sub_mode = false
             case Token.SepRcurly:
-                break
+
             default:
                 self:fAsset(false, "invalid token " .. t .. " in " .. st .. " definition")
             }
-        }
+        } until t == Token.SepRcurly
         self:clBodyEnd()
         Lexer:nextTokenKind(Token.SepRcurly)
         return out
@@ -1492,6 +1519,7 @@ struct Parser {
     ]]
     fn etExpr(out, force_errmsg) {
         out.etype = 'exp'
+        to_break = false
         repeat {
             t, c, p = Lexer:peekToken()
             switch t {
@@ -1549,11 +1577,11 @@ struct Parser {
                     self:etPrefixExpr(out)
                     self:etPrefixExprFinish(out)
                     if #out <= ncount {
-                        break
+                        to_break = true
                     }
                 }
             }
-        } until not isBinOp(Lexer:peekToken())
+        } until to_break or not isBinOp(Lexer:peekToken())
         if #out > 0 {
             return #out == 1 and out[1] or out
         } elseif force_errmsg {
@@ -1606,7 +1634,8 @@ struct Parser {
         prefix_expr `:´ Name `(´ args `)´
     ]]
     fn etPrefixExprFinish(out) {
-        while true {
+        to_break = false
+        repeat {
             t, c, p = Lexer:peekToken()
             switch t {
             case Token.SepLbreak:
@@ -1647,9 +1676,9 @@ struct Parser {
                 self:fAsset(#out > 0, "expect prefix expr before " .. t)
                 out[#out + 1] = { etype = '(', self:etArgs() }
             default:
-                break
+                to_break = true
             }
-        }
+        } until to_break
     }
 
     --[[
@@ -1777,14 +1806,14 @@ struct Parser {
             case Token.Vararg:
                 Lexer:nextTokenKind(t)
                 out[#out + 1] = { etype = "const", value = c, pos = p }
-                break
+                return out
             default:
                 return out
             }
             if Token.SepComma == Lexer:peekToken() {
                 Lexer:nextTokenKind(Token.SepComma)
             } else {
-                break
+                return out
             }
         }
         return out

@@ -755,6 +755,10 @@ class M {
         }
         out:append("end")
         out:changeLine()
+        if t.tail {
+            self:trStGotoLabel(t.tail)
+            out:changeLine()
+        }
     }
 
     fn trStGuard(t) {

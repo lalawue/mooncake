@@ -77,7 +77,7 @@ print("Hello, world !")
 print([[Hello,
    world !]])
 ```
-  
+
 and support another form can contains expression likes in Swift
 
 ```lua
@@ -252,7 +252,7 @@ you can define function as local or global
   end
 ]]
 fn add(a, b) {
-  return a + b  
+  return a + b
 }
 export fn sub(a, b) {
   return a - b
@@ -273,7 +273,7 @@ or define function as table keys
 ]]
 Bird = {}
 
-fn Bird.fly() {  
+fn Bird.fly() {
 }
 
 fn Bird:eat() {
@@ -402,7 +402,7 @@ just replace `do`, `end` with `{` and `}`, keyword `end` is forbidden.
 
   end
 ]]
-for i=1, 5, 1 {  
+for i=1, 5, 1 {
 
 }
 ```
@@ -415,7 +415,7 @@ another form
 
   end
 ]]
-for i, v in ipairs(tbl) {  
+for i, v in ipairs(tbl) {
 
 }
 ```
@@ -505,7 +505,7 @@ if false {
 --[[
   if not (true) then
     return
-  end  
+  end
 ]]
 guard true else {
   return
@@ -535,6 +535,53 @@ switch animal {
   else
   	print("can swim")
   end
+]]
+```
+
+and break/continue inside switch will be, like in `Swift`.
+
+```lua
+fn abc() {
+	a = 0
+	while a < 1000 {
+		switch a {
+		case 0:
+			a += 1
+			continue
+		default:
+			if a == 1 {
+				a += 10
+				break
+			}
+			a += 100
+		}
+		a += 1000
+	}
+	return a
+}
+print("\(abc())")
+--[[
+local function abc()
+	local a = 0
+	while a < 1000 do
+		local __s = a
+		if __s == 0 then
+			a = a + 1
+			goto __c1
+		else
+			if a == 1 then
+				a = a + 10
+				goto __c2
+			end
+			a = a + 100
+		end
+		::__c2::
+		a = a + 1000
+		::__c1::
+	end
+	return a
+end
+print("" .. tostring(abc()))
 ]]
 ```
 
