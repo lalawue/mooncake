@@ -1,5 +1,5 @@
-local parser = require("moocscript.parser")
-local compile = require("moocscript.compile")
+local parser = require("spec._tool_bridge").parser
+local compiler = require("spec._tool_bridge").compiler
 
 describe("test success #for", function()
     local mnstr=[[
@@ -14,15 +14,15 @@ describe("test success #for", function()
         fn ftotal() {
             return 10
         }
-        
+
         for j = 9, ftotal(), fstep() {
             j = 7 * 7 + 3
         }
-        
+
         for k, v in ipairs(_G) {
             print(k, v)
         }
-        
+
         for k in ipairs(_G) {
             print(k);
         };
@@ -46,12 +46,12 @@ describe("test success #for", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")

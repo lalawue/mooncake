@@ -1,5 +1,5 @@
-local parser = require("moocscript.parser")
-local compile = require("moocscript.compile")
+local parser = require("spec._tool_bridge").parser
+local compiler = require("spec._tool_bridge").compiler
 local clss = require("moocscript.class")
 
 describe("test normal #class", function()
@@ -53,7 +53,7 @@ describe("test normal #class", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -104,16 +104,16 @@ describe("test success #class", function()
     local mnstr=[[
         class Tbl {
             a = Tbl
-    
+
             static fn b() {
                 return Tbl
             }
-        
+
             static fn c() {
                 return "c"
             }
         }
-        
+
         return Tbl.a.a:b():c()
     ]]
 
@@ -123,12 +123,12 @@ describe("test success #class", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
-        assert.is_true(ret)        
+        assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     it("should get function", function()
         local f = load(content, "test", "t")
         assert(type(f) == "function")
@@ -161,12 +161,12 @@ describe("test inherit from lua side #class", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
-        assert.is_true(ret)        
+        assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
@@ -221,7 +221,7 @@ describe("test scope #class", function()
          assert.is_true(ret)
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -252,7 +252,7 @@ describe("test tostring #class", function()
          assert.is_true(ret)
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -288,7 +288,7 @@ describe("test __index #class", function()
          assert.is_true(ret)
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -320,7 +320,7 @@ describe("test __index #class", function()
     it("should get ast", function()
          assert.is_true(ret)
     end)
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
 
         assert.is_true(ret)
@@ -355,7 +355,7 @@ describe("test __newindex #class", function()
          assert.is_true(ret)
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -391,7 +391,7 @@ describe("test __newindex #class", function()
          assert.is_true(ret)
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -421,7 +421,7 @@ describe("test __call #class", function()
          assert.is_true(ret)
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -451,7 +451,7 @@ describe("test failed __call #class", function()
     end)
 
     it("has error", function()
-        local ret, content = compile.compile({}, ast)
+        local ret, content = compiler.compile({}, ast)
         assert.is_false(ret)
         assert.is_equal(content.err_msg, "class not support static __call")
         assert.is_equal(content.pos, 41)
@@ -488,7 +488,7 @@ describe("test failed #class", function()
     end)
 
     it("has error", function()
-        local ret, content = compile.compile({}, ast)
+        local ret, content = compiler.compile({}, ast)
         assert.is_false(ret)
         assert.is_equal(content.err_msg, "undefined variable")
         assert.is_equal(content.pos, 99)
@@ -507,7 +507,7 @@ describe("test failed #class", function()
          assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("has error", function()
         assert.is_false(ret)
         assert.is_equal(content.err_msg, "undefined variable")
@@ -527,7 +527,7 @@ describe("test failed #class", function()
          assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("has error", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")

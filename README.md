@@ -7,6 +7,7 @@
 
 - [MoonCake](#mooncake)
 - [Features](#features)
+- [Playground](#playground)
 - [Highlight](#highlight)
   - [class / struct / extension](#class--struct--extension)
   - [guard / continue / switch / defer](#guard--continue--switch--defer)
@@ -37,6 +38,12 @@ with differences from Lua
 - support `import` keyword for simpler `require` a lot of sub modules
 - support convenient anonymous function form `{ in }` likes in Swift
 - support expression in string like `print("5 + 3 = \(5 + 3)")`
+
+## Playground
+
+For it's a pure Lua transpiler, so it can directly running in any environment that Lua supports.
+
+Try it out in your browser https://moocscript.fun.
 
 ## Highlight
 
@@ -195,7 +202,7 @@ check install first
 
 ```sh
 $ moocscript -v
-moocscript v0.7.20220501, Lua 5.4
+moocscript v0.7.20221112, Lua 5.4
 ```
 
 then enter REPL without an editor
@@ -213,9 +220,9 @@ moocscript v0.7.20221006, Lua 5.4
 		return "My name is \(self.name)"
 	}
 }
-> petter = Person("Petter")
-> print(petter:intro())
-My name is Petter
+> peter = Person("Peter")
+> print(peter:intro())
+My name is Peter
 ```
 
 you can run .lua or .mooc source directly, support options below
@@ -275,6 +282,7 @@ you can create your own .vsix package through `vsce package`, or you can downloa
 
 ## Projects using MoonCake
 
-- [Lua-ORM](https://github.com/lalawue/Lua4DaysORM)
+- [mooncake.site](https://github.com/lalawue/mooncake.site)
+- [lua-sql-orm](https://github.com/lalawue/Lua4DaysORM)
 - [cincau](https://github.com/lalawue/cincau)
 - [rpc_framework](https://github.com/lalawue/rpc_framework)

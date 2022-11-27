@@ -1,9 +1,9 @@
-local parser = require("moocscript.parser")
-local compile = require("moocscript.compile")
+local parser = require("spec._tool_bridge").parser
+local compiler = require("spec._tool_bridge").compiler
 
 describe("test success #goto", function()
     local mnstr=[[
-        ret = 1        
+        ret = 1
         for i = 1, 8 {
             if i == 6 {
                 goto no_6
@@ -11,7 +11,7 @@ describe("test success #goto", function()
             ret = i
         }
         :: no_6 ::
-        return ret    
+        return ret
     ]]
 
     local ret, ast = parser.parse(mnstr)
@@ -20,12 +20,12 @@ describe("test success #goto", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
@@ -48,7 +48,7 @@ describe("test failed #goto", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")

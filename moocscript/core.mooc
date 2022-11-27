@@ -7,7 +7,7 @@
 
 import Utils from "moocscript.utils"
 import parse from "moocscript.parser" {}
-import compile, clearproj from "moocscript.compile" {}
+import compile, clearproj from "moocscript.compiler" {}
 import readFile from Utils {}
 import concat, insert, remove from table {}
 
@@ -75,11 +75,11 @@ fn mcLoadString(text, cname, mode, env) {
     tmp_config.fname = cname
     res, emsg = toAST(tmp_config, text)
     if not res {
-        return emsg
+        return nil, emsg
     }
     res, emsg = toLua(tmp_config, res)
     if not res {
-        return emsg
+        return nil, emsg
     }
     f = (loadstring or load)
     return f(res, cname, unpack({ mode = mode, env = env }))
@@ -89,11 +89,11 @@ fn mcLoadBuffer(text, cname) {
     tmp_config.fname = cname
     res, emsg = toAST(tmp_config, text)
     if not res {
-        return false, emsg
+        return nil, emsg
     }
     res, emsg = toLua(tmp_config, res)
     if not res {
-        return false, emsg
+        return nil, emsg
     }
     return true, res
 }

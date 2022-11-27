@@ -1,5 +1,5 @@
-local parser = require("moocscript.parser")
-local compile = require("moocscript.compile")
+local parser = require("spec._tool_bridge").parser
+local compiler = require("spec._tool_bridge").compiler
 
 describe("test success #shebang", function()
     local mnstr=[[#!/usr/bin/env lua ./moocscript/core.lua
@@ -17,13 +17,13 @@ describe("test success #shebang", function()
         assert.is_true(ast.ast[1].value == "#!/usr/bin/env lua ./moocscript/core.lua")
     end)
 
-    local ret, content = compile.compile({ shebang = true }, ast)
+    local ret, content = compiler.compile({ shebang = true }, ast)
     it("should get compiled lua with shebang", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
 
-    ret, content = compile.compile({}, ast)
+    ret, content = compiler.compile({}, ast)
     it("should get compiled lua no shebang", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")

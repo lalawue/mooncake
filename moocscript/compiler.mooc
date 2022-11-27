@@ -6,6 +6,7 @@
 --
 
 import Utils from "moocscript.utils"
+
 local assert = assert
 local type = type
 local srep = string.rep
@@ -943,7 +944,7 @@ class M {
         out:append("local __imt = {")
         out:incIndent()
         if not ins_fns.has_tostring {
-            out:append('__tostring = function(t) return string.format("<class ' .. clsname .. ': %p>", t) end,')
+            out:append([[__tostring = function(t) return "<class ]] .. clsname .. [[" .. t.__ins_name .. ">" end,]])
         }
         out:append("__index = function(t, k)")
         out:incIndent()
@@ -986,7 +987,8 @@ class M {
         out:append('end,')
         out:append("__call = function(_, ...)")
         out:incIndent()
-        out:append("local ins = setmetatable({}, __imt)")
+        out:append("local t = {}; t.__ins_name = tostring(t):sub(6)")
+        out:append("local ins = setmetatable(t, __imt)")
         out:append("if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end")
         if fn_deinit {
             out:append('if _VERSION == "Lua 5.1" then')
@@ -1038,7 +1040,7 @@ class M {
         out:append("local __imt = {")
         out:incIndent()
         if not ins_fns.has_tostring {
-            out:append('__tostring = function(t) return string.format("<struct ' .. strname .. ': %p>", t) end,')
+            out:append([[__tostring = function(t) return "<struct ]] .. strname .. [[" .. t.__ins_name .. ">" end,]])
         }
         out:append("__index = function(t, k)")
         out:incIndent()
@@ -1067,7 +1069,8 @@ class M {
         out:append('__newindex = function(t, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(t, k, v) end end,')
         out:append("__call = function(_, ...)")
         out:incIndent()
-        out:append("local ins = setmetatable({}, __imt)")
+        out:append("local t = {}; t.__ins_name = tostring(t):sub(6)")
+        out:append("local ins = setmetatable(t, __imt)")
         out:append("if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end")
         if fn_deinit {
             out:append('if _VERSION == "Lua 5.1" then')
@@ -1260,7 +1263,7 @@ class M {
 ]]
 fn compile(config, data) {
     guard type(data) == "table" and data.ast and data.content else {
-        return false, "Invalid data"
+        return false, { err_msg = "Invalid data", pos = 0 }
     }
 
     Ctx:reset(config, data.ast, data.content)

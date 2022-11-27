@@ -6,7 +6,7 @@ do
 end
 local compile, clearproj
 do
-	local __l = require("moocscript.compile")
+	local __l = require("moocscript.compiler")
 	compile, clearproj = __l.compile, __l.clearproj
 end
 local readFile = Utils.readFile
@@ -66,11 +66,11 @@ local function mcLoadString(text, cname, mode, env)
 	tmp_config.fname = cname
 	local res, emsg = toAST(tmp_config, text)
 	if not res then
-		return emsg
+		return nil, emsg
 	end
 	res, emsg = toLua(tmp_config, res)
 	if not res then
-		return emsg
+		return nil, emsg
 	end
 	local f = (loadstring or load)
 	return f(res, cname, unpack({ mode = mode, env = env }))
@@ -79,11 +79,11 @@ local function mcLoadBuffer(text, cname)
 	tmp_config.fname = cname
 	local res, emsg = toAST(tmp_config, text)
 	if not res then
-		return false, emsg
+		return nil, emsg
 	end
 	res, emsg = toLua(tmp_config, res)
 	if not res then
-		return false, emsg
+		return nil, emsg
 	end
 	return true, res
 end

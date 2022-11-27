@@ -1,5 +1,5 @@
-local parser = require("moocscript.parser")
-local compile = require("moocscript.compile")
+local parser = require("spec._tool_bridge").parser
+local compiler = require("spec._tool_bridge").compiler
 local clss = require("moocscript.class")
 
 describe("test success #extension", function()
@@ -9,7 +9,7 @@ describe("test success #extension", function()
             fn add(b) {
                 self.a += b
                 return self
-            }            
+            }
         }
         class ClsB {
             a = 2
@@ -33,7 +33,7 @@ describe("test success #extension", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -72,12 +72,12 @@ describe("test success #extension", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")
@@ -117,12 +117,12 @@ describe("test failed compile #extension", function()
          assert.is_true(ret)
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_false(ret)
         assert.is_equal(content.err_msg, "undefined variable")
         assert.is_equal(content.pos, 53)
-    end)    
+    end)
 end)
 
 
@@ -139,12 +139,12 @@ describe("test failed compile #extension", function()
          assert.is_true(ret)
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_false(ret)
         assert.is_equal(content.err_msg, "undefined variable")
         assert.is_equal(content.pos, 55)
-    end)    
+    end)
 end)
 
 describe("test mixed from lua side #extension", function()
@@ -183,7 +183,7 @@ describe("test mixed from lua side #extension", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -236,7 +236,7 @@ describe("test failed #extension", function()
          assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("has error", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -263,7 +263,7 @@ describe("test failed #extension", function()
          assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("has error", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
@@ -293,7 +293,7 @@ describe("test __index #extension", function()
     end)
 
     it("has error", function()
-        local ret, content = compile.compile({}, ast)
+        local ret, content = compiler.compile({}, ast)
         assert.is_false(ret)
         assert.is_equal(content.err_msg, "extension not support metamethod")
    end)
@@ -315,7 +315,7 @@ describe("test __index #extension", function()
     end)
 
     it("has error", function()
-        local ret, content = compile.compile({}, ast)
+        local ret, content = compiler.compile({}, ast)
         assert.is_false(ret)
         assert.is_equal(content.err_msg, "extension not support metamethod")
    end)

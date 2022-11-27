@@ -1,16 +1,16 @@
-local parser = require("moocscript.parser")
-local compile = require("moocscript.compile")
+local parser = require("spec._tool_bridge").parser
+local compiler = require("spec._tool_bridge").compiler
 
 describe("test success #expr", function()
     local mnstr=[[
         fn calcNumber(a) {
             return a + 2
         }
-        
+
         fn calcTwo(a, b) {
             return a+1, b+2
         }
-        
+
         a = calcNumber((8 + 4) / (3 * 2) * 2)
         b = calcNumber("9" == "10" and 1 or 2)
         c, d = calcTwo(11 * (3 - 2), calcNumber(6))
@@ -23,12 +23,12 @@ describe("test success #expr", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")

@@ -50,7 +50,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<class Out: %p>", t) end,
+		__tostring = function(t) return "<class Out" .. t.__ins_name .. ">" end,
 		__index = function(t, k)
 			local v = __ct[k]
 			if v ~= nil then rawset(t, k, v) end
@@ -65,7 +65,8 @@ do
 			return v
 		end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __imt)
+			local t = {}; t.__ins_name = tostring(t):sub(6)
+			local ins = setmetatable(t, __imt)
 			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
@@ -148,7 +149,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<class Ctx: %p>", t) end,
+		__tostring = function(t) return "<class Ctx" .. t.__ins_name .. ">" end,
 		__index = function(t, k)
 			local v = __ct[k]
 			if v ~= nil then rawset(t, k, v) end
@@ -163,7 +164,8 @@ do
 			return v
 		end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __imt)
+			local t = {}; t.__ins_name = tostring(t):sub(6)
+			local ins = setmetatable(t, __imt)
 			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
@@ -854,7 +856,7 @@ do
 		out:append("local __imt = {")
 		out:incIndent()
 		if not ins_fns.has_tostring then
-			out:append('__tostring = function(t) return string.format("<class ' .. clsname .. ': %p>", t) end,')
+			out:append([[__tostring = function(t) return "<class ]] .. clsname .. [[" .. t.__ins_name .. ">" end,]])
 		end
 		out:append("__index = function(t, k)")
 		out:incIndent()
@@ -896,7 +898,8 @@ do
 		out:append('end,')
 		out:append("__call = function(_, ...)")
 		out:incIndent()
-		out:append("local ins = setmetatable({}, __imt)")
+		out:append("local t = {}; t.__ins_name = tostring(t):sub(6)")
+		out:append("local ins = setmetatable(t, __imt)")
 		out:append("if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end")
 		if fn_deinit then
 			out:append('if _VERSION == "Lua 5.1" then')
@@ -944,7 +947,7 @@ do
 		out:append("local __imt = {")
 		out:incIndent()
 		if not ins_fns.has_tostring then
-			out:append('__tostring = function(t) return string.format("<struct ' .. strname .. ': %p>", t) end,')
+			out:append([[__tostring = function(t) return "<struct ]] .. strname .. [[" .. t.__ins_name .. ">" end,]])
 		end
 		out:append("__index = function(t, k)")
 		out:incIndent()
@@ -972,7 +975,8 @@ do
 		out:append('__newindex = function(t, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(t, k, v) end end,')
 		out:append("__call = function(_, ...)")
 		out:incIndent()
-		out:append("local ins = setmetatable({}, __imt)")
+		out:append("local t = {}; t.__ins_name = tostring(t):sub(6)")
+		out:append("local ins = setmetatable(t, __imt)")
 		out:append("if type(rawget(__ct,'init')) == 'function' and __ct.init(ins, ...) == false then return nil end")
 		if fn_deinit then
 			out:append('if _VERSION == "Lua 5.1" then')
@@ -1145,7 +1149,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<class M: %p>", t) end,
+		__tostring = function(t) return "<class M" .. t.__ins_name .. ">" end,
 		__index = function(t, k)
 			local v = __ct[k]
 			if v ~= nil then rawset(t, k, v) end
@@ -1160,7 +1164,8 @@ do
 			return v
 		end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __imt)
+			local t = {}; t.__ins_name = tostring(t):sub(6)
+			local ins = setmetatable(t, __imt)
 			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
@@ -1168,7 +1173,7 @@ do
 end
 local function compile(config, data)
 	if not (type(data) == "table" and data.ast and data.content) then
-		return false, "Invalid data"
+		return false, { err_msg = "Invalid data", pos = 0 }
 	end
 	Ctx:reset(config, data.ast, data.content)
 	Out:reset()

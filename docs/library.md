@@ -1,7 +1,7 @@
 
 - [Library Interface](#library-interface)
   - [require .mooc from Lua](#require-mooc-from-lua)
-  - [dofile / loadfile / loadstring](#dofile--loadfile--loadstring)
+  - [dofile / loadfile / loadstring / loadbuffer](#dofile--loadfile--loadstring--loadbuffer)
   - [control compile step](#control-compile-step)
   - [create / inherit mooc class from Lua](#create--inherit-mooc-class-from-lua)
   - [create mooc struct from Lua](#create-mooc-struct-from-lua)
@@ -13,7 +13,7 @@
 with library, you can
 
 - require .mooc module from Lua
-- dofile / loadfile / loadstring
+- dofile / loadfile / loadstring / loadbuffer
 - control compile step
 - create / inherit mooc class from Lua
 - create mooc struct from Lua
@@ -43,7 +43,7 @@ lib.pr("Hello, world")
 -- Hello, world
 ```
 
-## dofile / loadfile / loadstring
+## dofile / loadfile / loadstring / loadbuffer
 
 these interface likes in Lua, use exp_lib.mooc created before, then create test_core.lua, content below shows usage
 
@@ -59,9 +59,16 @@ print("dofile", d, d.pr == print)
 
 local l = MoocCore.loadstring("return { pr = print }")
 print("loadstring", l, l().pr == print)
+
+local ret, s = MoocCore.loadbuffer("fn abc() {}")
+print("loadsbuffer", ret)
+print(s)
 -- loadfile        function: 0x00078ff8    table: 0x00078be8       true
 -- dofile          table: 0x0005a538       true
 -- loadstring      function: 0x0005b110    true
+-- loadsbuffer	true
+-- local function abc()
+-- end
 ```
 
 ## control compile step

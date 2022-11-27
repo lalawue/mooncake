@@ -16,7 +16,7 @@ local function newMoocClass(cls_name, super_type)
 		end
 	end
 	local ins_mt = { __tostring = function(t)
-		return sfmt("<class %s: %p>", cls_name, t)
+		return "<class " .. cls_name .. t.__ins_name .. ">"
 	end, __index = function(t, k)
 		local v = cls_type[k]
 		if v ~= nil then
@@ -33,7 +33,9 @@ local function newMoocClass(cls_name, super_type)
 		end
 		return v
 	end, __call = function(_, ...)
-		local ins = setmetatable({  }, ins_mt)
+		local t = {  }
+		t.__ins_name = tostring(t):sub(6)
+		local ins = setmetatable(t, ins_mt)
 		if type(ins.init) == 'function' and ins:init(...) == false then
 			return nil
 		end
@@ -48,7 +50,7 @@ local function newMoocStruct(cls_name)
 	local cls_type = { __tn = cls_name, __tk = 'struct' }
 	cls_type.__ct = cls_type
 	local ins_mt = { __tostring = function(t)
-		return sfmt("<struct %s: %p>", cls_name, t)
+		return "<struct " .. cls_name .. t.__ins_name .. ">"
 	end, __index = function(t, k)
 		local v = rawget(cls_type, k)
 		if v ~= nil then
@@ -69,7 +71,9 @@ local function newMoocStruct(cls_name)
 			rawset(cls_type, k, v)
 		end
 	end, __call = function(_, ...)
-		local ins = setmetatable({  }, ins_mt)
+		local t = {  }
+		t.__ins_name = tostring(t):sub(6)
+		local ins = setmetatable(t, ins_mt)
 		if type(ins.init) == 'function' and ins:init(...) == false then
 			return nil
 		end

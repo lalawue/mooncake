@@ -31,7 +31,7 @@ fn newMoocClass(cls_name, super_type) {
         cls_type.isKindOf = fn(c, a) { return a and c and ((c.__ct == a) or (c.__st and c.__st:isKindOf(a))) or false }
     }
     ins_mt = {
-        __tostring = fn(t) { return sfmt("<class %s: %p>", cls_name, t) },
+        __tostring = fn(t) { return "<class " .. cls_name .. t.__ins_name .. ">" },
         __index = fn(t, k) {
             v = cls_type[k]
             if v ~= nil { fRawSet(t, k, v) }
@@ -46,7 +46,9 @@ fn newMoocClass(cls_name, super_type) {
             return v
         },
         __call = fn(_, ...) {
-            ins = setmetatable({}, ins_mt)
+            t = {}
+            t.__ins_name = tostring(t):sub(6)
+            ins = setmetatable(t, ins_mt)
             if type(ins.init) == 'function' and ins:init(...) == false { return nil }
             return ins
         }
@@ -69,7 +71,7 @@ fn newMoocStruct(cls_name) {
     }
     cls_type.__ct = cls_type
     ins_mt = {
-        __tostring = fn(t) { return sfmt("<struct %s: %p>", cls_name, t) },
+        __tostring = fn(t) { return "<struct " .. cls_name .. t.__ins_name .. ">" },
         __index = fn(t, k) {
                 v = rawget(cls_type, k)
                 if v ~= nil { rawset(t, k, v) }
@@ -82,9 +84,11 @@ fn newMoocStruct(cls_name) {
         __index = fn(_, k) { return rawget(cls_type, k) },
         __newindex = fn(_, k, v) { if v ~= nil and rawget(cls_type, k) ~= nil { rawset(cls_type, k, v) } },
         __call = fn(_, ...) {
-                ins = setmetatable({}, ins_mt)
-                if type(ins.init) == 'function' and ins:init(...) == false { return nil }
-                return ins
+            t = {}
+            t.__ins_name = tostring(t):sub(6)
+            ins = setmetatable(t, ins_mt)
+            if type(ins.init) == 'function' and ins:init(...) == false { return nil }
+            return ins
         },
     }), cls_type
 }

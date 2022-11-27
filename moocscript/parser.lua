@@ -64,7 +64,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct QuickStack: %p>", t) end,
+		__tostring = function(t) return "<struct QuickStack" .. t.__ins_name .. ">" end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -77,7 +77,8 @@ do
 		__index = function(t, k) local v = rawget(__ct, k); if v ~= nil then rawset(t, k, v) end return v end,
 		__newindex = function(t, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __imt)
+			local t = {}; t.__ins_name = tostring(t):sub(6)
+			local ins = setmetatable(t, __imt)
 			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
@@ -126,7 +127,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct GroupMap: %p>", t) end,
+		__tostring = function(t) return "<struct GroupMap" .. t.__ins_name .. ">" end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -139,7 +140,8 @@ do
 		__index = function(t, k) local v = rawget(__ct, k); if v ~= nil then rawset(t, k, v) end return v end,
 		__newindex = function(t, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __imt)
+			local t = {}; t.__ins_name = tostring(t):sub(6)
+			local ins = setmetatable(t, __imt)
 			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
@@ -544,7 +546,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct Lexer: %p>", t) end,
+		__tostring = function(t) return "<struct Lexer" .. t.__ins_name .. ">" end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -557,7 +559,8 @@ do
 		__index = function(t, k) local v = rawget(__ct, k); if v ~= nil then rawset(t, k, v) end return v end,
 		__newindex = function(t, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __imt)
+			local t = {}; t.__ins_name = tostring(t):sub(6)
+			local ins = setmetatable(t, __imt)
 			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,
@@ -1519,7 +1522,7 @@ do
 	end
 	-- declare end
 	local __imt = {
-		__tostring = function(t) return string.format("<struct Parser: %p>", t) end,
+		__tostring = function(t) return "<struct Parser" .. t.__ins_name .. ">" end,
 		__index = function(t, k)
 			local v = rawget(__ct, k)
 			if v ~= nil then rawset(t, k, v) end
@@ -1532,7 +1535,8 @@ do
 		__index = function(t, k) local v = rawget(__ct, k); if v ~= nil then rawset(t, k, v) end return v end,
 		__newindex = function(t, k, v) if v ~= nil and rawget(__ct, k) ~= nil then rawset(t, k, v) end end,
 		__call = function(_, ...)
-			local ins = setmetatable({}, __imt)
+			local t = {}; t.__ins_name = tostring(t):sub(6)
+			local ins = setmetatable(t, __imt)
 			if type(rawget(__ct,'init')) == 'function' and __ct.init(ins,...) == false then return nil end
 			return ins
 		end,

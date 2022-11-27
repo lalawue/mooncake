@@ -1,4 +1,4 @@
-local parser = require("moocscript.parser")
+local parser = require("spec._tool_bridge").parser
 
 describe("test success #utils", function()
     local mnstr=[[

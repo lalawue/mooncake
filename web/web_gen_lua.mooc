@@ -1,0 +1,91 @@
+--
+-- Copyright (c) 2022 lalawue
+--
+-- This library is free software; you can redistribute it and/or modify it
+-- under the terms of the MIT license. See LICENSE for details.
+--
+
+import Utils from "moocscript.utils"
+import Core from "moocscript.core"
+
+--- generate standalone moocscript parser/compiler/core for browser / node Lua VM
+class Web {
+
+    fn toLuaArr(config, content) {
+        ast = Core.toAST(config, content)
+        code = Core.toLua(config, ast)
+        return Utils.split(code, '\n')
+    }
+
+    -- replace content, then return
+    fn replaceContent(content, sub_name, lib_name) {
+        content = content:gsub("return ", sub_name .. " = ")
+        content = content .. "; package.loaded['" .. lib_name .. "'] = " .. sub_name
+        return content
+    }
+
+    -- generate utils parts
+    fn genUtils(config, content) {
+        content = 'export js \n' .. content
+        content = content:gsub('io%.write%(.-%)', 'print(str)')
+        content = content:gsub([[static fn readFile.-f,]], [[static fn readFile(file_path) {
+        if js {
+            return js.mooc_loadscript(file_path)
+        }
+        f,]])
+        arr = self:toLuaArr(config, "local MoocLib = {} do { \n" .. content .. " }")
+        arr[#arr - 1] = self:replaceContent(arr[#arr - 1], "MoocLib.utils", "moocscript.utils")
+        return table.concat(arr, '\n')
+    }
+
+    -- generate parser part
+    fn genParser(config, content) {
+        arr = self:toLuaArr(config, "export MoocLib do { \n" .. content .. " }")
+        arr[#arr - 1] = self:replaceContent(arr[#arr - 1], "MoocLib.parser", "moocscript.parser")
+        return table.concat(arr, '\n')
+    }
+
+    -- generate compiler part, add fengari, js global name
+    fn genCompiler(config, content) {
+        content = content:gsub('"_G",', '"_G","fengari","js",')
+        arr = self:toLuaArr(config, "export MoocLib do {" .. content .. "}")
+        arr[#arr - 1] = self:replaceContent(arr[#arr - 1], "MoocLib.compiler", "moocscript.compiler")
+        return table.concat(arr, '\n')
+    }
+
+    -- gnerate core part
+    fn genCore(config, content) {
+        content = content:gsub('insert%(loaders, mcLoader%)', 'insert(loaders, 3, mcLoader)')
+        arr = self:toLuaArr(config, "export MoocLib do {" .. content .. "}")
+        arr[#arr - 1] = self:replaceContent(arr[#arr - 1], "MoocLib.core", "moocscript.core")
+        return table.concat(arr, '\n')
+    }
+
+    -- generate class part
+    fn genClass(config, content) {
+        arr = self:toLuaArr(config, "export MoocLib do {" .. content .. "}")
+        arr[#arr - 1] = self:replaceContent(arr[#arr - 1], "MoocLib.class", "moocscript.class")
+        return table.concat(arr, '\n')
+    }
+
+    fn main() {
+        tbl = {
+            { self.genUtils, 'utils' },
+            { self.genParser, 'parser' },
+            { self.genCompiler, 'compiler' },
+            { self.genCore, 'core' },
+            { self.genClass, 'class' },
+        }
+        config = { fname = '' }
+        fcodes = { "-- auto generated standalone moocscript parser & compiler & core library" }
+        for i, t in ipairs(tbl) {
+            func = t[1]
+            config.fname = 'moocscript/' .. t[2] .. '.mooc'
+            fcodes[1 + i] = func(self, config, Utils.readFile(config.fname))
+        }
+        fcodes[#fcodes + 1] = "return MoocLib"
+        return table.concat(fcodes, '\n')
+    }
+}
+
+print( Web:main() )

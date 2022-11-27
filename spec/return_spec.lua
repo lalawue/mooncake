@@ -1,11 +1,11 @@
-local parser = require("moocscript.parser")
-local compile = require("moocscript.compile")
+local parser = require("spec._tool_bridge").parser
+local compiler = require("spec._tool_bridge").compiler
 
 describe("test success #return", function()
     local mnstr=[[
         while true {
             return 1, _G, "99", fn(a){}, table.remove
-        }        
+        }
         if false {
             return (loadstring or load)("", "", unpack({}))
         }
@@ -18,12 +18,12 @@ describe("test success #return", function()
         assert.is_true(type(ast) == "table")
     end)
 
-    local ret, content = compile.compile({}, ast)
+    local ret, content = compiler.compile({}, ast)
     it("should get compiled lua", function()
         assert.is_true(ret)
         assert.is_true(type(content) == "string")
     end)
- 
+
     local f = load(content, "test", "t")
     it("should get function", function()
         assert(type(f) == "function")

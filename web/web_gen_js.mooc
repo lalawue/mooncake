@@ -1,0 +1,23 @@
+--
+-- Copyright (c) 2022 lalawue
+--
+-- This library is free software; you can redistribute it and/or modify it
+-- under the terms of the MIT license. See LICENSE for details.
+--
+
+import Utils from "moocscript.utils"
+
+-- generate out/web/moocscript-web.js
+fn genWebJS(tmpl_path, code_path) {
+    tmpl = Utils.readFile(tmpl_path)
+    lua_code = Utils.readFile(code_path)
+    ret = tmpl:gsub('heredoc%(%)', { in return 'heredoc(function(){/*' .. lua_code .. '*/})' })
+    return ret
+}
+
+tmpl, lua = ...
+if tmpl and lua {
+    print( genWebJS(tmpl, lua) )
+} else {
+    print("Usage: web_gen_js.mooc template.js moocscript-standalone.lua")
+}

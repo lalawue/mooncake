@@ -14,10 +14,15 @@ describe("test success #core", function()
         --
         core.dofile('./moocscript/core.mooc')
         --
-        local f = core.loadfile('./moocscript/core.mooc')
+        local f, emsg = core.loadfile('./moocscript/core.mooc')
         assert.is_equal(f().version(), core.version())
         --
-        local f = core.loadstring([[fn abc(){ return 'abc'}; return abc()]])
+        local f, emsg = core.loadstring([[fn abc(){ return 'abc'}; return abc()]])
+        assert.is_equal(f(), 'abc')
+        --
+        local f, emsg = core.loadbuffer([[fn abc(){ return 'abc'}; return abc()]])
+        assert.is_true(f)
+        f = loadstring(emsg)
         assert.is_equal(f(), 'abc')
         --
         local ast = core.toAST(nil, [[fn name(){}]])
@@ -32,8 +37,7 @@ end]])
             fpath = './out/moocscript/core.mooc'
             utils.writeFile(fpath, content)
         end
-        local f = package.mooc_loaded('moocscript.core')
-        assert.is_equal(f().version(), core.version())
+        assert.is_function(package.mooc_loaded)
         if fpath ~= nil then
             os.remove(fpath)
         end
