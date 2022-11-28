@@ -105,22 +105,23 @@ print(b:canSing()) -- true
 ```lua
 -- guard, continue, switch
 do {
-    for i, v in ipairs(tbl) {
-
+    for i, v in ipairs({'A', 'B', 'C', 'D', 'E'}) {
         guard i > 1 else {
             continue
         }
         switch v {
-            case 'B':
-                v = 'case ' .. v
+            case 'B', 'D':
+                print('case \(v)')
+            case 'C':
+                break
             default:
-                v = 'default ' .. v
+                print('default \(v)')
         }
-        print(v)
     }
 }
 -- print 'case B'
--- print 'default C'
+-- print 'case D'
+-- print 'default E'
 
 -- defer keyword
 do {
