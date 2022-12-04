@@ -119,8 +119,10 @@ local function mcAppendLoader()
 	insert(loaders, mcLoader)
 	package.mooc_loaded = mcLoader
 end
+local moocVersionShort = "0.8.20221204"
+local moocVersionLong = "moocscript v" .. moocVersionShort .. ", " .. (jit and jit.version or _VERSION)
 local function mcVersion()
-	return "moocscript v0.7.20221112, " .. (jit and jit.version or _VERSION)
+	return moocVersionLong
 end
 local function mcLoaded()
 	return package.mooc_loaded ~= nil

@@ -1,28 +1,26 @@
 
-- [Library Interface](#library-interface)
-  - [require .mooc from Lua](#require-mooc-from-lua)
-  - [dofile / loadfile / loadstring / loadbuffer](#dofile--loadfile--loadstring--loadbuffer)
-  - [control compile step](#control-compile-step)
-  - [create / inherit mooc class from Lua](#create--inherit-mooc-class-from-lua)
-  - [create mooc struct from Lua](#create-mooc-struct-from-lua)
-  - [extent class / struct from Lua](#extent-class--struct-from-lua)
-  - [other interface](#other-interface)
 
 # Library Interface
 
-with library, you can
+- [Library Interface](#library-interface)
+  - [Core Library](#core-library)
+    - [require .mooc from Lua](#require-mooc-from-lua)
+    - [dofile / loadfile / loadstring / loadbuffer](#dofile--loadfile--loadstring--loadbuffer)
+    - [control compile step](#control-compile-step)
+    - [other interface](#other-interface)
+  - [Class Library](#class-library)
+    - [create / inherit mooc class from Lua](#create--inherit-mooc-class-from-lua)
+    - [create mooc struct from Lua](#create-mooc-struct-from-lua)
+    - [extent class / struct from Lua](#extent-class--struct-from-lua)
+  - [Standalone Library](#standalone-library)
+    - [skeleton](#skeleton)
 
-- require .mooc module from Lua
-- dofile / loadfile / loadstring / loadbuffer
-- control compile step
-- create / inherit mooc class from Lua
-- create mooc struct from Lua
-- extent mooc class / struct from Lua
-- other interface
 
 you can get these examples code from `examples/library` direcotry.
 
-## require .mooc from Lua
+## Core Library
+
+### require .mooc from Lua
 
 just `require("moocscript.core")` before you load any .mooc module
 
@@ -43,7 +41,7 @@ lib.pr("Hello, world")
 -- Hello, world
 ```
 
-## dofile / loadfile / loadstring / loadbuffer
+### dofile / loadfile / loadstring / loadbuffer
 
 these interface likes in Lua, use exp_lib.mooc created before, then create test_core.lua, content below shows usage
 
@@ -71,7 +69,7 @@ print(s)
 -- end
 ```
 
-## control compile step
+### control compile step
 
 here shows how to get AST and generate Lua code, create test_step.lua, and run as `lua test_step.lua exp_lib.mooc`
 
@@ -115,7 +113,20 @@ else
 end
 ```
 
-## create / inherit mooc class from Lua
+### other interface
+
+these interfaces from `require("moocscript.core")`:
+
+- removeloader(): you can remove .mooc loader form VM
+- appendloader(): add .mooc loader to VM
+- version(): show MoonCake version
+- loaded(): return loaded state
+- clearProj(): clear global export, using in project config
+- require(): only require `.mooc` file in `package.path`, using in web environment
+
+## Class Library
+
+### create / inherit mooc class from Lua
 
 you can create / inherit mooc class from Lua side, but has limitations,
 can not create class or instance metamethod outside class definition.
@@ -154,7 +165,7 @@ c:sayHi()
 
 if super type `ClassA` was not a mooc class, ClassC is nil, and will cause runtime error.
 
-## create mooc struct from Lua
+### create mooc struct from Lua
 
 like create mooc class
 
@@ -182,7 +193,7 @@ print(a.try_newindexs)
 -- nil
 ```
 
-## extent class / struct from Lua
+### extent class / struct from Lua
 
 you can extent class / struct by raw table
 
@@ -225,13 +236,26 @@ print(b2:goodBye())
 -- Goodby
 ```
 
-## other interface
+## Standalone Library
 
-these interfaces from `require("moocscript.core")`:
+just combined `utils`, `parser`, `compiler`, `core`, `class` libraries into one, only load once for web environment.
 
-- removeloader(): you can remove .mooc loader form VM
-- appendloader(): add .mooc loader to VM
-- version(): show MoonCake version
-- loaded(): return loaded state
-- clearProj(): clear global export, used in project config
-- require(): only require `.mooc` file in `package.path`
+it's a special verison, now add `fengari` key word for using inside [Fengari](https://fengari.io/) Lua VM in browser.
+
+### skeleton
+
+you can use it in other Lua VM.
+
+for example, get seperated `utils`, `parser`, `compiler`, `core`, `class` libraries:
+
+```lua
+local MoocLib = require("out/web/moocscript-web")
+for k, v in pairs(MoocLib) do
+        print(k, v)
+end
+-- parser	table: 0x010a033dc8
+-- core	table: 0x010a055478
+-- compiler	table: 0x010a054b80
+-- class	table: 0x010a0555d8
+-- utils	<class Utils>
+```

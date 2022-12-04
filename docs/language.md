@@ -4,8 +4,8 @@
 - [Content](#content)
   - [String](#string)
   - [Comment](#comment)
-  - [Assigment & Scope](#assigment--scope)
-    - [export *](#export-)
+  - [Assigment \& Scope](#assigment--scope)
+    - [export \*](#export-)
     - [global names](#global-names)
     - [operators](#operators)
   - [Table](#table)
@@ -607,7 +607,7 @@ for i=1, 10 {
 
 ### break
 
-just likes in Lua
+just likes in Lua, but `break` inside `switch` implemented by `goto`, not support in Lua 5.1
 
 ```lua
 --[[

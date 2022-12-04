@@ -125,9 +125,9 @@ moocscript v0.7.20221006, Lua 5.4
 		return "My name is \(self.name)"
 	}
 }
-> petter = Person("Petter")
-> print(petter:intro())
-My name is Petter
+> peter = Person("Peter")
+> print(peter:intro())
+My name is peter
 ```
 
 ## project config
@@ -163,12 +163,12 @@ return {
 
 here shows two project config, or two source directory.
 
-- 'name' entry no meanings for MoonCake
-- 'proj_export' for export variable declared forward as global variable
-- 'proj_dir' is the input directory
-- 'proj_out' is the output directory
-- 'fn_filter' will filter in path, return false if you do not want to copy or output Lua source
-- 'fn_after' will be called after Lua code generated and before write to out path, you can modify output content here
+- `name` entry no meanings for MoonCake
+- `proj_export` for export variable declared forward as global variable
+- `proj_dir` is the input directory
+- `proj_out` is the output directory
+- `fn_filter` will filter in path, return false if you do not want to copy or output Lua source
+- `fn_after` will be called after Lua code generated and before write to out path, you can modify output content here
 
 in project mode, MoonCake will travel proj_dir recursively, translate all .mooc file to .lua into `proj_out` directory, the travel order will not as it running, a required calling order, maybe it will meet many global variable before declared, and it will cause error.
 
@@ -196,4 +196,3 @@ Source: defer {
 the output is quite straight forward, 'ERR' means compile error, before it shows error details.
 
 any error will stop project building.
-

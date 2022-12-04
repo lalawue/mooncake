@@ -7,10 +7,10 @@ describe("test success #import", function()
         import "moocscript.utils"
         import utils from "moocscript.utils"
         import ut from utils
-        import split, trim from ut {}
+        import split from ut {}
         fn call() {
             import s from "moocscript.utils" { split }
-            return { s, trim, utils }
+            return { s, utils }
         }
         return call()
     ]]
@@ -32,8 +32,7 @@ describe("test success #import", function()
         assert(type(f) == "function")
         local s = f()
         assert.is_equal(s[1], utils.split)
-        assert.is_equal(s[2], utils.trim)
-        assert.is_equal(s[3], utils)
+        assert.is_equal(s[2], utils)
     end)
 end)
 

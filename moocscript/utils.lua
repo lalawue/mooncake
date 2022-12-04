@@ -73,22 +73,6 @@ do
 		end
 		return s
 	end
-	__ct.blank_set = Utils.set({ " ", "\t", "\n", "\r" })
-	function __ct.trim(self)
-		local i = 1
-		local j = self:len()
-		local blank_set = Utils.blank_set
-		while i <= j do
-			if blank_set[self:sub(i, i)] then
-				i = i + 1
-			elseif blank_set[self:sub(j, j)] then
-				j = j - 1
-			else 
-				return self:sub(i, j)
-			end
-		end
-		return self
-	end
 	function __ct.seqReduce(tbl, init, func)
 		for i, v in ipairs(tbl) do
 			init = func(init, i, v)

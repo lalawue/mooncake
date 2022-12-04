@@ -134,8 +134,11 @@ fn mcAppendLoader() {
     package.mooc_loaded = mcLoader
 }
 
+moocVersionShort = "0.8.20221204"
+moocVersionLong = "moocscript v" .. moocVersionShort .. ", " .. (jit and jit.version or _VERSION)
+
 fn mcVersion() {
-    return "moocscript v0.7.20221112, " .. (jit and jit.version or _VERSION)
+    return moocVersionLong
 }
 
 fn mcLoaded() {
@@ -144,8 +147,6 @@ fn mcLoaded() {
 
 -- append loader
 mcAppendLoader()
-
--- MARK: -
 
 return {
     loadbuffer = mcLoadBuffer,

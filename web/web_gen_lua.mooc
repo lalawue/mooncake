@@ -8,8 +8,10 @@
 import Utils from "moocscript.utils"
 import Core from "moocscript.core"
 
---- generate standalone moocscript parser/compiler/core for browser / node Lua VM
+--- generate standalone library combined with 'utils', 'parser', 'compiler', 'core', 'class' for browser / node Lua VM
 class Web {
+
+    shortVersion = ""
 
     fn toLuaArr(config, content) {
         ast = Core.toAST(config, content)
@@ -55,6 +57,7 @@ class Web {
 
     -- gnerate core part
     fn genCore(config, content) {
+        self.shortVersion = content:match('moocVersionShort%s*=%s*"([%d%.]+)"')
         content = content:gsub('insert%(loaders, mcLoader%)', 'insert(loaders, 3, mcLoader)')
         arr = self:toLuaArr(config, "export MoocLib do {" .. content .. "}")
         arr[#arr - 1] = self:replaceContent(arr[#arr - 1], "MoocLib.core", "moocscript.core")
@@ -77,13 +80,16 @@ class Web {
             { self.genClass, 'class' },
         }
         config = { fname = '' }
-        fcodes = { "-- auto generated standalone moocscript parser & compiler & core library" }
+        fcodes = { "-- auto generated standalone library combined with 'utils', 'parser', 'compiler', 'core', 'class' for moocscript v" }
         for i, t in ipairs(tbl) {
             func = t[1]
             config.fname = 'moocscript/' .. t[2] .. '.mooc'
             fcodes[1 + i] = func(self, config, Utils.readFile(config.fname))
         }
         fcodes[#fcodes + 1] = "return MoocLib"
+        if self.shortVersion:len() > 0 {
+            fcodes[1] = fcodes[1] .. self.shortVersion
+        }
         return table.concat(fcodes, '\n')
     }
 }

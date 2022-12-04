@@ -67,12 +67,6 @@ describe("test success #utils", function()
         assert.is_equal(arr[2], "456")
     end)
 
-    it("should strim", function()
-        local mnstr=[[ 123  ]]
-        local ret = utils.trim(mnstr)
-        assert.is_equal(ret, '123')
-    end)
-
     local mnstr=[[defer {}]]
 
     local ret, ast = parser.parse(mnstr)

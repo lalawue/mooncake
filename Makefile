@@ -28,7 +28,7 @@ all:
 	@echo "Usage:"
 	@echo "\t $ make test \t# busted ./$(NAME)/?.lua"
 	@echo "\t $ make out \t# busted ./$(ODIR)/?.lua"
-	@echo "\t $ make web \t# busted ./$(ODIR)/moocscript.lua"
+	@echo "\t $ make web \t# busted ./$(WDIR)/moocscript-web.lua"
 	@echo "\t $ make gen \t# generate ./$(ODIR)/?.lua from ./$(NAME)/?.mooc"
 	@echo "\t $ make install \t# please edit Makefile first"
 	@echo "\t $ make uninstall \t# please edit Makefile first"

@@ -191,6 +191,19 @@ $ export LUA_PATH=./?.lua
 $ ./bin/moocscript
 ```
 
+or just `make` to see other generation option
+
+```sh
+$ make
+Usage:
+	 make test 	# busted ./moocscript/?.lua
+	 make out 	# busted ./out/moocscript/?.lua
+	 make web 	# busted ./out/web/moocscript-web.lua
+	 make gen 	# generate ./out/moocscript/?.lua from ./moocscript/?.mooc
+	 make install 	# please edit Makefile first
+	 make uninstall 	# please edit Makefile first
+```
+
 with requirement
 
 - [Lua](https://www.lua.org/) >= 5.1 **OR** [LuaJIT](https://luajit.org/) >= 2.0
