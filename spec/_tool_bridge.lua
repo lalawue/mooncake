@@ -1,1 +1,1 @@
-return { parser = require("web.moocscript-web").parser, compiler = require("web.moocscript-web").compiler }
+return { parser = require("moocscript.parser"), compiler = require("moocscript.compiler") }
