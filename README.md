@@ -17,6 +17,8 @@
 - [Running](#running)
 - [Test](#test)
 - [Editor with LSP Support](#editor-with-lsp-support)
+  - [App Market Installation](#app-market-installation)
+  - [Local Installation](#local-installation)
 - [Projects using MoonCake](#projects-using-mooncake)
 
 ## MoonCake
@@ -216,7 +218,7 @@ check install first
 
 ```sh
 $ moocscript -v
-moocscript v0.7.20221112, Lua 5.4
+moocscript v0.8.20221204, Lua 5.4
 ```
 
 then enter REPL without an editor
@@ -288,7 +290,17 @@ moocscript/utils.lua                                                    121  14 
 
 [MoocHelper](https://github.com/lalawue/MoocHelper) is a High-performance MoonCake/Lua plugin, Language Server Protocol for MoonCake/Lua, modified from [LuaHelper](https://github.com/Tencent/LuaHelper).
 
-you can create your own .vsix package through `vsce package`, or you can download a pre-build one in [releases](https://github.com/lalawue/MoocHelper/releases/), or in [gitee mirror](https://gitee.com/lalawue/MoocHelper/releases/).
+### App Market Installation
+
+- Click the Vs Code application market icon
+- Search `moochelper` in the input box
+- Click to install MoocHelper
+- Marketplace url: https://marketplace.visualstudio.com/items?itemName=suchangnet.MoocHelper
+
+### Local Installation
+
+- download a pre-build one in [releases](https://github.com/lalawue/MoocHelper/releases/), or in [gitee mirror](https://gitee.com/lalawue/MoocHelper/releases/).
+- or create your own .vsix package with `npm install -g vsce`, then `vsce package` under `luahelper-vscode` dir
 
 ![vscode_extension](docs/vscode_extension.png)
 
